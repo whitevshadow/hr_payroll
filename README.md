@@ -165,6 +165,38 @@ Roles come from `GET /auth/me` and are enforced **server-side** (the shared
 
 ---
 
+## 🕸️ Knowledge Graph (Graphify)
+
+This project features a fully compiled, persistent knowledge graph of its microservice architecture, relationships, and cross-cutting dependencies, built using `graphify`.
+
+### How to use Graphify
+
+To run a full semantic and AST analysis on the codebase and generate the interactive visualization and report:
+
+```bash
+# 1. Install graphifyy and initialize integration
+py -m pip install graphifyy
+py -m graphify antigravity install
+
+# 2. Run the extraction and generation pipeline
+py scripts/generate_graph.py
+```
+
+This creates a dedicated folder `graphify-out/` containing:
+- **`graphify-out/graph.html`**: An interactive D3 force-directed visualizer. Open it in any browser to explore files, symbols, and dependencies grouped into communities.
+- **`graphify-out/GRAPH_REPORT.md`**: A comprehensive plain-language audit report highlighting God Nodes (most connected core abstractions), Surprising/Inferred Connections, Hyperedges, and suggested architectural questions.
+- **`graphify-out/graph.json`**: A persistent, queryable JSON knowledge graph of the system.
+
+### Key Architecture Communities Discovered
+- **Shared Enterprise Modules**: Standard DB session builders, security schemas, auditing models in `hr_shared`.
+- **Payroll Calculation Engine**: The state machine and orchestrator code inside `payroll-service`.
+- **Statutory Compliance (PF/ESI/PT)**: Standard algorithms, limits, and contributions logic.
+- **TDS Tax Calculation**: Slabs, investment declarations, and tests.
+- **Microservices & API Gateway**: Orchestrations and routes.
+- **Frontend App Shell & Components**: React components, pages, and hooks.
+
+---
+
 ## Tests
 
 Unit tests for the money math (run from each service dir to avoid the duplicate
