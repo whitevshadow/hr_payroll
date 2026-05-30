@@ -1,0 +1,10 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+python-jose[cryptography]>=3.3
+httpx>=0.27
+# xhtml2pdf requires pycairo (needs gcc). Install separately if PDF export needed.
+# TODO(v2): use WeasyPrint (requires system libs) or a headless browser for PDF.

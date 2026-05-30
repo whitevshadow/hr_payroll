@@ -1,0 +1,41 @@
+import api from "../lib/api";
+import type {
+  AuditEvent,
+  CycleSummaryResponse,
+  PayrollCycle,
+  PayrollResult,
+  RunSummary,
+} from "../types";
+
+export const payrollApi = {
+  listCycles: () => api.get<PayrollCycle[]>("/payroll/cycles").then((r) => r.data),
+
+  getCycle: (id: string) =>
+    api.get<PayrollCycle>(`/payroll/cycles/${id}`).then((r) => r.data),
+
+  createCycle: (body: {
+    name: string;
+    period_start: string;
+    period_end: string;
+    is_dry_run?: boolean;
+  }) => api.post<PayrollCycle>("/payroll/cycles", body).then((r) => r.data),
+
+  runCycle: (id: string) =>
+    api.post<RunSummary>(`/payroll/cycles/${id}/run`).then((r) => r.data),
+
+  approveCycle: (id: string) =>
+    api.post(`/payroll/cycles/${id}/approve`).then((r) => r.data),
+
+  getCycleSummary: (id: string) =>
+    api
+      .get<CycleSummaryResponse>(`/payroll/cycles/${id}/summary`)
+      .then((r) => r.data),
+
+  getResult: (cycleId: string, employeeId: string) =>
+    api
+      .get<PayrollResult>(`/payroll/results/${cycleId}/${employeeId}`)
+      .then((r) => r.data),
+
+  getAudit: (params?: { event_type?: string; limit?: number }) =>
+    api.get<AuditEvent[]>("/audit", { params }).then((r) => r.data),
+};

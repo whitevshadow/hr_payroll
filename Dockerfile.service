@@ -1,0 +1,26 @@
+# Generic Dockerfile for every Python/FastAPI service.
+# Build context is the repo root. Pass SERVICE (folder under services/) and PORT.
+FROM python:3.11-slim
+
+ARG SERVICE
+ARG PORT=8000
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    SERVICE=${SERVICE} \
+    PORT=${PORT}
+
+WORKDIR /app
+
+# Install the shared package first (cached unless shared changes).
+COPY shared/ /app/shared/
+RUN pip install --no-cache-dir -e /app/shared
+
+# Install the service's own requirements.
+COPY services/${SERVICE}/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy the service code.
+COPY services/${SERVICE}/app /app/app
+
+EXPOSE ${PORT}
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

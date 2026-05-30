@@ -1,0 +1,169 @@
+name: hr-payroll
+
+x-common-env: &common-env
+  DATABASE_URL: postgresql+asyncpg://hr:hr@postgres:5432/hr_payroll
+  JWT_SECRET: super-secret-shared-key-change-me
+  JWT_ALGORITHM: HS256
+  ACCESS_TOKEN_MINUTES: "120"
+
+x-service-build: &service-build
+  context: .
+  dockerfile: Dockerfile.service
+
+x-depends: &depends-on-db
+  postgres:
+    condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hr
+      POSTGRES_PASSWORD: hr
+      POSTGRES_DB: hr_payroll
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr -d hr_payroll"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: auth-service, PORT: "8001" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: auth_schema
+    depends_on: *depends-on-db
+
+  employee-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: employee-service, PORT: "8003" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: employee_schema
+    depends_on: *depends-on-db
+
+  salary-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: salary-service, PORT: "8004" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: salary_schema
+    depends_on: *depends-on-db
+
+  attendance-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: attendance-service, PORT: "8005" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: attendance_schema
+    depends_on: *depends-on-db
+
+  compliance-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: compliance-service, PORT: "8008" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: compliance_schema
+    depends_on: *depends-on-db
+
+  tds-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: tds-service, PORT: "8007" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: tds_schema
+    depends_on: *depends-on-db
+
+  payroll-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: payroll-service, PORT: "8006" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: payroll_schema
+      PT_DEFAULT_STATE: Maharashtra
+      PF_CEILING_ENABLED: "true"
+      EMPLOYEE_URL: http://employee-service:8003
+      SALARY_URL: http://salary-service:8004
+      ATTENDANCE_URL: http://attendance-service:8005
+      TDS_URL: http://tds-service:8007
+      COMPLIANCE_URL: http://compliance-service:8008
+      PAYOUT_URL: http://payout-service:8009
+      REPORTING_URL: http://reporting-service:8010
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  payout-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: payout-service, PORT: "8009" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: payout_schema
+    depends_on: *depends-on-db
+
+  reporting-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: reporting-service, PORT: "8010" }
+    environment:
+      <<: *common-env
+      DB_SCHEMA: reporting_schema
+      PAYROLL_URL: http://payroll-service:8006
+      REPORTS_DIR: /app/reports
+    depends_on: *depends-on-db
+
+  gateway:
+    build:
+      <<: *service-build
+      args: { SERVICE: gateway, PORT: "8000" }
+    environment:
+      <<: *common-env
+      AUTH_URL: http://auth-service:8001
+      EMPLOYEE_URL: http://employee-service:8003
+      SALARY_URL: http://salary-service:8004
+      ATTENDANCE_URL: http://attendance-service:8005
+      PAYROLL_URL: http://payroll-service:8006
+      TDS_URL: http://tds-service:8007
+      COMPLIANCE_URL: http://compliance-service:8008
+      PAYOUT_URL: http://payout-service:8009
+      REPORTING_URL: http://reporting-service:8010
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - employee-service
+      - salary-service
+      - attendance-service
+      - compliance-service
+      - tds-service
+      - payroll-service
+      - payout-service
+      - reporting-service
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: http://localhost:8000/api/v1
+    ports:
+      - "5173:80"    # nginx serves on :80 inside; exposed as 5173 outside
+    depends_on:
+      - gateway
+
+volumes:
+  pgdata:

@@ -1,0 +1,269 @@
+/* ── Google Fonts ────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 72px;
+    --topbar-height: 64px;
+    --radius: 12px;
+    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Dark mode body */
+  .dark body,
+  body.dark {
+    @apply bg-slate-950 text-slate-100;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-200 dark:bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-300 dark:bg-slate-600;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
+  }
+
+  /* Tabular numbers for all financial data */
+  .font-numeric,
+  [data-numeric],
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+@layer components {
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           bg-accent-600 px-4 py-2 text-sm font-semibold text-white
+           shadow-sm transition-all duration-150
+           hover:bg-accent-700 hover:shadow-md
+           active:scale-[0.98]
+           focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent-600 disabled:hover:shadow-sm;
+  }
+
+  .btn-sm {
+    @apply btn px-3 py-1.5 text-xs;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200
+           bg-white px-4 py-2 text-sm font-medium text-slate-700
+           shadow-sm transition-all duration-150
+           hover:bg-slate-50 hover:border-slate-300 hover:shadow-md
+           active:scale-[0.98]
+           focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300
+           dark:hover:bg-slate-700 dark:hover:border-slate-600;
+  }
+
+  .btn-ghost-sm {
+    @apply btn-ghost px-3 py-1.5 text-xs;
+  }
+
+  .btn-danger {
+    @apply btn bg-danger hover:bg-danger-dark;
+  }
+
+  /* ── Form controls ───────────────────────────────────────────────────── */
+  .input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900
+           placeholder:text-slate-400 shadow-sm
+           transition-all duration-150
+           focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/20
+           hover:border-slate-300
+           disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500
+           dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100
+           dark:placeholder:text-slate-500 dark:hover:border-slate-600
+           dark:focus:border-accent-500;
+  }
+
+  .input-search {
+    @apply input pl-9;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500
+           dark:text-slate-400;
+  }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+  .card {
+    @apply rounded-xl border border-slate-200/80 bg-white/85 p-5
+           shadow-glass backdrop-blur-sm
+           transition-shadow duration-200
+           dark:border-slate-700/60 dark:bg-slate-900/85;
+  }
+
+  .card-hover {
+    @apply card cursor-pointer hover:shadow-glass-md hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  .glass-panel {
+    @apply rounded-xl border border-white/20 bg-white/75 shadow-glass
+           backdrop-blur-xl
+           dark:border-white/8 dark:bg-slate-900/75;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  .th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500
+           dark:text-slate-400;
+  }
+
+  .td {
+    @apply px-4 py-3 text-sm text-slate-800 dark:text-slate-200;
+  }
+
+  .tr-hover {
+    @apply hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-100;
+  }
+
+  /* ── Status badges ───────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* ── Section headers ─────────────────────────────────────────────────── */
+  .section-title {
+    @apply text-[11px] font-semibold uppercase tracking-widest text-slate-400
+           dark:text-slate-500;
+  }
+
+  /* ── KPI Cards ───────────────────────────────────────────────────────── */
+  .kpi-card {
+    @apply card flex flex-col gap-1 min-h-[100px];
+  }
+
+  .kpi-label {
+    @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+
+  .kpi-value {
+    @apply text-2xl font-bold text-slate-900 dark:text-slate-50 font-numeric;
+  }
+
+  /* ── Sidebar nav ─────────────────────────────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+           text-slate-600 transition-all duration-150
+           hover:bg-slate-100 hover:text-slate-900
+           dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100;
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-accent-50 text-accent-700 
+           hover:bg-accent-100 hover:text-accent-800
+           dark:bg-accent-900/30 dark:text-accent-400
+           dark:hover:bg-accent-900/40 dark:hover:text-accent-300;
+  }
+
+  /* ── Timeline ─────────────────────────────────────────────────────────── */
+  .timeline-dot {
+    @apply h-2.5 w-2.5 rounded-full border-2 border-white shadow-sm dark:border-slate-900;
+  }
+
+  /* ── Shimmer skeleton ─────────────────────────────────────────────────── */
+  .skeleton {
+    @apply rounded-md bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100
+           dark:from-slate-800 dark:via-slate-700 dark:to-slate-800;
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* ── Divider ─────────────────────────────────────────────────────────── */
+  .divider {
+    @apply border-t border-slate-100 dark:border-slate-800;
+  }
+
+  /* ── Alert variants ──────────────────────────────────────────────────── */
+  .alert-danger {
+    @apply rounded-lg border border-danger/20 bg-danger-light px-4 py-3 text-sm text-danger-dark
+           dark:border-danger/30 dark:bg-danger/10 dark:text-danger;
+  }
+  .alert-warning {
+    @apply rounded-lg border border-warning/20 bg-warning-light px-4 py-3 text-sm text-warning-dark
+           dark:border-warning/30 dark:bg-warning/10 dark:text-warning;
+  }
+  .alert-success {
+    @apply rounded-lg border border-success/20 bg-success-light px-4 py-3 text-sm text-success-dark
+           dark:border-success/30 dark:bg-success/10 dark:text-success;
+  }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent-600 to-violet-600 bg-clip-text text-transparent;
+  }
+
+  .bg-mesh {
+    background-image:
+      radial-gradient(at 27% 37%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+      radial-gradient(at 97% 21%, rgba(124, 58, 237, 0.06) 0px, transparent 50%),
+      radial-gradient(at 52% 99%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Financial value formatting */
+  .financial {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    @apply font-semibold;
+  }
+}
+
+/* ── Dark mode overrides ──────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0F172A;
+  color: #F8FAFC;
+}
+
+/* ── Page transition ──────────────────────────────────────────────────────── */
+.page-enter {
+  animation: slideUp 0.2s ease-out;
+}
