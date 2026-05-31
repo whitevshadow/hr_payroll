@@ -454,15 +454,21 @@
   }
 
   .nav-item-premium-idle {
-    /* Hover background — applied via CSS, not JS */
+    transition: background 120ms ease, transform 120ms ease;
   }
 
   .nav-item-premium-idle:hover {
     background: rgba(255,255,255,0.28);
+    transform: translateX(2px);
   }
 
   .dark .nav-item-premium-idle:hover {
     background: rgba(255,255,255,0.06);
+  }
+
+  .nav-item-premium-idle:active {
+    transform: translateX(2px) scale(0.98);
+    transition-duration: 60ms;
   }
 
   .nav-item-premium-active {
@@ -671,7 +677,7 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.30);
     backdrop-filter: blur(8px);
     pointer-events: none;
-    z-index: 100;
+    z-index: 1000; /* Z.tooltip */
   }
 
   .dark .nav-tooltip {
@@ -727,6 +733,19 @@
     box-shadow: var(--shadow-glass);
     backdrop-filter: blur(var(--glass-modal-blur));
     -webkit-backdrop-filter: blur(var(--glass-modal-blur));
+  }
+
+  /* ── Glass card (used by TDS, Attendance, etc.) ────────────────────────── */
+  /* Identical visual to .card but named distinctly so pages can use it.      */
+  /* IMPORTANT: no overflow:hidden — prevents child portals from being clipped */
+  .card-glass {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border-subtle);
+    background: var(--glass-card-bg);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    transition: background-color var(--transition), border-color var(--transition);
   }
 
   /* ── Solid table surface (NO blur — readability first) ─────────────────── */
@@ -1020,7 +1039,7 @@
   .command-palette-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 9000;
+    z-index: 1599; /* just below Z.cmdPalette = 1600 */
     background: rgba(15,23,42,0.50);
     backdrop-filter: blur(6px) saturate(0.8);
     -webkit-backdrop-filter: blur(6px) saturate(0.8);
@@ -1031,8 +1050,7 @@
     position: fixed;
     top: 14vh;
     left: 50%;
-    transform: translateX(-50%);
-    z-index: 9001;
+    z-index: 1600; /* Z.cmdPalette */
     width: min(640px, calc(100vw - 2rem));
     border-radius: var(--radius-xl);
     border: 1px solid var(--glass-border);
@@ -1041,7 +1059,6 @@
     backdrop-filter: blur(var(--glass-modal-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-modal-blur)) saturate(1.8);
     overflow: hidden;
-    animation: scaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* ── Divider ─────────────────────────────────────────────────────────────── */
@@ -1097,6 +1114,77 @@
   }
 
   .subtle-glow { box-shadow: var(--shadow-glass); }
+
+  /* ── Responsive table wrapper ──────────────────────────────────────────── */
+  /* Wrap every data table in this div so it scrolls horizontally on mobile   */
+  /* while never causing page-level overflow.                                  */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Prevent the table container itself from creating a new stacking context */
+    position: relative;
+  }
+
+  /* ── Mobile-safe page content padding ─────────────────────────────────── */
+  /* Use on the inner max-width wrapper inside <main>.                        */
+  .page-content {
+    @apply mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6;
+  }
+
+  /* ── Touch-friendly minimum tap target ─────────────────────────────────── */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* ── Overlay isolation — prevents stacking-context traps ───────────────── */
+  /* Apply to containers that need to host overlays (dropdowns, etc.).        */
+  /* Do NOT set overflow:hidden on these elements.                             */
+  .overlay-host {
+    isolation: isolate;
+    overflow: visible;
+  }
+
+  /* ── Responsive KPI grid ────────────────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1024px) { .kpi-grid { grid-template-columns: repeat(6, 1fr); } }
+
+  /* ── Responsive data table → card list on mobile ──────────────────────── */
+  /* Tables with .table-cards class collapse into stacked cards < 640px       */
+  @media (max-width: 639px) {
+    .table-mobile-cards thead { display: none; }
+    .table-mobile-cards tr {
+      display: block;
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+      background: var(--glass-card-bg);
+      padding: 0.75rem 1rem;
+    }
+    .table-mobile-cards td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.375rem 0;
+      font-size: 0.8125rem;
+      border: none;
+    }
+    .table-mobile-cards td::before {
+      content: attr(data-label);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-right: 0.5rem;
+    }
+    .table-mobile-cards td:empty { display: none; }
+  }
 }
 
 /* ── Page transition ──────────────────────────────────────────────────────── */

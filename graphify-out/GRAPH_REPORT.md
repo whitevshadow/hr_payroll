@@ -1,16 +1,16 @@
 # Graph Report - Hr__PAYROLL  (2026-05-31)
 
 ## Corpus Check
-- 217 files · ~138,621 words
+- 217 files · ~144,615 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1604 nodes · 4246 edges · 106 communities (89 shown, 17 thin omitted)
-- Extraction: 70% EXTRACTED · 30% INFERRED · 0% AMBIGUOUS · INFERRED: 1260 edges (avg confidence: 0.53)
+- 1634 nodes · 4301 edges · 103 communities (86 shown, 17 thin omitted)
+- Extraction: 71% EXTRACTED · 29% INFERRED · 0% AMBIGUOUS · INFERRED: 1260 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dbd7bd01`
+- Built from commit: `2ff7b9a4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -61,19 +61,16 @@
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
-- [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
@@ -118,19 +115,19 @@
 - **API Gateway Route Mesh** — services_gateway_app_main_py, services_auth_service_app_main_py, services_employee_service_app_main_py, services_payroll_service_app_main_py [EXTRACTED 1.00]
 - **State-driven Payroll Run Flow** — services_payroll_service_app_orchestrator_py, services_attendance_service_app_main_py, services_salary_service_app_main_py, services_tds_service_app_main_py, services_compliance_service_app_main_py, services_payout_service_app_main_py [INFERRED 0.95]
 
-## Communities (106 total, 17 thin omitted)
+## Communities (103 total, 17 thin omitted)
 
 ### Community 0 - "Shared Enterprise Modules"
-Cohesion: 0.16
-Nodes (12): get_current_context(), Decoded identity for the current request., RequestContext, BaseServiceSettings, Pydantic settings base shared by every service., Common environment-driven settings for all services.      Each service subclas, Bundles engine, session factory and FastAPI dependencies for a service., Return a FastAPI dependency that enforces at least one of ``allowed`` roles. (+4 more)
+Cohesion: 0.06
+Nodes (47): async_sessionmaker, AsyncEngine, DeclarativeBase, audit_log(), AuditBase, AuditLog, ensure_audit_schema(), _hash_payload() (+39 more)
 
 ### Community 1 - "Payroll Calculation Engine"
 Cohesion: 0.11
 Nodes (66): compute_compliance(), compute_tds(), create_payout_batch(), generate_payslips(), _get(), get_attendance(), get_my_employee(), get_salary_breakdown() (+58 more)
 
 ### Community 2 - "Module: frontend & Frontend UI Shell"
-Cohesion: 0.12
-Nodes (21): reportingApi, ProtectedRoute(), api, clearToken(), getToken(), ME_QUERY_KEY, setToken(), useAuth() (+13 more)
+Cohesion: 0.18
+Nodes (15): ProtectedRoute(), api, clearToken(), getToken(), ME_QUERY_KEY, setToken(), useAuth(), isEmployeeOnly() (+7 more)
 
 ### Community 3 - "Statutory Compliance (PF/ESI)"
 Cohesion: 0.10
@@ -141,24 +138,24 @@ Cohesion: 0.23
 Nodes (50): DeclarationVersion, EmployeeDeclaration, EmployeeTaxProfile, Form122, Form16, ProofDocument, Investment declarations submitted by employees.      # TODO(v2): Old-regime tax, Investment declarations submitted by employees.      # TODO(v2): Old-regime tax (+42 more)
 
 ### Community 5 - "Employee Management Service"
-Cohesion: 0.17
-Nodes (38): Department, Employee, create_department(), create_employee(), get_employee(), get_my_employee(), list_departments(), list_employees() (+30 more)
+Cohesion: 0.13
+Nodes (39): Department, Employee, create_department(), create_employee(), get_employee(), get_my_employee(), list_departments(), list_employees() (+31 more)
 
 ### Community 6 - "Salary & Compensation Logic"
 Cohesion: 0.16
 Nodes (31): compute_breakdown(), is_metro(), Return monthly breakdown for an annual CTC.      special_allowance absorbs the, SalaryComponent, SalaryStructure, _build_structure(), _components_from_breakdown(), create_structure() (+23 more)
 
 ### Community 7 - "Module: frontend"
-Cohesion: 0.08
-Nodes (34): authApi, EmployeeListParams, payoutApi, Stepper(), STEPS, ADMIN_ROLES, AppRole, canApprove() (+26 more)
+Cohesion: 0.07
+Nodes (33): authApi, EmployeeListParams, salaryApi, Stepper(), STEPS, computeSalaryPreview(), r2(), Salary() (+25 more)
 
 ### Community 8 - "Auth & Identity Service"
 Cohesion: 0.19
 Nodes (28): Role, Tenant, User, create_user(), CreateUserRequest, _issue_token(), login(), me() (+20 more)
 
 ### Community 9 - "Frontend Pages & Views"
-Cohesion: 0.12
-Nodes (31): payrollApi, tdsApi, EmptyState(), IllustrationKey, ILLUSTRATIONS, Modal(), ModalFooter(), PageHeader() (+23 more)
+Cohesion: 0.09
+Nodes (42): payoutApi, payrollApi, EmptyState(), IllustrationKey, ILLUSTRATIONS, Modal(), ModalFooter(), PageHeader() (+34 more)
 
 ### Community 10 - "Reporting & Export Service"
 Cohesion: 0.14
@@ -166,11 +163,11 @@ Nodes (27): GeneratedReport, _fetch_cycle(), _fetch_result(), generate_form16(),
 
 ### Community 11 - "Frontend Pages & Views & Frontend API Hooks"
 Cohesion: 0.07
-Nodes (86): alias, AuditRow, _build_object_key(), _can_view_doc(), CategoryGroup, CompletionResponse, Config, delete_employee_doc() (+78 more)
+Nodes (89): AuditRow, _build_object_key(), _can_view_doc(), CategoryGroup, CompletionResponse, Config, delete_employee_doc(), DocListResponse (+81 more)
 
 ### Community 12 - "Attendance Service"
-Cohesion: 0.05
-Nodes (39): proxy(), Lightweight FastAPI reverse proxy.  Validates the JWT (except for public auth pa, _resolve(), AttendanceRecord, _first_of_month(), get_attendance(), _parse_month(), Accept YYYY-MM or YYYY-MM-DD; return the 1st of that month. (+31 more)
+Cohesion: 0.09
+Nodes (31): proxy(), Lightweight FastAPI reverse proxy.  Validates the JWT (except for public auth pa, _resolve(), AttendanceRecord, _first_of_month(), get_attendance(), _parse_month(), Accept YYYY-MM or YYYY-MM-DD; return the 1st of that month. (+23 more)
 
 ### Community 13 - "Module: frontend"
 Cohesion: 0.06
@@ -181,60 +178,60 @@ Cohesion: 0.22
 Nodes (20): PayoutBatch, PayoutTransaction, _bank_reference(), create_batch(), get_batches(), get_transactions(), _idempotency_key(), Simulated retry: re-marks a FAILED transaction as SUCCESS.      Rejects if the (+12 more)
 
 ### Community 15 - "Module: frontend & Frontend Pages & Views"
-Cohesion: 0.20
-Nodes (11): CsvColumn, toCSV(), formatINR(), Compliance(), CompTab, ESITable(), exportCsv(), PFTable() (+3 more)
+Cohesion: 0.50
+Nodes (3): CsvColumn, toCSV(), exportCsv()
 
 ### Community 16 - "Module: frontend"
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowImportingTsExtensions, baseUrl, isolatedModules, jsx, lib, module, moduleResolution (+10 more)
 
 ### Community 17 - "Payroll Calculation Engine"
-Cohesion: 0.10
-Nodes (36): Blob, Represents a stored file blob and its associated metadata., BlobRepository, CRUD operations for :class:`Blob` ORM records., BatchUploadResponse, PresignedUrlResponse, Contains a time-limited pre-signed download URL., Returned after a successful single-file upload. (+28 more)
+Cohesion: 0.08
+Nodes (33): BlobService, _decode_cursor(), _emit_audit_event(), _encode_cursor(), app/services/blob_service.py  Business logic layer that orchestrates between the, High-level operations on blobs (upload, download, list, delete, tags, purge)., Validate, upload to MinIO, and persist metadata.          Raises         ------, Upload multiple files atomically.          Strategy         --------         1. (+25 more)
 
 ### Community 18 - "Frontend Pages & Views"
 Cohesion: 0.11
 Nodes (16): complianceApi, ComplianceSummary, daysUntil(), getNextDeadlines(), nextOccurrence(), STATUTORY_DEADLINES, StatutoryDeadline, formatMonth() (+8 more)
 
 ### Community 19 - "Frontend Pages & Views"
-Cohesion: 0.09
-Nodes (25): attendanceApi, salaryApi, currentMonthValue(), firstToMonth(), formatDate(), formatINRShort(), monthToFirst(), relativeTime() (+17 more)
+Cohesion: 0.13
+Nodes (15): attendanceApi, currentMonthValue(), firstToMonth(), formatDate(), formatINRShort(), monthToFirst(), maskPii(), PiiType (+7 more)
 
 ### Community 20 - "Frontend UI Components & Module: frontend"
-Cohesion: 0.16
-Nodes (47): batch_upload_blobs(), delete_blob(), download_blob(), file_exists(), get_blob_metadata(), get_blob_service(), get_notifications(), get_presigned_url() (+39 more)
+Cohesion: 0.25
+Nodes (34): PresignedPostRequest, Request body for POST /blobs/presigned-url.      Note: the target bucket is **al, BlobMetadata, BlobTagsUpdate, PaginatedBlobList, PresignedUrlRequest, BatchUploadResponse, BlobMetadata (+26 more)
 
 ### Community 21 - "TDS Tax Calculation"
-Cohesion: 0.12
-Nodes (30): canonical_hash(), cap(), compute_annual_tds(), compute_tds(), D(), money(), Backward-compatible V1 entrypoint used by existing tests/routes., Versioned law registry.      Slabs/deductions live here, not inside the slab eng (+22 more)
+Cohesion: 0.07
+Nodes (37): canonical_hash(), cap(), compute_annual_tds(), compute_tds(), D(), money(), Backward-compatible V1 entrypoint used by existing tests/routes., Versioned law registry.      Slabs/deductions live here, not inside the slab eng (+29 more)
 
 ### Community 22 - "Payroll Calculation Engine"
-Cohesion: 0.40
-Nodes (4): assert_transition(), Payroll cycle state machine.  DRAFT -> LOCKED -> COMPUTING -> COMPUTED -> APPR, FastAPI, str
+Cohesion: 0.50
+Nodes (3): assert_transition(), Payroll cycle state machine.  DRAFT -> LOCKED -> COMPUTING -> COMPUTED -> APPR, str
 
 ### Community 38 - "Community 38"
-Cohesion: 0.09
-Nodes (28): BaseModel, LivenessResponse, ReadinessResponse, EmployeeDocCategoryGroup, EmployeeDocConfirmUpload, EmployeeDocItem, EmployeeDocListResponse, EmployeeDocRejectAction (+20 more)
+Cohesion: 0.28
+Nodes (5): EmployeeDocConfirmUpload, PresignedUploadRequest, Body after frontend completes a direct MinIO presigned POST upload., Body for POST /employee-docs/{employee_id}/presigned-upload., str
 
 ### Community 39 - "Community 39"
-Cohesion: 0.07
-Nodes (29): AuditEvent, AuditEventSchema, CycleStatus, CycleStatusSchema, CycleSummary, CycleSummarySchema, decimalStr, Department (+21 more)
+Cohesion: 0.06
+Nodes (31): SSEStatus, UsePayrollSSEOptions, AuditEvent, AuditEventSchema, CycleStatus, CycleStatusSchema, CycleSummary, CycleSummarySchema (+23 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.10
 Nodes (17): AsyncClient, AsyncSession, str, auth_headers(), client(), db_session(), mock_minio(), Patch the MinIO + boto clients and the resolver used by the app. (+9 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.11
-Nodes (17): CategoryGroup, CompletionResponse, DOC_CATEGORIES, DocListResponse, DocOut, DocRow(), DocStats, empDocApi (+9 more)
+Cohesion: 0.09
+Nodes (24): CategoryGroup, CompletionResponse, DOC_CATEGORIES, DocListResponse, DocOut, DocRow(), DocStats, empDocApi (+16 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.08
-Nodes (22): employeesApi, Notification, notificationsApi, NotificationsResponse, CommandItem, CommandPalette(), CommandPaletteProps, useCommandPalette() (+14 more)
+Cohesion: 0.09
+Nodes (20): employeesApi, Notification, notificationsApi, NotificationsResponse, CommandItem, CommandPalette(), CommandPaletteProps, useCommandPalette() (+12 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.11
-Nodes (17): app/repositories/blob_repository.py  Data-access layer for the `blobs` table. Al, Return paginated active blobs for *tenant_id* matching the filters.          Ret, Return up to *limit* active blobs for *tenant_id*, newest first, using         k, Mark *blob* as soft-deleted by setting ``is_deleted`` to true., Clear ``is_deleted`` on a soft-deleted blob owned by *tenant_id*,         restor, Hard-delete a Blob record and commit., Update tags for *blob_id* using a server-side PostgreSQL JSONB operation., Return all blobs that were soft-deleted more than *retention_days* ago. (+9 more)
+Cohesion: 0.09
+Nodes (26): Blob, Represents a stored file blob and its associated metadata., BlobRepository, app/repositories/blob_repository.py  Data-access layer for the `blobs` table. Al, Return paginated active blobs for *tenant_id* matching the filters.          Ret, Return up to *limit* active blobs for *tenant_id*, newest first, using         k, Mark *blob* as soft-deleted by setting ``is_deleted`` to true., Clear ``is_deleted`` on a soft-deleted blob owned by *tenant_id*,         restor (+18 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.10
@@ -261,20 +258,20 @@ Cohesion: 0.14
 Nodes (18): Minio, _apply_minio_cors(), _build_boto_client(), _build_minio_client(), delete_object(), _ensure_bucket(), get_minio_client(), init_minio() (+10 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.19
-Nodes (14): DeclarativeBase, audit_log(), AuditBase, AuditLog, ensure_audit_schema(), _hash_payload(), Application-level append-only audit log.  A single ``audit_schema.audit_logs``, Standalone base so the audit table can be created independently. (+6 more)
+Cohesion: 0.24
+Nodes (20): batch_upload_blobs(), delete_blob(), download_blob(), file_exists(), get_blob_metadata(), get_blob_service(), get_notifications(), get_presigned_url() (+12 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.20
-Nodes (13): lifespan(), Startup:       1. Configure logging       2. Initialise MinIO client and default, close_producer(), _hash_payload(), init_producer(), ProducerUnavailable, publish_event(), app/events/event_producer.py  Async Kafka producer for emitting standard Event (+5 more)
+Cohesion: 0.14
+Nodes (17): lifespan(), _preflight_check(), Startup:       1. Configure logging       2. Initialise MinIO client and default, Configure standard library structured logging., Probe required dependencies before running migrations/startup tasks.      Fails, setup_logging(), close_producer(), _hash_payload() (+9 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.16
 Nodes (11): Any, Minio, str, BucketResolver, bucket_resolver.py  Single source of truth for bucket naming and doc_type → fo, Apply the standard tenant-bucket policies (best-effort).          - Versioning, Resolves and auto-creates MinIO buckets., Return the bucket name for a tenant. Auto-creates if missing. (+3 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.44
-Nodes (8): get_settings(), Return cached singleton Settings instance., _install_fake_clamd(), test_clean_passes(), test_disabled_is_noop(), test_fail_closed_rejects_when_scanner_down(), test_fail_open_allows_when_scanner_down(), test_infected_rejected()
+Cohesion: 0.20
+Nodes (13): get_settings(), app/config.py  Centralised application settings using Pydantic V2 BaseSettings., Return cached singleton Settings instance., Strip http:// / https:// if someone sets the full URL in an env file.          _, Settings, BaseSettings, object, _install_fake_clamd() (+5 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.12
@@ -285,12 +282,8 @@ Cohesion: 0.12
 Nodes (15): Architecture, Business formulas (V1), Demo credentials, End-to-end click-path (acceptance flow), How to use Graphify, HR & Payroll SaaS — Version 1.1, Key Architecture Communities Discovered, 🕸️ Knowledge Graph (Graphify) (+7 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.20
-Nodes (12): _decode_cursor(), _emit_audit_event(), _encode_cursor(), app/services/blob_service.py  Business logic layer that orchestrates between the, Return a keyset-paginated, filtered page of active blobs for *tenant_id*., Encode a ``(uploaded_at, id)`` pair into an opaque base64 cursor., Decode an opaque cursor back into ``(uploaded_at, id)``; None if absent/invalid., Fire-and-forget audit event to the audit-service ingest endpoint.      Failures (+4 more)
-
-### Community 57 - "Community 57"
-Cohesion: 0.23
-Nodes (11): async_sessionmaker, AsyncEngine, build_engine(), build_session_factory(), get_session_dependency(), Async engine + session factory builder.  Each service runs against the single, Create an async engine pinned to a single schema via search_path.      asyncpg, Return a FastAPI dependency that yields a session per request. (+3 more)
+Cohesion: 0.15
+Nodes (12): alias, app/auth.py  Authentication / authorization for the Blobstore service.  The plat, Return the caller's tenant id, taken from the **verified JWT** claim.      If th, Return a dependency that requires the caller to hold one of *allowed* roles., require_roles(), require_tenant(), Header, str (+4 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.26
@@ -301,20 +294,16 @@ Cohesion: 0.14
 Nodes (13): 1. Executive Summary, 2. Current State (what actually works), 3. Issues & Bugs, 4. Risks, 5. Scalability Concerns, 6. Security Gaps (consolidated), 7. Spec Compliance Matrix (Success Criteria), 8. Migration Plan (phased) (+5 more)
 
 ### Community 60 - "Community 60"
-Cohesion: 0.15
-Nodes (13): health_live(), health_ready(), _preflight_check(), _rate_limit_key(), Returns 200 as long as the process is alive., Composite health endpoint for local and standalone development.      Returns sta, Check DB and MinIO connectivity. Returns 503 when degraded., Configure standard library structured logging. (+5 more)
+Cohesion: 0.14
+Nodes (17): health_live(), health_ready(), _rate_limit_key(), Returns 200 as long as the process is alive., Composite health endpoint for local and standalone development.      Returns sta, Check DB and MinIO connectivity. Returns 503 when degraded., get_consumer_health(), FastAPI (+9 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.29
 Nodes (9): auto_configure(), bucket_status(), CORSConfig, create_bucket(), provision_tenant(), app/api/bucket_router.py  Bucket management endpoints — backed by boto3's S3-com, CORS rules to apply to a bucket., set_cors() (+1 more)
 
-### Community 63 - "Community 63"
-Cohesion: 0.23
-Nodes (10): build_context_dependency(), create_access_token(), decode_token(), JWT helpers and the shared request-context dependency.  The gateway validates, Return a FastAPI dependency producing a :class:`RequestContext`.      Services, Declarative base shared by all tenant-scoped tables., Shared cross-cutting library for the HR & Payroll SaaS V1 platform., int (+2 more)
-
 ### Community 64 - "Community 64"
-Cohesion: 0.22
-Nodes (7): Action, State, ToastContext, ToastProvider(), ThemeProvider(), queryClient, ToastItem
+Cohesion: 0.14
+Nodes (12): reportingApi, Action, State, ToastContext, ToastProvider(), ThemeProvider(), queryClient, Listener (+4 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.24
@@ -325,12 +314,8 @@ Cohesion: 0.29
 Nodes (6): get_db(), init_db(), app/database/db.py  Async SQLAlchemy engine and session factory. Provides:   - `, FastAPI dependency that yields a database session and ensures it is     closed a, Create all tables from the ORM models and ensure secondary indexes exist.      T, AsyncSession
 
 ### Community 68 - "Community 68"
-Cohesion: 0.29
-Nodes (6): DeclarationV2Payload, SlabBreakdownRow, TaxTrace, TDSCalculation, TDSComputeResponse, TDSDeclaration
-
-### Community 69 - "Community 69"
-Cohesion: 0.29
-Nodes (5): app/config.py  Centralised application settings using Pydantic V2 BaseSettings., Strip http:// / https:// if someone sets the full URL in an env file.          _, Settings, BaseSettings, object
+Cohesion: 0.07
+Nodes (35): DeclarationV2Payload, SlabBreakdownRow, TaxTrace, tdsApi, TDSCalculation, TDSComputeResponse, TDSDeclaration, AccordionSection() (+27 more)
 
 ### Community 70 - "Community 70"
 Cohesion: 0.40
@@ -349,19 +334,19 @@ Cohesion: 0.67
 Nodes (3): bytes, download_object_stream(), Legacy sync streaming helper.
 
 ## Knowledge Gaps
-- **218 isolated node(s):** `allow`, `name`, `private`, `version`, `type` (+213 more)
+- **233 isolated node(s):** `allow`, `name`, `private`, `version`, `type` (+228 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `FastAPI` connect `Payroll Calculation Engine` to `Payroll Calculation Engine`, `Statutory Compliance (PF/ESI)`, `TDS Tax Calculation`, `Employee Management Service`, `Salary & Compensation Logic`, `Auth & Identity Service`, `Reporting & Export Service`, `Frontend Pages & Views & Frontend API Hooks`, `Attendance Service`, `Payout & Banking Integration`, `Frontend UI Components & Module: frontend`, `Community 38`, `Community 45`, `Community 51`, `Community 53`, `Community 56`, `Community 57`, `Community 60`, `Community 62`, `Community 63`, `Community 70`?**
-  _High betweenness centrality (0.165) - this node is a cross-community bridge._
-- **Why does `datetime` connect `Payroll Calculation Engine` to `Community 65`, `TDS Tax Calculation`, `Employee Management Service`, `Community 38`, `Salary & Compensation Logic`, `Frontend Pages & Views & Frontend API Hooks`, `Attendance Service`, `Community 45`, `Community 49`, `Community 50`, `Community 51`, `TDS Tax Calculation`, `Community 56`, `Community 58`, `Community 63`?**
-  _High betweenness centrality (0.130) - this node is a cross-community bridge._
-- **Why does `lifespan()` connect `Community 51` to `Community 65`, `Community 67`, `Community 46`, `Community 54`, `Payroll Calculation Engine`, `Community 60`?**
-  _High betweenness centrality (0.032) - this node is a cross-community bridge._
+- **Why does `FastAPI` connect `Community 60` to `Shared Enterprise Modules`, `Payroll Calculation Engine`, `Statutory Compliance (PF/ESI)`, `TDS Tax Calculation`, `Employee Management Service`, `Salary & Compensation Logic`, `Auth & Identity Service`, `Reporting & Export Service`, `Frontend Pages & Views & Frontend API Hooks`, `Attendance Service`, `Payout & Banking Integration`, `Payroll Calculation Engine`, `Payroll Calculation Engine`, `Community 45`, `Community 50`, `Community 51`, `Community 53`, `Community 56`, `Community 62`, `Community 70`?**
+  _High betweenness centrality (0.140) - this node is a cross-community bridge._
+- **Why does `datetime` connect `Payroll Calculation Engine` to `Shared Enterprise Modules`, `Community 65`, `TDS Tax Calculation`, `Employee Management Service`, `Salary & Compensation Logic`, `Frontend Pages & Views & Frontend API Hooks`, `Attendance Service`, `Community 45`, `Community 49`, `Payroll Calculation Engine`, `Community 51`, `Frontend UI Components & Module: frontend`, `TDS Tax Calculation`, `Community 58`?**
+  _High betweenness centrality (0.129) - this node is a cross-community bridge._
+- **Why does `BucketResolver` connect `Community 52` to `Community 66`, `Community 40`, `Community 73`, `Community 76`, `Community 47`, `Community 49`, `Community 61`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
 - **Are the 45 inferred relationships involving `RequestContext` (e.g. with `alias` and `PresignedPostRequest`) actually correct?**
   _`RequestContext` has 45 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 10 inferred relationships involving `datetime` (e.g. with `ServiceCallError` and `Notification`) actually correct?**

@@ -3,42 +3,36 @@ import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import { SSEPayrollEventSchema } from "../lib/schemas";
 
-const SSE_URL = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"}/events/stream`;
+const SSE_URL = `${import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api/v1"}/events/stream`;
+
+// After this many consecutive failures stop auto-retrying; show a permanent
+// "disconnected" state so we don't spam a 404 endpoint every 3 seconds.
+const MAX_RETRIES = 3;
+// Backoff schedule (ms): attempt 1→3s, 2→6s, 3→12s, then stop.
+function backoffMs(attempt: number): number {
+  return Math.min(3_000 * 2 ** (attempt - 1), 30_000);
+}
 
 type SSEStatus = "connecting" | "open" | "closed" | "error";
 
 interface UsePayrollSSEOptions {
-  /** Token for Authorization header (EventSource doesn't support headers natively;
-   *  we use a short-lived ticket or fall back to URL param in dev) */
   token?: string | null;
   onStatusChange?: (s: SSEStatus) => void;
 }
 
-/**
- * Opens a persistent SSE connection to receive real-time payroll events.
- * Automatically invalidates React Query caches on relevant events so the UI
- * updates without a hard refresh.
- *
- * EventSource reconnects automatically on transient failures (3s backoff max).
- */
 export function usePayrollSSE({ token, onStatusChange }: UsePayrollSSEOptions = {}) {
   const qc = useQueryClient();
   const esRef = useRef<EventSource | null>(null);
-  const statusRef = useRef<SSEStatus>("closed");
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
 
   const setStatus = useCallback(
-    (s: SSEStatus) => {
-      statusRef.current = s;
-      onStatusChange?.(s);
-    },
-    [onStatusChange]
+    (s: SSEStatus) => { onStatusChange?.(s); },
+    [onStatusChange],
   );
 
   const connect = useCallback(() => {
-    if (esRef.current) {
-      esRef.current.close();
-    }
+    esRef.current?.close();
 
     const url = token ? `${SSE_URL}?token=${encodeURIComponent(token)}` : SSE_URL;
     const es = new EventSource(url, { withCredentials: true });
@@ -46,6 +40,7 @@ export function usePayrollSSE({ token, onStatusChange }: UsePayrollSSEOptions = 
     setStatus("connecting");
 
     es.onopen = () => {
+      retryCountRef.current = 0;          // reset on success
       setStatus("open");
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
@@ -54,9 +49,19 @@ export function usePayrollSSE({ token, onStatusChange }: UsePayrollSSEOptions = 
     };
 
     es.onerror = () => {
-      setStatus("error");
       es.close();
-      retryTimerRef.current = setTimeout(connect, 3_000);
+      retryCountRef.current += 1;
+
+      if (retryCountRef.current > MAX_RETRIES) {
+        // Give up — endpoint likely doesn't exist yet (404).
+        // Show disconnected state; page refresh or explicit reconnect needed.
+        setStatus("closed");
+        return;
+      }
+
+      setStatus("error");
+      const delay = backoffMs(retryCountRef.current);
+      retryTimerRef.current = setTimeout(connect, delay);
     };
 
     es.addEventListener("payroll", (e: MessageEvent) => {
@@ -80,17 +85,12 @@ export function usePayrollSSE({ token, onStatusChange }: UsePayrollSSEOptions = 
       }
     });
 
-    es.addEventListener("ping", () => {
-      // keepalive ping — no action needed
-    });
+    es.addEventListener("ping", () => { /* keepalive — no-op */ });
   }, [token, qc, setStatus]);
 
   useEffect(() => {
-    // Only connect when the browser supports SSE and we have a realistic API URL
     if (typeof EventSource === "undefined") return;
-
     connect();
-
     return () => {
       esRef.current?.close();
       esRef.current = null;

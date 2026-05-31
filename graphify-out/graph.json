@@ -582,7 +582,7 @@
       "source_file": "frontend/src/App.tsx",
       "source_location": "L52",
       "id": "src_app_auditroute",
-      "community": 2,
+      "community": 41,
       "norm_label": "auditroute()"
     },
     {
@@ -708,7 +708,7 @@
       "source_file": "frontend/src/types.ts",
       "source_location": "L58",
       "id": "src_types_salarystructure",
-      "community": 19,
+      "community": 7,
       "norm_label": "salarystructure"
     },
     {
@@ -1032,7 +1032,7 @@
       "source_file": "frontend/src/api/payout.ts",
       "source_location": "L4",
       "id": "api_payout_payoutapi",
-      "community": 7,
+      "community": 9,
       "norm_label": "payoutapi"
     },
     {
@@ -1059,7 +1059,7 @@
       "source_file": "frontend/src/api/reporting.ts",
       "source_location": "L1",
       "id": "frontend_src_api_reporting_ts",
-      "community": 2,
+      "community": 64,
       "norm_label": "reporting.ts"
     },
     {
@@ -1068,7 +1068,7 @@
       "source_file": "frontend/src/api/reporting.ts",
       "source_location": "L3",
       "id": "api_reporting_reportingapi",
-      "community": 2,
+      "community": 64,
       "norm_label": "reportingapi"
     },
     {
@@ -1077,7 +1077,7 @@
       "source_file": "frontend/src/api/salary.ts",
       "source_location": "L1",
       "id": "frontend_src_api_salary_ts",
-      "community": 19,
+      "community": 7,
       "norm_label": "salary.ts"
     },
     {
@@ -1086,7 +1086,7 @@
       "source_file": "frontend/src/api/salary.ts",
       "source_location": "L4",
       "id": "api_salary_salaryapi",
-      "community": 19,
+      "community": 7,
       "norm_label": "salaryapi"
     },
     {
@@ -1149,7 +1149,7 @@
       "source_file": "frontend/src/api/tds.ts",
       "source_location": "L84",
       "id": "api_tds_tdsapi",
-      "community": 9,
+      "community": 68,
       "norm_label": "tdsapi"
     },
     {
@@ -1545,7 +1545,7 @@
       "source_file": "frontend/src/components/Spinner.tsx",
       "source_location": "L3",
       "id": "components_spinner_spinner",
-      "community": 41,
+      "community": 9,
       "norm_label": "spinner()"
     },
     {
@@ -1779,7 +1779,7 @@
       "source_file": "frontend/src/hooks/usePayrollSSE.ts",
       "source_location": "L1",
       "id": "frontend_src_hooks_usepayrollsse_ts",
-      "community": 42,
+      "community": 39,
       "norm_label": "usepayrollsse.ts"
     },
     {
@@ -1788,7 +1788,7 @@
       "source_file": "frontend/src/hooks/usePayrollSSE.ts",
       "source_location": "L8",
       "id": "hooks_usepayrollsse_ssestatus",
-      "community": 42,
+      "community": 39,
       "norm_label": "ssestatus"
     },
     {
@@ -1797,7 +1797,7 @@
       "source_file": "frontend/src/hooks/usePayrollSSE.ts",
       "source_location": "L10",
       "id": "hooks_usepayrollsse_usepayrollsseoptions",
-      "community": 42,
+      "community": 39,
       "norm_label": "usepayrollsseoptions"
     },
     {
@@ -1822,7 +1822,7 @@
       "label": "ThemeContext",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L54",
+      "source_location": "L53",
       "id": "layout_appshell_themecontext",
       "community": 42,
       "norm_label": "themecontext"
@@ -1831,7 +1831,7 @@
       "label": "useTheme()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L58",
+      "source_location": "L57",
       "id": "layout_appshell_usetheme",
       "community": 42,
       "norm_label": "usetheme()"
@@ -1840,7 +1840,7 @@
       "label": "ThemeProvider()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L60",
+      "source_location": "L59",
       "id": "layout_appshell_themeprovider",
       "community": 64,
       "norm_label": "themeprovider()"
@@ -1849,7 +1849,7 @@
       "label": "NavItem",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L90",
+      "source_location": "L89",
       "id": "layout_appshell_navitem",
       "community": 42,
       "norm_label": "navitem"
@@ -1858,7 +1858,7 @@
       "label": "NAV_SECTIONS",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L99",
+      "source_location": "L98",
       "id": "layout_appshell_nav_sections",
       "community": 42,
       "norm_label": "nav_sections"
@@ -1867,7 +1867,7 @@
       "label": "NavTooltip()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L147",
+      "source_location": "L146",
       "id": "layout_appshell_navtooltip",
       "community": 42,
       "norm_label": "navtooltip()"
@@ -1876,7 +1876,7 @@
       "label": "Sidebar()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L175",
+      "source_location": "L174",
       "id": "layout_appshell_sidebar",
       "community": 42,
       "norm_label": "sidebar()"
@@ -1885,7 +1885,7 @@
       "label": "ExpandedNavItem()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L500",
+      "source_location": "L499",
       "id": "layout_appshell_expandednavitem",
       "community": 42,
       "norm_label": "expandednavitem()"
@@ -1894,7 +1894,7 @@
       "label": "CollapsedNavItem()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L580",
+      "source_location": "L579",
       "id": "layout_appshell_collapsednavitem",
       "community": 42,
       "norm_label": "collapsednavitem()"
@@ -1903,7 +1903,7 @@
       "label": "NotificationPanel()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L618",
+      "source_location": "L617",
       "id": "layout_appshell_notificationpanel",
       "community": 42,
       "norm_label": "notificationpanel()"
@@ -1912,7 +1912,7 @@
       "label": "NotificationBell()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L739",
+      "source_location": "L738",
       "id": "layout_appshell_notificationbell",
       "community": 42,
       "norm_label": "notificationbell()"
@@ -1921,7 +1921,7 @@
       "label": "TopBar()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L776",
+      "source_location": "L775",
       "id": "layout_appshell_topbar",
       "community": 42,
       "norm_label": "topbar()"
@@ -1930,7 +1930,7 @@
       "label": "AppShell()",
       "file_type": "code",
       "source_file": "frontend/src/layout/AppShell.tsx",
-      "source_location": "L921",
+      "source_location": "L920",
       "id": "layout_appshell_appshell",
       "community": 42,
       "norm_label": "appshell()"
@@ -2130,7 +2130,7 @@
       "source_file": "frontend/src/lib/format.ts",
       "source_location": "L49",
       "id": "lib_format_relativetime",
-      "community": 19,
+      "community": 42,
       "norm_label": "relativetime()"
     },
     {
@@ -2148,7 +2148,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L1",
       "id": "frontend_src_lib_money_ts",
-      "community": 19,
+      "community": 9,
       "norm_label": "money.ts"
     },
     {
@@ -2157,7 +2157,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L3",
       "id": "lib_money_metro_cities",
-      "community": 19,
+      "community": 9,
       "norm_label": "metro_cities"
     },
     {
@@ -2166,7 +2166,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L5",
       "id": "lib_money_inr_fmt",
-      "community": 19,
+      "community": 9,
       "norm_label": "inr_fmt"
     },
     {
@@ -2175,7 +2175,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L13",
       "id": "lib_money_formatinr",
-      "community": 15,
+      "community": 9,
       "norm_label": "formatinr()"
     },
     {
@@ -2184,7 +2184,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L21",
       "id": "lib_money_r2",
-      "community": 19,
+      "community": 7,
       "norm_label": "r2()"
     },
     {
@@ -2193,7 +2193,7 @@
       "source_file": "frontend/src/lib/money.ts",
       "source_location": "L29",
       "id": "lib_money_computesalarypreview",
-      "community": 19,
+      "community": 7,
       "norm_label": "computesalarypreview()"
     },
     {
@@ -2265,7 +2265,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L1",
       "id": "frontend_src_lib_roles_ts",
-      "community": 7,
+      "community": 41,
       "norm_label": "roles.ts"
     },
     {
@@ -2274,7 +2274,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L6",
       "id": "lib_roles_approle",
-      "community": 7,
+      "community": 41,
       "norm_label": "approle"
     },
     {
@@ -2283,7 +2283,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L13",
       "id": "lib_roles_admin_roles",
-      "community": 7,
+      "community": 41,
       "norm_label": "admin_roles"
     },
     {
@@ -2292,7 +2292,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L14",
       "id": "lib_roles_hr_roles",
-      "community": 7,
+      "community": 41,
       "norm_label": "hr_roles"
     },
     {
@@ -2301,7 +2301,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L16",
       "id": "lib_roles_hasrole",
-      "community": 7,
+      "community": 41,
       "norm_label": "hasrole()"
     },
     {
@@ -2310,7 +2310,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L20",
       "id": "lib_roles_canapprove",
-      "community": 7,
+      "community": 41,
       "norm_label": "canapprove()"
     },
     {
@@ -2319,7 +2319,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L24",
       "id": "lib_roles_canviewaudit",
-      "community": 42,
+      "community": 41,
       "norm_label": "canviewaudit()"
     },
     {
@@ -2337,7 +2337,7 @@
       "source_file": "frontend/src/lib/roles.ts",
       "source_location": "L33",
       "id": "lib_roles_isadmin",
-      "community": 7,
+      "community": 41,
       "norm_label": "isadmin()"
     },
     {
@@ -2616,7 +2616,7 @@
       "source_file": "frontend/src/lib/toast.ts",
       "source_location": "L1",
       "id": "frontend_src_lib_toast_ts",
-      "community": 9,
+      "community": 64,
       "norm_label": "toast.ts"
     },
     {
@@ -2625,7 +2625,7 @@
       "source_file": "frontend/src/lib/toast.ts",
       "source_location": "L4",
       "id": "lib_toast_toasttype",
-      "community": 9,
+      "community": 64,
       "norm_label": "toasttype"
     },
     {
@@ -2643,7 +2643,7 @@
       "source_file": "frontend/src/lib/toast.ts",
       "source_location": "L12",
       "id": "lib_toast_listener",
-      "community": 9,
+      "community": 64,
       "norm_label": "listener"
     },
     {
@@ -2652,7 +2652,7 @@
       "source_file": "frontend/src/lib/toast.ts",
       "source_location": "L15",
       "id": "lib_toast_toastservice",
-      "community": 9,
+      "community": 64,
       "norm_label": "toastservice"
     },
     {
@@ -2742,7 +2742,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L1",
       "id": "frontend_src_pages_compliance_tsx",
-      "community": 15,
+      "community": 9,
       "norm_label": "compliance.tsx"
     },
     {
@@ -2751,7 +2751,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L18",
       "id": "pages_compliance_comptab",
-      "community": 15,
+      "community": 9,
       "norm_label": "comptab"
     },
     {
@@ -2760,7 +2760,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L20",
       "id": "pages_compliance_compliance",
-      "community": 15,
+      "community": 2,
       "norm_label": "compliance()"
     },
     {
@@ -2769,7 +2769,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L170",
       "id": "pages_compliance_pftable",
-      "community": 15,
+      "community": 9,
       "norm_label": "pftable()"
     },
     {
@@ -2778,7 +2778,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L235",
       "id": "pages_compliance_esitable",
-      "community": 15,
+      "community": 9,
       "norm_label": "esitable()"
     },
     {
@@ -2787,7 +2787,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L287",
       "id": "pages_compliance_pttable",
-      "community": 15,
+      "community": 9,
       "norm_label": "pttable()"
     },
     {
@@ -2796,7 +2796,7 @@
       "source_file": "frontend/src/pages/Compliance.tsx",
       "source_location": "L325",
       "id": "pages_compliance_sum",
-      "community": 15,
+      "community": 9,
       "norm_label": "sum()"
     },
     {
@@ -2814,7 +2814,7 @@
       "source_file": "frontend/src/pages/CycleDetail.tsx",
       "source_location": "L1",
       "id": "frontend_src_pages_cycledetail_tsx",
-      "community": 7,
+      "community": 9,
       "norm_label": "cycledetail.tsx"
     },
     {
@@ -2859,7 +2859,7 @@
       "source_file": "frontend/src/pages/Cycles.tsx",
       "source_location": "L69",
       "id": "pages_cycles_defaultperiod",
-      "community": 2,
+      "community": 9,
       "norm_label": "defaultperiod()"
     },
     {
@@ -2868,7 +2868,7 @@
       "source_file": "frontend/src/pages/Cycles.tsx",
       "source_location": "L80",
       "id": "pages_cycles_cycles",
-      "community": 2,
+      "community": 9,
       "norm_label": "cycles()"
     },
     {
@@ -2886,7 +2886,7 @@
       "source_file": "frontend/src/pages/CycleSummary.tsx",
       "source_location": "L18",
       "id": "pages_cyclesummary_cyclesummary",
-      "community": 2,
+      "community": 9,
       "norm_label": "cyclesummary()"
     },
     {
@@ -3030,7 +3030,7 @@
       "source_file": "frontend/src/pages/Departments.tsx",
       "source_location": "L29",
       "id": "pages_departments_departments",
-      "community": 2,
+      "community": 9,
       "norm_label": "departments()"
     },
     {
@@ -3156,7 +3156,7 @@
       "source_file": "frontend/src/pages/Employees.tsx",
       "source_location": "L48",
       "id": "pages_employees_employees",
-      "community": 2,
+      "community": 9,
       "norm_label": "employees()"
     },
     {
@@ -3201,7 +3201,7 @@
       "source_file": "frontend/src/pages/MyProfile.tsx",
       "source_location": "L29",
       "id": "pages_myprofile_myprofile",
-      "community": 19,
+      "community": 2,
       "norm_label": "myprofile()"
     },
     {
@@ -3228,7 +3228,7 @@
       "source_file": "frontend/src/pages/Payouts.tsx",
       "source_location": "L17",
       "id": "pages_payouts_payouts",
-      "community": 15,
+      "community": 9,
       "norm_label": "payouts()"
     },
     {
@@ -3246,7 +3246,7 @@
       "source_file": "frontend/src/pages/Payslip.tsx",
       "source_location": "L1",
       "id": "frontend_src_pages_payslip_tsx",
-      "community": 9,
+      "community": 64,
       "norm_label": "payslip.tsx"
     },
     {
@@ -3255,7 +3255,7 @@
       "source_file": "frontend/src/pages/Payslip.tsx",
       "source_location": "L8",
       "id": "pages_payslip_payslip",
-      "community": 2,
+      "community": 64,
       "norm_label": "payslip()"
     },
     {
@@ -3291,7 +3291,7 @@
       "source_file": "frontend/src/pages/Salary.tsx",
       "source_location": "L1",
       "id": "frontend_src_pages_salary_tsx",
-      "community": 19,
+      "community": 7,
       "norm_label": "salary.tsx"
     },
     {
@@ -3300,7 +3300,7 @@
       "source_file": "frontend/src/pages/Salary.tsx",
       "source_location": "L16",
       "id": "pages_salary_today",
-      "community": 19,
+      "community": 7,
       "norm_label": "today"
     },
     {
@@ -3309,7 +3309,7 @@
       "source_file": "frontend/src/pages/Salary.tsx",
       "source_location": "L18",
       "id": "pages_salary_salary",
-      "community": 19,
+      "community": 7,
       "norm_label": "salary()"
     },
     {
@@ -3318,16 +3318,286 @@
       "source_file": "frontend/src/pages/TDS.tsx",
       "source_location": "L1",
       "id": "frontend_src_pages_tds_tsx",
-      "community": 9,
+      "community": 68,
       "norm_label": "tds.tsx"
+    },
+    {
+      "label": "m()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L35",
+      "id": "pages_tds_m",
+      "community": 68,
+      "norm_label": "m()"
+    },
+    {
+      "label": "cap()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L36",
+      "id": "pages_tds_cap",
+      "community": 68,
+      "norm_label": "cap()"
+    },
+    {
+      "label": "SlabSpec",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L38",
+      "id": "pages_tds_slabspec",
+      "community": 68,
+      "norm_label": "slabspec"
+    },
+    {
+      "label": "SlabRow",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L39",
+      "id": "pages_tds_slabrow",
+      "community": 68,
+      "norm_label": "slabrow"
+    },
+    {
+      "label": "slabTax()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L41",
+      "id": "pages_tds_slabtax",
+      "community": 68,
+      "norm_label": "slabtax()"
+    },
+    {
+      "label": "OLD_SLABS",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L54",
+      "id": "pages_tds_old_slabs",
+      "community": 68,
+      "norm_label": "old_slabs"
+    },
+    {
+      "label": "NEW_SLABS",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L60",
+      "id": "pages_tds_new_slabs",
+      "community": 68,
+      "norm_label": "new_slabs"
+    },
+    {
+      "label": "computeHRAExempt()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L69",
+      "id": "pages_tds_computehraexempt",
+      "community": 68,
+      "norm_label": "computehraexempt()"
+    },
+    {
+      "label": "Declarations",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L78",
+      "id": "pages_tds_declarations",
+      "community": 68,
+      "norm_label": "declarations"
+    },
+    {
+      "label": "DetailLine",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L99",
+      "id": "pages_tds_detailline",
+      "community": 68,
+      "norm_label": "detailline"
+    },
+    {
+      "label": "TaxResult",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L101",
+      "id": "pages_tds_taxresult",
+      "community": 68,
+      "norm_label": "taxresult"
+    },
+    {
+      "label": "computeTax()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L119",
+      "id": "pages_tds_computetax",
+      "community": 68,
+      "norm_label": "computetax()"
+    },
+    {
+      "label": "fmtL()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L203",
+      "id": "pages_tds_fmtl",
+      "community": 68,
+      "norm_label": "fmtl()"
+    },
+    {
+      "label": "getRemainingMonths()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L210",
+      "id": "pages_tds_getremainingmonths",
+      "community": 68,
+      "norm_label": "getremainingmonths()"
+    },
+    {
+      "label": "getFYMonthIndex()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L217",
+      "id": "pages_tds_getfymonthindex",
+      "community": 68,
+      "norm_label": "getfymonthindex()"
+    },
+    {
+      "label": "FY_MONTHS",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L222",
+      "id": "pages_tds_fy_months",
+      "community": 68,
+      "norm_label": "fy_months"
+    },
+    {
+      "label": "useAnimatedNumber()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L228",
+      "id": "pages_tds_useanimatednumber",
+      "community": 68,
+      "norm_label": "useanimatednumber()"
+    },
+    {
+      "label": "AnimatedINR",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L248",
+      "id": "pages_tds_animatedinr",
+      "community": 68,
+      "norm_label": "animatedinr"
+    },
+    {
+      "label": "AnimatedPct",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L253",
+      "id": "pages_tds_animatedpct",
+      "community": 68,
+      "norm_label": "animatedpct"
+    },
+    {
+      "label": "KPIProps",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L259",
+      "id": "pages_tds_kpiprops",
+      "community": 68,
+      "norm_label": "kpiprops"
+    },
+    {
+      "label": "KPICard()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L270",
+      "id": "pages_tds_kpicard",
+      "community": 68,
+      "norm_label": "kpicard()"
+    },
+    {
+      "label": "RegimeCard()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L327",
+      "id": "pages_tds_regimecard",
+      "community": 68,
+      "norm_label": "regimecard()"
+    },
+    {
+      "label": "AccordionSection()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L388",
+      "id": "pages_tds_accordionsection",
+      "community": 68,
+      "norm_label": "accordionsection()"
+    },
+    {
+      "label": "DeclInput()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L447",
+      "id": "pages_tds_declinput",
+      "community": 68,
+      "norm_label": "declinput()"
+    },
+    {
+      "label": "TraceStep()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L500",
+      "id": "pages_tds_tracestep",
+      "community": 68,
+      "norm_label": "tracestep()"
+    },
+    {
+      "label": "AlertBadge()",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L541",
+      "id": "pages_tds_alertbadge",
+      "community": 68,
+      "norm_label": "alertbadge()"
+    },
+    {
+      "label": "CustomChartTooltip",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L562",
+      "id": "pages_tds_customcharttooltip",
+      "community": 68,
+      "norm_label": "customcharttooltip"
+    },
+    {
+      "label": "EMPTY_DECL",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L582",
+      "id": "pages_tds_empty_decl",
+      "community": 68,
+      "norm_label": "empty_decl"
+    },
+    {
+      "label": "TabId",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L594",
+      "id": "pages_tds_tabid",
+      "community": 68,
+      "norm_label": "tabid"
+    },
+    {
+      "label": "TABS",
+      "file_type": "code",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L596",
+      "id": "pages_tds_tabs",
+      "community": 68,
+      "norm_label": "tabs"
     },
     {
       "label": "TDS()",
       "file_type": "code",
       "source_file": "frontend/src/pages/TDS.tsx",
-      "source_location": "L16",
+      "source_location": "L606",
       "id": "pages_tds_tds",
-      "community": 15,
+      "community": 68,
       "norm_label": "tds()"
     },
     {
@@ -3714,7 +3984,7 @@
       "source_file": "",
       "source_location": "",
       "id": "basemodel",
-      "community": 38,
+      "community": 11,
       "norm_label": "basemodel"
     },
     {
@@ -3732,7 +4002,7 @@
       "source_file": "services/attendance-service/app/settings.py",
       "source_location": "L1",
       "id": "services_attendance_service_app_settings_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings.py"
     },
     {
@@ -3741,7 +4011,7 @@
       "source_file": "services/attendance-service/app/settings.py",
       "source_location": "L4",
       "id": "services_attendance_service_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings"
     },
     {
@@ -3750,7 +4020,7 @@
       "source_file": "",
       "source_location": "",
       "id": "baseservicesettings",
-      "community": 12,
+      "community": 21,
       "norm_label": "baseservicesettings"
     },
     {
@@ -4128,7 +4398,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L1",
       "id": "services_blobstore_service_app_auth_py",
-      "community": 11,
+      "community": 56,
       "norm_label": "auth.py"
     },
     {
@@ -4137,7 +4407,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L39",
       "id": "app_auth_require_tenant",
-      "community": 11,
+      "community": 56,
       "norm_label": "require_tenant()"
     },
     {
@@ -4155,7 +4425,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L39",
       "id": "services_blobstore_service_app_auth_py_uuid",
-      "community": 11,
+      "community": 56,
       "norm_label": "uuid"
     },
     {
@@ -4164,7 +4434,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L39",
       "id": "header",
-      "community": 11,
+      "community": 56,
       "norm_label": "header"
     },
     {
@@ -4173,7 +4443,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L39",
       "id": "alias",
-      "community": 11,
+      "community": 56,
       "norm_label": "alias"
     },
     {
@@ -4182,7 +4452,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L58",
       "id": "app_auth_require_roles",
-      "community": 11,
+      "community": 56,
       "norm_label": "require_roles()"
     },
     {
@@ -4191,7 +4461,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L58",
       "id": "services_blobstore_service_app_auth_py_str",
-      "community": 11,
+      "community": 56,
       "norm_label": "str"
     },
     {
@@ -4200,7 +4470,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L1",
       "id": "app_auth_rationale_1",
-      "community": 11,
+      "community": 56,
       "norm_label": "app/auth.py  authentication / authorization for the blobstore service.  the plat"
     },
     {
@@ -4209,7 +4479,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L43",
       "id": "app_auth_rationale_43",
-      "community": 11,
+      "community": 56,
       "norm_label": "return the caller's tenant id, taken from the **verified jwt** claim.      if th"
     },
     {
@@ -4218,7 +4488,7 @@
       "source_file": "services/blobstore-service/app/auth.py",
       "source_location": "L59",
       "id": "app_auth_rationale_59",
-      "community": 11,
+      "community": 56,
       "norm_label": "return a dependency that requires the caller to hold one of *allowed* roles."
     },
     {
@@ -4227,7 +4497,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L1",
       "id": "services_blobstore_service_app_config_py",
-      "community": 69,
+      "community": 53,
       "norm_label": "config.py"
     },
     {
@@ -4236,7 +4506,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L15",
       "id": "app_config_settings",
-      "community": 69,
+      "community": 53,
       "norm_label": "settings"
     },
     {
@@ -4245,7 +4515,7 @@
       "source_file": "",
       "source_location": "",
       "id": "basesettings",
-      "community": 69,
+      "community": 53,
       "norm_label": "basesettings"
     },
     {
@@ -4254,7 +4524,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L74",
       "id": "app_config_settings_strip_minio_public_scheme",
-      "community": 69,
+      "community": 53,
       "norm_label": ".strip_minio_public_scheme()"
     },
     {
@@ -4263,7 +4533,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L74",
       "id": "object",
-      "community": 69,
+      "community": 53,
       "norm_label": "object"
     },
     {
@@ -4281,7 +4551,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L1",
       "id": "app_config_rationale_1",
-      "community": 69,
+      "community": 53,
       "norm_label": "app/config.py  centralised application settings using pydantic v2 basesettings."
     },
     {
@@ -4290,7 +4560,7 @@
       "source_file": "services/blobstore-service/app/config.py",
       "source_location": "L75",
       "id": "app_config_rationale_75",
-      "community": 69,
+      "community": 53,
       "norm_label": "strip http:// / https:// if someone sets the full url in an env file.          _"
     },
     {
@@ -4317,7 +4587,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L38",
       "id": "app_main_setup_logging",
-      "community": 60,
+      "community": 51,
       "norm_label": "setup_logging()"
     },
     {
@@ -4344,7 +4614,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L75",
       "id": "app_main_preflight_check",
-      "community": 60,
+      "community": 51,
       "norm_label": "_preflight_check()"
     },
     {
@@ -4362,7 +4632,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L143",
       "id": "fastapi",
-      "community": 22,
+      "community": 60,
       "norm_label": "fastapi"
     },
     {
@@ -4380,7 +4650,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L265",
       "id": "services_blobstore_service_app_main_py_str",
-      "community": 38,
+      "community": 60,
       "norm_label": "str"
     },
     {
@@ -4398,7 +4668,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L317",
       "id": "livenessresponse",
-      "community": 38,
+      "community": 60,
       "norm_label": "livenessresponse"
     },
     {
@@ -4425,7 +4695,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L381",
       "id": "readinessresponse",
-      "community": 38,
+      "community": 60,
       "norm_label": "readinessresponse"
     },
     {
@@ -4443,7 +4713,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L39",
       "id": "app_main_rationale_39",
-      "community": 60,
+      "community": 51,
       "norm_label": "configure standard library structured logging."
     },
     {
@@ -4470,7 +4740,7 @@
       "source_file": "services/blobstore-service/app/main.py",
       "source_location": "L76",
       "id": "app_main_rationale_76",
-      "community": 60,
+      "community": 51,
       "norm_label": "probe required dependencies before running migrations/startup tasks.      fails"
     },
     {
@@ -4632,7 +4902,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L1",
       "id": "services_blobstore_service_app_api_blob_router_py",
-      "community": 20,
+      "community": 50,
       "norm_label": "blob_router.py"
     },
     {
@@ -4641,7 +4911,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L95",
       "id": "api_blob_router_get_blob_service",
-      "community": 20,
+      "community": 50,
       "norm_label": "get_blob_service()"
     },
     {
@@ -4659,7 +4929,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L95",
       "id": "blobservice",
-      "community": 20,
+      "community": 50,
       "norm_label": "blobservice"
     },
     {
@@ -4668,7 +4938,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L151",
       "id": "api_blob_router_upload_blob",
-      "community": 20,
+      "community": 50,
       "norm_label": "upload_blob()"
     },
     {
@@ -4704,7 +4974,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L151",
       "id": "services_blobstore_service_app_api_blob_router_py_requestcontext",
-      "community": 20,
+      "community": 50,
       "norm_label": "requestcontext"
     },
     {
@@ -4713,7 +4983,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L151",
       "id": "services_blobstore_service_app_api_blob_router_py_uuid",
-      "community": 20,
+      "community": 50,
       "norm_label": "uuid"
     },
     {
@@ -4731,7 +5001,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L220",
       "id": "api_blob_router_batch_upload_blobs",
-      "community": 20,
+      "community": 50,
       "norm_label": "batch_upload_blobs()"
     },
     {
@@ -4749,7 +5019,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L255",
       "id": "api_blob_router_list_blobs",
-      "community": 20,
+      "community": 50,
       "norm_label": "list_blobs()"
     },
     {
@@ -4785,7 +5055,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L299",
       "id": "api_blob_router_get_notifications",
-      "community": 20,
+      "community": 50,
       "norm_label": "get_notifications()"
     },
     {
@@ -4794,7 +5064,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L319",
       "id": "api_blob_router_stream_notifications",
-      "community": 20,
+      "community": 50,
       "norm_label": "stream_notifications()"
     },
     {
@@ -4812,7 +5082,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L364",
       "id": "api_blob_router_download_blob",
-      "community": 20,
+      "community": 50,
       "norm_label": "download_blob()"
     },
     {
@@ -4821,7 +5091,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L401",
       "id": "api_blob_router_get_blob_metadata",
-      "community": 20,
+      "community": 50,
       "norm_label": "get_blob_metadata()"
     },
     {
@@ -4839,7 +5109,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L425",
       "id": "api_blob_router_list_blob_versions",
-      "community": 20,
+      "community": 50,
       "norm_label": "list_blob_versions()"
     },
     {
@@ -4848,7 +5118,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L455",
       "id": "api_blob_router_delete_blob",
-      "community": 20,
+      "community": 50,
       "norm_label": "delete_blob()"
     },
     {
@@ -4866,7 +5136,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L481",
       "id": "api_blob_router_restore_blob",
-      "community": 20,
+      "community": 50,
       "norm_label": "restore_blob()"
     },
     {
@@ -4875,7 +5145,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L510",
       "id": "api_blob_router_get_presigned_url",
-      "community": 20,
+      "community": 50,
       "norm_label": "get_presigned_url()"
     },
     {
@@ -4893,7 +5163,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L540",
       "id": "api_blob_router_post_presigned_url",
-      "community": 20,
+      "community": 50,
       "norm_label": "post_presigned_url()"
     },
     {
@@ -4911,7 +5181,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L568",
       "id": "api_blob_router_patch_blob_tags",
-      "community": 20,
+      "community": 50,
       "norm_label": "patch_blob_tags()"
     },
     {
@@ -4929,7 +5199,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L595",
       "id": "api_blob_router_file_exists",
-      "community": 20,
+      "community": 50,
       "norm_label": "file_exists()"
     },
     {
@@ -4947,7 +5217,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L646",
       "id": "api_blob_router_presigned_post_url",
-      "community": 20,
+      "community": 50,
       "norm_label": "presigned_post_url()"
     },
     {
@@ -4956,7 +5226,7 @@
       "source_file": "services/blobstore-service/app/api/blob_router.py",
       "source_location": "L1",
       "id": "api_blob_router_rationale_1",
-      "community": 20,
+      "community": 50,
       "norm_label": "app/api/blob_router.py  fastapi router exposing all blob-related endpoints.  con"
     },
     {
@@ -5658,7 +5928,7 @@
       "source_file": "",
       "source_location": "",
       "id": "declarativebase",
-      "community": 50,
+      "community": 0,
       "norm_label": "declarativebase"
     },
     {
@@ -6387,7 +6657,7 @@
       "source_file": "services/blobstore-service/app/models/blob_model.py",
       "source_location": "L33",
       "id": "models_blob_model_blob",
-      "community": 17,
+      "community": 43,
       "norm_label": "blob"
     },
     {
@@ -6396,7 +6666,7 @@
       "source_file": "services/blobstore-service/app/models/blob_model.py",
       "source_location": "L120",
       "id": "models_blob_model_blob_repr",
-      "community": 17,
+      "community": 43,
       "norm_label": ".__repr__()"
     },
     {
@@ -6405,7 +6675,7 @@
       "source_file": "services/blobstore-service/app/models/blob_model.py",
       "source_location": "L120",
       "id": "services_blobstore_service_app_models_blob_model_py_str",
-      "community": 17,
+      "community": 43,
       "norm_label": "str"
     },
     {
@@ -6423,7 +6693,7 @@
       "source_file": "services/blobstore-service/app/models/blob_model.py",
       "source_location": "L34",
       "id": "models_blob_model_rationale_34",
-      "community": 17,
+      "community": 43,
       "norm_label": "represents a stored file blob and its associated metadata."
     },
     {
@@ -6711,7 +6981,7 @@
       "source_file": "services/blobstore-service/app/repositories/blob_repository.py",
       "source_location": "L24",
       "id": "repositories_blob_repository_blobrepository",
-      "community": 17,
+      "community": 43,
       "norm_label": "blobrepository"
     },
     {
@@ -6720,7 +6990,7 @@
       "source_file": "services/blobstore-service/app/repositories/blob_repository.py",
       "source_location": "L27",
       "id": "repositories_blob_repository_blobrepository_init",
-      "community": 17,
+      "community": 43,
       "norm_label": ".__init__()"
     },
     {
@@ -6729,7 +6999,7 @@
       "source_file": "services/blobstore-service/app/repositories/blob_repository.py",
       "source_location": "L27",
       "id": "services_blobstore_service_app_repositories_blob_repository_py_asyncsession",
-      "community": 17,
+      "community": 43,
       "norm_label": "asyncsession"
     },
     {
@@ -6891,7 +7161,7 @@
       "source_file": "services/blobstore-service/app/repositories/blob_repository.py",
       "source_location": "L25",
       "id": "repositories_blob_repository_rationale_25",
-      "community": 17,
+      "community": 43,
       "norm_label": "crud operations for :class:`blob` orm records."
     },
     {
@@ -6999,7 +7269,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L1",
       "id": "services_blobstore_service_app_schemas_blob_schema_py",
-      "community": 38,
+      "community": 20,
       "norm_label": "blob_schema.py"
     },
     {
@@ -7008,7 +7278,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L18",
       "id": "schemas_blob_schema_uploadresponse",
-      "community": 17,
+      "community": 20,
       "norm_label": "uploadresponse"
     },
     {
@@ -7017,7 +7287,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L30",
       "id": "schemas_blob_schema_batchuploadresponse",
-      "community": 17,
+      "community": 20,
       "norm_label": "batchuploadresponse"
     },
     {
@@ -7053,7 +7323,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L130",
       "id": "schemas_blob_schema_livenessresponse",
-      "community": 38,
+      "community": 60,
       "norm_label": "livenessresponse"
     },
     {
@@ -7062,7 +7332,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L136",
       "id": "schemas_blob_schema_readinessresponse",
-      "community": 38,
+      "community": 60,
       "norm_label": "readinessresponse"
     },
     {
@@ -7071,7 +7341,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L158",
       "id": "schemas_blob_schema_presignedurlresponse",
-      "community": 17,
+      "community": 20,
       "norm_label": "presignedurlresponse"
     },
     {
@@ -7152,7 +7422,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L226",
       "id": "schemas_blob_schema_employeedocverifyaction",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedocverifyaction"
     },
     {
@@ -7161,7 +7431,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L231",
       "id": "schemas_blob_schema_employeedocrejectaction",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedocrejectaction"
     },
     {
@@ -7170,7 +7440,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L236",
       "id": "schemas_blob_schema_employeedocitem",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedocitem"
     },
     {
@@ -7179,7 +7449,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L259",
       "id": "schemas_blob_schema_employeedoccategorygroup",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedoccategorygroup"
     },
     {
@@ -7188,7 +7458,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L267",
       "id": "schemas_blob_schema_employeedoclistresponse",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedoclistresponse"
     },
     {
@@ -7197,7 +7467,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L274",
       "id": "schemas_blob_schema_employeedocstats",
-      "community": 38,
+      "community": 11,
       "norm_label": "employeedocstats"
     },
     {
@@ -7206,7 +7476,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L283",
       "id": "schemas_blob_schema_missingdocitem",
-      "community": 38,
+      "community": 11,
       "norm_label": "missingdocitem"
     },
     {
@@ -7215,7 +7485,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L292",
       "id": "schemas_blob_schema_missingdocsresponse",
-      "community": 38,
+      "community": 11,
       "norm_label": "missingdocsresponse"
     },
     {
@@ -7251,7 +7521,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L1",
       "id": "schemas_blob_schema_rationale_1",
-      "community": 38,
+      "community": 20,
       "norm_label": "app/schemas/blob_schema.py  pydantic v2 schemas for request validation and api r"
     },
     {
@@ -7260,7 +7530,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L19",
       "id": "schemas_blob_schema_rationale_19",
-      "community": 17,
+      "community": 20,
       "norm_label": "returned after a successful single-file upload."
     },
     {
@@ -7269,7 +7539,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L31",
       "id": "schemas_blob_schema_rationale_31",
-      "community": 17,
+      "community": 20,
       "norm_label": "returned after a batch upload attempt.      if any file fails, all successfully"
     },
     {
@@ -7305,7 +7575,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L131",
       "id": "schemas_blob_schema_rationale_131",
-      "community": 38,
+      "community": 60,
       "norm_label": "kubernetes liveness probe response \u2014 always 200 while process is alive."
     },
     {
@@ -7314,7 +7584,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L137",
       "id": "schemas_blob_schema_rationale_137",
-      "community": 38,
+      "community": 60,
       "norm_label": "kubernetes readiness probe response.      returns http 200 when all dependencies"
     },
     {
@@ -7323,7 +7593,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L159",
       "id": "schemas_blob_schema_rationale_159",
-      "community": 17,
+      "community": 20,
       "norm_label": "contains a time-limited pre-signed download url."
     },
     {
@@ -7359,7 +7629,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L227",
       "id": "schemas_blob_schema_rationale_227",
-      "community": 38,
+      "community": 11,
       "norm_label": "body for post /employee-docs/{employee_id}/{blob_id}/verify"
     },
     {
@@ -7368,7 +7638,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L232",
       "id": "schemas_blob_schema_rationale_232",
-      "community": 38,
+      "community": 11,
       "norm_label": "body for post /employee-docs/{employee_id}/{blob_id}/reject"
     },
     {
@@ -7377,7 +7647,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L237",
       "id": "schemas_blob_schema_rationale_237",
-      "community": 38,
+      "community": 11,
       "norm_label": "a single document in the employee document list."
     },
     {
@@ -7386,7 +7656,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L260",
       "id": "schemas_blob_schema_rationale_260",
-      "community": 38,
+      "community": 11,
       "norm_label": "documents grouped by category."
     },
     {
@@ -7395,7 +7665,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L268",
       "id": "schemas_blob_schema_rationale_268",
-      "community": 38,
+      "community": 11,
       "norm_label": "grouped document list for an employee."
     },
     {
@@ -7404,7 +7674,7 @@
       "source_file": "services/blobstore-service/app/schemas/blob_schema.py",
       "source_location": "L275",
       "id": "schemas_blob_schema_rationale_275",
-      "community": 38,
+      "community": 11,
       "norm_label": "kpi stats for the document center dashboard."
     },
     {
@@ -7431,7 +7701,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L1",
       "id": "services_blobstore_service_app_services_blob_service_py",
-      "community": 56,
+      "community": 17,
       "norm_label": "blob_service.py"
     },
     {
@@ -7440,7 +7710,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L44",
       "id": "services_blob_service_encode_cursor",
-      "community": 56,
+      "community": 17,
       "norm_label": "_encode_cursor()"
     },
     {
@@ -7449,7 +7719,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L44",
       "id": "services_blobstore_service_app_services_blob_service_py_datetime",
-      "community": 56,
+      "community": 17,
       "norm_label": "datetime"
     },
     {
@@ -7476,7 +7746,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L52",
       "id": "services_blob_service_decode_cursor",
-      "community": 56,
+      "community": 17,
       "norm_label": "_decode_cursor()"
     },
     {
@@ -7485,7 +7755,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L70",
       "id": "services_blob_service_emit_audit_event",
-      "community": 56,
+      "community": 17,
       "norm_label": "_emit_audit_event()"
     },
     {
@@ -7503,7 +7773,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L104",
       "id": "services_blob_service_blobservice_init",
-      "community": 17,
+      "community": 43,
       "norm_label": ".__init__()"
     },
     {
@@ -7512,7 +7782,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L104",
       "id": "services_blobstore_service_app_services_blob_service_py_asyncsession",
-      "community": 17,
+      "community": 43,
       "norm_label": "asyncsession"
     },
     {
@@ -7548,7 +7818,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L110",
       "id": "services_blobstore_service_app_services_blob_service_py_uploadresponse",
-      "community": 17,
+      "community": 43,
       "norm_label": "uploadresponse"
     },
     {
@@ -7566,7 +7836,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L247",
       "id": "services_blobstore_service_app_services_blob_service_py_batchuploadresponse",
-      "community": 17,
+      "community": 43,
       "norm_label": "batchuploadresponse"
     },
     {
@@ -7602,7 +7872,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L365",
       "id": "services_blob_service_blobservice_list_blobs",
-      "community": 56,
+      "community": 17,
       "norm_label": ".list_blobs()"
     },
     {
@@ -7719,7 +7989,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L1",
       "id": "services_blob_service_rationale_1",
-      "community": 56,
+      "community": 17,
       "norm_label": "app/services/blob_service.py  business logic layer that orchestrates between the"
     },
     {
@@ -7728,7 +7998,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L45",
       "id": "services_blob_service_rationale_45",
-      "community": 56,
+      "community": 17,
       "norm_label": "encode a ``(uploaded_at, id)`` pair into an opaque base64 cursor."
     },
     {
@@ -7737,7 +8007,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L53",
       "id": "services_blob_service_rationale_53",
-      "community": 56,
+      "community": 17,
       "norm_label": "decode an opaque cursor back into ``(uploaded_at, id)``; none if absent/invalid."
     },
     {
@@ -7746,7 +8016,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L76",
       "id": "services_blob_service_rationale_76",
-      "community": 56,
+      "community": 17,
       "norm_label": "fire-and-forget audit event to the audit-service ingest endpoint.      failures"
     },
     {
@@ -7800,7 +8070,7 @@
       "source_file": "services/blobstore-service/app/services/blob_service.py",
       "source_location": "L376",
       "id": "services_blob_service_rationale_376",
-      "community": 56,
+      "community": 17,
       "norm_label": "return a keyset-paginated, filtered page of active blobs for *tenant_id*."
     },
     {
@@ -8789,7 +9059,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L1",
       "id": "services_blobstore_service_tests_test_auth_py",
-      "community": 11,
+      "community": 56,
       "norm_label": "test_auth.py"
     },
     {
@@ -8798,7 +9068,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L12",
       "id": "tests_test_auth_ctx",
-      "community": 11,
+      "community": 56,
       "norm_label": "_ctx()"
     },
     {
@@ -8807,7 +9077,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L21",
       "id": "tests_test_auth_testrequiretenant",
-      "community": 11,
+      "community": 56,
       "norm_label": "testrequiretenant"
     },
     {
@@ -8816,7 +9086,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L23",
       "id": "tests_test_auth_testrequiretenant_test_returns_token_tenant_when_no_header",
-      "community": 11,
+      "community": 56,
       "norm_label": ".test_returns_token_tenant_when_no_header()"
     },
     {
@@ -8825,7 +9095,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L28",
       "id": "tests_test_auth_testrequiretenant_test_matching_header_allowed",
-      "community": 11,
+      "community": 56,
       "norm_label": ".test_matching_header_allowed()"
     },
     {
@@ -8834,7 +9104,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L33",
       "id": "tests_test_auth_testrequiretenant_test_mismatched_header_rejected",
-      "community": 11,
+      "community": 56,
       "norm_label": ".test_mismatched_header_rejected()"
     },
     {
@@ -8843,7 +9113,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L40",
       "id": "tests_test_auth_testrequireroles",
-      "community": 11,
+      "community": 56,
       "norm_label": "testrequireroles"
     },
     {
@@ -8852,7 +9122,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L42",
       "id": "tests_test_auth_testrequireroles_test_allows_when_role_present",
-      "community": 11,
+      "community": 56,
       "norm_label": ".test_allows_when_role_present()"
     },
     {
@@ -8861,7 +9131,7 @@
       "source_file": "services/blobstore-service/tests/test_auth.py",
       "source_location": "L48",
       "id": "tests_test_auth_testrequireroles_test_rejects_when_role_absent",
-      "community": 11,
+      "community": 56,
       "norm_label": ".test_rejects_when_role_absent()"
     },
     {
@@ -9221,7 +9491,7 @@
       "source_file": "services/blobstore-service/tests/test_cursor.py",
       "source_location": "L1",
       "id": "services_blobstore_service_tests_test_cursor_py",
-      "community": 56,
+      "community": 17,
       "norm_label": "test_cursor.py"
     },
     {
@@ -9230,7 +9500,7 @@
       "source_file": "services/blobstore-service/tests/test_cursor.py",
       "source_location": "L12",
       "id": "tests_test_cursor_test_cursor_round_trip",
-      "community": 56,
+      "community": 17,
       "norm_label": "test_cursor_round_trip()"
     },
     {
@@ -9239,7 +9509,7 @@
       "source_file": "services/blobstore-service/tests/test_cursor.py",
       "source_location": "L21",
       "id": "tests_test_cursor_test_decode_none_returns_none",
-      "community": 56,
+      "community": 17,
       "norm_label": "test_decode_none_returns_none()"
     },
     {
@@ -9248,7 +9518,7 @@
       "source_file": "services/blobstore-service/tests/test_cursor.py",
       "source_location": "L26",
       "id": "tests_test_cursor_test_decode_garbage_raises_400",
-      "community": 56,
+      "community": 17,
       "norm_label": "test_decode_garbage_raises_400()"
     },
     {
@@ -9986,7 +10256,7 @@
       "source_file": "services/employee-service/app/deps.py",
       "source_location": "L1",
       "id": "services_employee_service_app_deps_py",
-      "community": 12,
+      "community": 5,
       "norm_label": "deps.py"
     },
     {
@@ -9995,7 +10265,7 @@
       "source_file": "services/employee-service/app/main.py",
       "source_location": "L1",
       "id": "services_employee_service_app_main_py",
-      "community": 12,
+      "community": 5,
       "norm_label": "main.py"
     },
     {
@@ -10004,7 +10274,7 @@
       "source_file": "services/employee-service/app/main.py",
       "source_location": "L18",
       "id": "services_employee_service_app_main_py_app_main_health",
-      "community": 12,
+      "community": 5,
       "norm_label": "health()"
     },
     {
@@ -10418,7 +10688,7 @@
       "source_file": "services/employee-service/app/settings.py",
       "source_location": "L1",
       "id": "services_employee_service_app_settings_py",
-      "community": 12,
+      "community": 5,
       "norm_label": "settings.py"
     },
     {
@@ -10427,7 +10697,7 @@
       "source_file": "services/employee-service/app/settings.py",
       "source_location": "L4",
       "id": "services_employee_service_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 5,
       "norm_label": "settings"
     },
     {
@@ -10535,7 +10805,7 @@
       "source_file": "services/gateway/app/settings.py",
       "source_location": "L1",
       "id": "services_gateway_app_settings_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings.py"
     },
     {
@@ -10544,7 +10814,7 @@
       "source_file": "services/gateway/app/settings.py",
       "source_location": "L4",
       "id": "services_gateway_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings"
     },
     {
@@ -10796,7 +11066,7 @@
       "source_file": "services/payout-service/app/settings.py",
       "source_location": "L1",
       "id": "services_payout_service_app_settings_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings.py"
     },
     {
@@ -10805,7 +11075,7 @@
       "source_file": "services/payout-service/app/settings.py",
       "source_location": "L4",
       "id": "services_payout_service_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings"
     },
     {
@@ -11489,7 +11759,7 @@
       "source_file": "services/payroll-service/app/settings.py",
       "source_location": "L4",
       "id": "services_payroll_service_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings"
     },
     {
@@ -12236,7 +12506,7 @@
       "source_file": "O:/Hr/services/tds-service/app/deps.py",
       "source_location": "L1",
       "id": "o_hr_services_tds_service_app_deps_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "deps.py"
     },
     {
@@ -12497,7 +12767,7 @@
       "source_file": "O:/Hr/services/tds-service/app/main.py",
       "source_location": "L1",
       "id": "o_hr_services_tds_service_app_main_py",
-      "community": 12,
+      "community": 60,
       "norm_label": "main.py"
     },
     {
@@ -12506,7 +12776,7 @@
       "source_file": "O:/Hr/services/tds-service/app/main.py",
       "source_location": "L18",
       "id": "o_hr_services_tds_service_app_main_py_app_main_health",
-      "community": 12,
+      "community": 60,
       "norm_label": "health()"
     },
     {
@@ -12965,7 +13235,7 @@
       "source_file": "O:/Hr/services/tds-service/app/settings.py",
       "source_location": "L1",
       "id": "o_hr_services_tds_service_app_settings_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings.py"
     },
     {
@@ -12974,7 +13244,7 @@
       "source_file": "O:/Hr/services/tds-service/app/settings.py",
       "source_location": "L8",
       "id": "o_hr_services_tds_service_app_settings_py_app_settings_settings",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings"
     },
     {
@@ -12983,7 +13253,7 @@
       "source_file": "O:/Hr/services/tds-service/app/__init__.py",
       "source_location": "L1",
       "id": "o_hr_services_tds_service_app_init_py",
-      "community": 12,
+      "community": 21,
       "norm_label": "__init__.py"
     },
     {
@@ -13073,7 +13343,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L1",
       "id": "shared_hr_shared_audit_py",
-      "community": 50,
+      "community": 0,
       "norm_label": "audit.py"
     },
     {
@@ -13082,7 +13352,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L26",
       "id": "hr_shared_audit_auditbase",
-      "community": 50,
+      "community": 0,
       "norm_label": "auditbase"
     },
     {
@@ -13091,7 +13361,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L30",
       "id": "hr_shared_audit_auditlog",
-      "community": 50,
+      "community": 0,
       "norm_label": "auditlog"
     },
     {
@@ -13100,7 +13370,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L52",
       "id": "hr_shared_audit_hash_payload",
-      "community": 50,
+      "community": 0,
       "norm_label": "_hash_payload()"
     },
     {
@@ -13109,7 +13379,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L52",
       "id": "shared_hr_shared_audit_py_str",
-      "community": 50,
+      "community": 0,
       "norm_label": "str"
     },
     {
@@ -13118,7 +13388,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L57",
       "id": "hr_shared_audit_audit_log",
-      "community": 50,
+      "community": 0,
       "norm_label": "audit_log()"
     },
     {
@@ -13127,7 +13397,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L57",
       "id": "shared_hr_shared_audit_py_asyncsession",
-      "community": 50,
+      "community": 0,
       "norm_label": "asyncsession"
     },
     {
@@ -13136,7 +13406,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L57",
       "id": "shared_hr_shared_audit_py_uuid",
-      "community": 50,
+      "community": 0,
       "norm_label": "uuid"
     },
     {
@@ -13145,7 +13415,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L57",
       "id": "shared_hr_shared_audit_py_bool",
-      "community": 50,
+      "community": 0,
       "norm_label": "bool"
     },
     {
@@ -13154,7 +13424,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L90",
       "id": "hr_shared_audit_ensure_audit_schema",
-      "community": 50,
+      "community": 0,
       "norm_label": "ensure_audit_schema()"
     },
     {
@@ -13163,7 +13433,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L1",
       "id": "hr_shared_audit_rationale_1",
-      "community": 50,
+      "community": 0,
       "norm_label": "application-level append-only audit log.  a single ``audit_schema.audit_logs``"
     },
     {
@@ -13172,7 +13442,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L27",
       "id": "hr_shared_audit_rationale_27",
-      "community": 50,
+      "community": 0,
       "norm_label": "standalone base so the audit table can be created independently."
     },
     {
@@ -13181,7 +13451,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L69",
       "id": "hr_shared_audit_rationale_69",
-      "community": 50,
+      "community": 0,
       "norm_label": "insert one append-only audit row.      does not commit \u2014 the caller controls t"
     },
     {
@@ -13190,7 +13460,7 @@
       "source_file": "shared/hr_shared/audit.py",
       "source_location": "L91",
       "id": "hr_shared_audit_rationale_91",
-      "community": 50,
+      "community": 0,
       "norm_label": "best-effort schema creation (used outside alembic, e.g. tests)."
     },
     {
@@ -13199,7 +13469,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L1",
       "id": "shared_hr_shared_auth_py",
-      "community": 63,
+      "community": 0,
       "norm_label": "auth.py"
     },
     {
@@ -13217,7 +13487,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L31",
       "id": "hr_shared_auth_create_access_token",
-      "community": 63,
+      "community": 0,
       "norm_label": "create_access_token()"
     },
     {
@@ -13226,7 +13496,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L31",
       "id": "shared_hr_shared_auth_py_uuid",
-      "community": 63,
+      "community": 0,
       "norm_label": "uuid"
     },
     {
@@ -13235,7 +13505,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L31",
       "id": "shared_hr_shared_auth_py_str",
-      "community": 63,
+      "community": 0,
       "norm_label": "str"
     },
     {
@@ -13244,7 +13514,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L31",
       "id": "shared_hr_shared_auth_py_int",
-      "community": 63,
+      "community": 0,
       "norm_label": "int"
     },
     {
@@ -13253,7 +13523,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L53",
       "id": "hr_shared_auth_decode_token",
-      "community": 63,
+      "community": 0,
       "norm_label": "decode_token()"
     },
     {
@@ -13262,7 +13532,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L63",
       "id": "hr_shared_auth_build_context_dependency",
-      "community": 63,
+      "community": 0,
       "norm_label": "build_context_dependency()"
     },
     {
@@ -13280,7 +13550,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L1",
       "id": "hr_shared_auth_rationale_1",
-      "community": 63,
+      "community": 0,
       "norm_label": "jwt helpers and the shared request-context dependency.  the gateway validates"
     },
     {
@@ -13298,7 +13568,7 @@
       "source_file": "shared/hr_shared/auth.py",
       "source_location": "L64",
       "id": "hr_shared_auth_rationale_64",
-      "community": 63,
+      "community": 0,
       "norm_label": "return a fastapi dependency producing a :class:`requestcontext`.      services"
     },
     {
@@ -13307,7 +13577,7 @@
       "source_file": "shared/hr_shared/base.py",
       "source_location": "L1",
       "id": "shared_hr_shared_base_py",
-      "community": 63,
+      "community": 0,
       "norm_label": "base.py"
     },
     {
@@ -13325,7 +13595,7 @@
       "source_file": "shared/hr_shared/base.py",
       "source_location": "L1",
       "id": "hr_shared_base_rationale_1",
-      "community": 63,
+      "community": 0,
       "norm_label": "declarative base shared by all tenant-scoped tables."
     },
     {
@@ -13379,7 +13649,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L1",
       "id": "shared_hr_shared_db_py",
-      "community": 57,
+      "community": 0,
       "norm_label": "db.py"
     },
     {
@@ -13388,7 +13658,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L20",
       "id": "hr_shared_db_build_engine",
-      "community": 57,
+      "community": 0,
       "norm_label": "build_engine()"
     },
     {
@@ -13397,7 +13667,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L20",
       "id": "shared_hr_shared_db_py_str",
-      "community": 57,
+      "community": 0,
       "norm_label": "str"
     },
     {
@@ -13406,7 +13676,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L20",
       "id": "asyncengine",
-      "community": 57,
+      "community": 0,
       "norm_label": "asyncengine"
     },
     {
@@ -13415,7 +13685,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L35",
       "id": "hr_shared_db_build_session_factory",
-      "community": 57,
+      "community": 0,
       "norm_label": "build_session_factory()"
     },
     {
@@ -13424,7 +13694,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L35",
       "id": "async_sessionmaker",
-      "community": 57,
+      "community": 0,
       "norm_label": "async_sessionmaker"
     },
     {
@@ -13433,7 +13703,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L35",
       "id": "shared_hr_shared_db_py_asyncsession",
-      "community": 57,
+      "community": 0,
       "norm_label": "asyncsession"
     },
     {
@@ -13442,7 +13712,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L41",
       "id": "hr_shared_db_get_session_dependency",
-      "community": 57,
+      "community": 0,
       "norm_label": "get_session_dependency()"
     },
     {
@@ -13451,7 +13721,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L1",
       "id": "hr_shared_db_rationale_1",
-      "community": 57,
+      "community": 0,
       "norm_label": "async engine + session factory builder.  each service runs against the single"
     },
     {
@@ -13460,7 +13730,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L21",
       "id": "hr_shared_db_rationale_21",
-      "community": 57,
+      "community": 0,
       "norm_label": "create an async engine pinned to a single schema via search_path.      asyncpg"
     },
     {
@@ -13469,7 +13739,7 @@
       "source_file": "shared/hr_shared/db.py",
       "source_location": "L42",
       "id": "hr_shared_db_rationale_42",
-      "community": 57,
+      "community": 0,
       "norm_label": "return a fastapi dependency that yields a session per request."
     },
     {
@@ -13550,7 +13820,7 @@
       "source_file": "shared/hr_shared/service.py",
       "source_location": "L1",
       "id": "shared_hr_shared_service_py",
-      "community": 57,
+      "community": 0,
       "norm_label": "service.py"
     },
     {
@@ -13631,7 +13901,7 @@
       "source_file": "shared/hr_shared/service.py",
       "source_location": "L1",
       "id": "hr_shared_service_rationale_1",
-      "community": 57,
+      "community": 0,
       "norm_label": "per-service runtime wiring to avoid copy-paste boilerplate.  v1 bootstraps tab"
     },
     {
@@ -13658,7 +13928,7 @@
       "source_file": "shared/hr_shared/__init__.py",
       "source_location": "L1",
       "id": "shared_hr_shared_init_py",
-      "community": 63,
+      "community": 0,
       "norm_label": "__init__.py"
     },
     {
@@ -13667,7 +13937,7 @@
       "source_file": "shared/hr_shared/__init__.py",
       "source_location": "L1",
       "id": "hr_shared_init_rationale_1",
-      "community": 63,
+      "community": 0,
       "norm_label": "shared cross-cutting library for the hr & payroll saas v1 platform."
     },
     {
@@ -14305,7 +14575,7 @@
       "file_type": "code",
       "source_file": "services/employee-service/app/__init__.py",
       "source_location": "L1",
-      "community": 12,
+      "community": 5,
       "norm_label": "__init__.py",
       "id": "services_employee_service_app_init_py"
     },
@@ -14440,7 +14710,7 @@
       "file_type": "code",
       "source_file": "services/tds-service/app/settings.py",
       "source_location": "L1",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings.py",
       "id": "services_tds_service_app_settings_py"
     },
@@ -14449,7 +14719,7 @@
       "file_type": "code",
       "source_file": "services/tds-service/app/settings.py",
       "source_location": "L8",
-      "community": 12,
+      "community": 21,
       "norm_label": "settings",
       "id": "services_tds_service_app_settings_py_app_settings_settings"
     },
@@ -17388,6 +17658,17 @@
       "target": "frontend_src_api_salary_ts"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "frontend_src_api_salary_ts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -17410,14 +17691,25 @@
       "target": "api_salary_salaryapi"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "api_salary_salaryapi",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/src/api/tds.ts",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_src_api_tds_ts",
-      "target": "api_tds_declarationv2payload",
-      "confidence_score": 1.0
+      "target": "api_tds_declarationv2payload"
     },
     {
       "relation": "contains",
@@ -17425,9 +17717,9 @@
       "source_file": "frontend/src/api/tds.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_src_api_tds_ts",
-      "target": "api_tds_slabbreakdownrow",
-      "confidence_score": 1.0
+      "target": "api_tds_slabbreakdownrow"
     },
     {
       "relation": "contains",
@@ -17435,9 +17727,9 @@
       "source_file": "frontend/src/api/tds.ts",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_src_api_tds_ts",
-      "target": "api_tds_taxtrace",
-      "confidence_score": 1.0
+      "target": "api_tds_taxtrace"
     },
     {
       "relation": "contains",
@@ -17465,9 +17757,9 @@
       "source_file": "frontend/src/api/tds.ts",
       "source_location": "L50",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "frontend_src_api_tds_ts",
-      "target": "api_tds_tdscomputeresponse",
-      "confidence_score": 1.0
+      "target": "api_tds_tdscomputeresponse"
     },
     {
       "relation": "contains",
@@ -20590,6 +20882,17 @@
       "target": "frontend_src_lib_auth_ts"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "frontend_src_lib_auth_ts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -20656,6 +20959,17 @@
       "target": "lib_auth_useauth"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "lib_auth_useauth",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -20686,6 +21000,17 @@
       "source_location": "L13",
       "weight": 1.0,
       "source": "pages_login_login",
+      "target": "lib_auth_useauth"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L607",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
       "target": "lib_auth_useauth"
     },
     {
@@ -21547,9 +21872,31 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L372",
+      "weight": 1.0,
+      "source": "pages_tds_regimecard",
+      "target": "lib_money_formatinr"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/pages/TDS.tsx",
       "source_location": "L113",
       "weight": 1.0,
       "source": "pages_tds_tds",
+      "target": "lib_money_formatinr"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L534",
+      "weight": 1.0,
+      "source": "pages_tds_tracestep",
       "target": "lib_money_formatinr"
     },
     {
@@ -22167,6 +22514,28 @@
       "target": "frontend_src_lib_roles_ts"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "frontend_src_lib_roles_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "lib_roles_hasrole",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -22200,6 +22569,17 @@
       "target": "lib_roles_hasrole"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L610",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "lib_roles_hasrole"
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -22222,6 +22602,17 @@
       "target": "lib_roles_isemployeeonly"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "lib_roles_isemployeeonly",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -22230,6 +22621,17 @@
       "source_location": "L233",
       "weight": 1.0,
       "source": "pages_dashboard_dashboard",
+      "target": "lib_roles_isemployeeonly"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L609",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
       "target": "lib_roles_isemployeeonly"
     },
     {
@@ -23534,11 +23936,454 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L388",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_accordionsection",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L541",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_alertbadge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L248",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_animatedinr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L253",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_animatedpct",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_cap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_computehraexempt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_computetax",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L562",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_customcharttooltip",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L78",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_declarations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L447",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_declinput",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_detailline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L582",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_empty_decl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L203",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_fmtl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L222",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_fy_months",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L217",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_getfymonthindex",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L210",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_getremainingmonths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_kpicard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L259",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_kpiprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_m",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_new_slabs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_old_slabs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L327",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_regimecard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_slabrow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_slabspec",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_slabtax",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L594",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_tabid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L596",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_tabs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_taxresult",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
       "source_location": "L16",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "frontend_src_pages_tds_tsx",
       "target": "pages_tds_tds"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L500",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_tracestep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L228",
+      "weight": 1.0,
+      "source": "frontend_src_pages_tds_tsx",
+      "target": "pages_tds_useanimatednumber",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "pages_tds_computetax",
+      "target": "pages_tds_m",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "pages_tds_slabtax",
+      "target": "pages_tds_m",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L155",
+      "weight": 1.0,
+      "source": "pages_tds_computetax",
+      "target": "pages_tds_cap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "pages_tds_computetax",
+      "target": "pages_tds_slabtax",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L177",
+      "weight": 1.0,
+      "source": "pages_tds_computetax",
+      "target": "pages_tds_computehraexempt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L806",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "pages_tds_computehraexempt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "pages_tds_computetax",
+      "target": "pages_tds_fmtl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L1401",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "pages_tds_computetax",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L420",
+      "weight": 1.0,
+      "source": "pages_tds_accordionsection",
+      "target": "pages_tds_fmtl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L463",
+      "weight": 1.0,
+      "source": "pages_tds_declinput",
+      "target": "pages_tds_fmtl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L1008",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "pages_tds_fmtl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L673",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "pages_tds_getremainingmonths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/pages/TDS.tsx",
+      "source_location": "L674",
+      "weight": 1.0,
+      "source": "pages_tds_tds",
+      "target": "pages_tds_getfymonthindex",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -58758,5 +59603,5 @@
       "source_file": "services/payroll-service/app/orchestrator.py"
     }
   ],
-  "built_at_commit": "dbd7bd01b5d49a41ff1b3587dfd091a76f1fa78a"
+  "built_at_commit": "2ff7b9a44f7bd4cb6011bea6f2c678de86e2ebf4"
 }

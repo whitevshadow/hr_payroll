@@ -299,9 +299,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             aria-modal="true"
             aria-label="Command Palette"
             className="command-palette"
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            initial={{ opacity: 0, scale: 0.96, x: "-50%", y: -8 }}
+            animate={{ opacity: 1, scale: 1, x: "-50%", y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, x: "-50%", y: -8 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
           >
             {/* Search input */}

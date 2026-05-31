@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\frontend\\src\\layout\\AppShell.tsx": {
-    "mtime": 1780213268.658656,
-    "ast_hash": "1933680a50b48809e02d9562a029e32c",
+    "mtime": 1780213525.5529506,
+    "ast_hash": "3d82b24ff9e656ba79778bf25b57ec57",
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\frontend\\src\\layout\\ProtectedRoute.tsx": {
@@ -325,8 +325,8 @@
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\frontend\\src\\pages\\TDS.tsx": {
-    "mtime": 1780162028.6859515,
-    "ast_hash": "b20bf3ae0222b0596022b32474563692",
+    "mtime": 1780213369.9145882,
+    "ast_hash": "da42715a538b2d35dc226530279c2c41",
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\colors.ts": {
@@ -1080,8 +1080,8 @@
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\frontend\\index.html": {
-    "mtime": 1780213258.1668682,
-    "ast_hash": "dc8ef79b4289e19cc16eb67fef562ece",
+    "mtime": 1780213527.107629,
+    "ast_hash": "0844cabe9cb6e7d25f03604799b2b3d1",
     "semantic_hash": ""
   },
   "O:\\Hr__PAYROLL\\services\\attendance-service\\requirements.txt": {
@@ -1152,6 +1152,11 @@
   "O:\\Hr__PAYROLL\\frontend\\src\\icons\\icon.png": {
     "mtime": 1780213147.5772693,
     "ast_hash": "9d3a87ee4e71960962687c4d3d883a1e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\icons\\zap-favicon.svg": {
+    "mtime": 1780213527.0278602,
+    "ast_hash": "b6f6134581fe7f437914db83575ea009",
     "semantic_hash": ""
   }
 }

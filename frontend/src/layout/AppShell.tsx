@@ -1,16 +1,16 @@
 import {
   useState,
+  memo,
   type ReactNode,
   createContext,
   useContext,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Users,
@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
+import { Z } from "../lib/zIndex";
 import { notificationsApi } from "../api/notifications";
 import { qk } from "../lib/queryClient";
 import { currentMonthFirst, relativeTime } from "../lib/format";
@@ -189,33 +190,7 @@ function Sidebar({
   const isEmpOnly = isEmployeeOnly(user);
   const canAudit  = canViewAudit(user);
   const { dark, toggle: toggleTheme } = useTheme();
-  const sidebarRef = useRef<HTMLElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
-
-  // ── Spatial mouse-tracking parallax ────────────────────────────────────────
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springConfig = { stiffness: 60, damping: 20, mass: 0.8 };
-  const springX = useSpring(mouseX, springConfig);
-  const springY = useSpring(mouseY, springConfig);
-
-  const bgX = useTransform(springX, [-1, 1], [-5, 5]);
-  const bgY = useTransform(springY, [-1, 1], [-5, 5]);
-  const glowX = useTransform(springX, [-1, 1], [0, 100]);
-  const glowY = useTransform(springY, [-1, 1], [0, 100]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    const el = sidebarRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    mouseX.set(((e.clientX - rect.left) / rect.width - 0.5) * 2);
-    mouseY.set(((e.clientY - rect.top)  / rect.height - 0.5) * 2);
-  }, [mouseX, mouseY]);
-
-  const handleMouseLeave = useCallback(() => {
-    mouseX.set(0);
-    mouseY.set(0);
-  }, [mouseX, mouseY]);
 
   function handleLogout() {
     logout();
@@ -229,30 +204,9 @@ function Sidebar({
   const isExpanded = !collapsed || mobile;
 
   return (
-    <motion.aside
-      ref={sidebarRef}
-      className="sidebar-premium flex flex-col h-full overflow-hidden relative"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ width: "100%" }}
-    >
-      {/* ── Spatial light reflection overlay ─────────────────────────────── */}
-      <motion.div
-        className="sidebar-light-reflection pointer-events-none"
-        style={{
-          background: useTransform(
-            [glowX, glowY],
-            ([x, y]) =>
-              `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.07) 0%, transparent 60%)`
-          ),
-        }}
-      />
-
-      {/* ── Animated background gradient (spatial) ──────────────────────── */}
-      <motion.div
-        className="sidebar-bg-gradient pointer-events-none"
-        style={{ x: bgX, y: bgY }}
-      />
+    <aside className="sidebar-premium flex flex-col h-full overflow-hidden relative" style={{ width: "100%" }}>
+      {/* Static background gradient — parallax removed (was driving main-thread style mutations on every mousemove) */}
+      <div className="sidebar-bg-gradient pointer-events-none" />
 
       {/* ── Logo / Brand ─────────────────────────────────────────────────── */}
       <div
@@ -377,14 +331,9 @@ function Sidebar({
             <div key={section.label} className="mb-1">
               {/* Section label */}
               {isExpanded ? (
-                <motion.div
-                  className="px-3 pt-4 pb-1.5"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.05 }}
-                >
+                <div className="px-3 pt-4 pb-1.5">
                   <span className="nav-section-label">{section.label}</span>
-                </motion.div>
+                </div>
               ) : (
                 <div className="my-2.5 mx-2 sidebar-section-divider" />
               )}
@@ -491,69 +440,41 @@ function Sidebar({
           </NavTooltip>
         )}
       </div>
-    </motion.aside>
+    </aside>
   );
 }
 
 // ── Expanded Nav Item ──────────────────────────────────────────────────────────
-function ExpandedNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
+// Pure CSS transitions — no FLIP, no JS-driven gestures.
+// layoutId removed: eliminated main-thread layout thrashing on every click.
+// memo: prevents re-render when sibling nav items change active state.
+const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
-    <motion.div
-      className={clsx("nav-item-premium", isActive ? "nav-item-premium-active" : "nav-item-premium-idle")}
-      whileHover={!isActive ? { y: -2, scale: 1.01 } : {}}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 420, damping: 26 }}
-    >
-      {/* Active floating pill background */}
-      {isActive && (
-        <motion.div
-          layoutId="active-nav-pill"
-          className="nav-active-pill-bg"
-          initial={false}
-          transition={{
-            type: "spring",
-            stiffness: 380,
-            damping: 30,
-          }}
-        />
-      )}
+    <div className={clsx("nav-item-premium", isActive ? "nav-item-premium-active" : "nav-item-premium-idle")}>
+      {/* Active pill background — CSS opacity/scale, compositor-threaded */}
+      <div
+        className="nav-active-pill-bg"
+        style={{
+          opacity: isActive ? 1 : 0,
+          transform: isActive ? "scale(1)" : "scale(0.96)",
+          transition: "opacity 140ms ease, transform 140ms ease",
+        }}
+      />
+      {isActive && <div className="nav-active-glow" />}
 
-      {/* Active glow underneath */}
-      {isActive && (
-        <motion.div
-          layoutId="active-nav-glow"
-          className="nav-active-glow"
-          initial={false}
-          transition={{
-            type: "spring",
-            stiffness: 380,
-            damping: 30,
-          }}
-        />
-      )}
+      <item.icon
+        className={clsx(
+          "h-[16px] w-[16px] shrink-0 relative z-10 transition-colors duration-150",
+          isActive
+            ? "text-accent dark:text-violet-400 nav-icon-active"
+            : "text-slate-400 dark:text-slate-500"
+        )}
+        strokeWidth={isActive ? 2.2 : 1.8}
+      />
 
-      {/* Icon */}
-      <motion.div
-        animate={isActive ? { x: 0 } : {}}
-        whileHover={{ x: 2 }}
-        transition={{ type: "spring", stiffness: 420, damping: 26 }}
-        className="relative z-10 shrink-0"
-      >
-        <item.icon
-          className={clsx(
-            "h-[16px] w-[16px] shrink-0 transition-colors duration-200",
-            isActive
-              ? "text-accent dark:text-violet-400 nav-icon-active"
-              : "text-slate-400 dark:text-slate-500"
-          )}
-          strokeWidth={isActive ? 2.2 : 1.8}
-        />
-      </motion.div>
-
-      {/* Label */}
       <span
         className={clsx(
-          "relative z-10 truncate text-[13px] font-medium transition-colors duration-200",
+          "relative z-10 truncate text-[13px] font-medium transition-colors duration-150",
           isActive
             ? "text-slate-900 dark:text-slate-100 font-semibold"
             : "text-slate-600 dark:text-slate-400"
@@ -562,44 +483,40 @@ function ExpandedNavItem({ item, isActive }: { item: NavItem; isActive: boolean 
         {item.label}
       </span>
 
-      {/* Active indicator dot */}
-      {isActive && (
-        <motion.span
-          layoutId="nav-active-dot"
-          className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-accent dark:bg-violet-400 shrink-0"
-          initial={false}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        />
-      )}
-    </motion.div>
+      {/* Active dot — CSS, no layoutId */}
+      <span
+        className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-accent dark:bg-violet-400 shrink-0"
+        style={{
+          opacity: isActive ? 1 : 0,
+          transform: isActive ? "scale(1)" : "scale(0)",
+          transition: "opacity 140ms ease, transform 140ms ease",
+        }}
+      />
+    </div>
   );
-}
+});
 
 // ── Collapsed Nav Item ─────────────────────────────────────────────────────────
-function CollapsedNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
+const CollapsedNavItem = memo(function CollapsedNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
-    <motion.div
+    <div
       className={clsx(
-        "relative flex items-center justify-center rounded-xl mx-1 p-2.5 cursor-pointer",
+        "relative flex items-center justify-center rounded-xl mx-1 p-2.5 cursor-pointer transition-colors duration-150",
         isActive
           ? "bg-accent/10 dark:bg-violet-500/15"
           : "hover:bg-white/40 dark:hover:bg-white/6"
       )}
-      whileHover={{ scale: 1.08, y: -1 }}
-      whileTap={{ scale: 0.96 }}
-      transition={{ type: "spring", stiffness: 400, damping: 24 }}
     >
-      {isActive && (
-        <motion.div
-          layoutId="active-nav-pill"
-          className="nav-active-pill-bg-collapsed"
-          initial={false}
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        />
-      )}
+      <div
+        className="nav-active-pill-bg-collapsed"
+        style={{
+          opacity: isActive ? 1 : 0,
+          transition: "opacity 140ms ease",
+        }}
+      />
       <item.icon
         className={clsx(
-          "h-[18px] w-[18px] relative z-10",
+          "h-[18px] w-[18px] relative z-10 transition-colors duration-150",
           isActive
             ? "text-accent dark:text-violet-400"
             : "text-slate-400 dark:text-slate-500"
@@ -609,9 +526,9 @@ function CollapsedNavItem({ item, isActive }: { item: NavItem; isActive: boolean
       {isActive && (
         <span className="absolute right-1.5 top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-accent dark:bg-violet-400" />
       )}
-    </motion.div>
+    </div>
   );
-}
+});
 
 // ── Portal Notification Panel ──────────────────────────────────────────────────
 function NotificationPanel({
@@ -653,14 +570,14 @@ function NotificationPanel({
     <AnimatePresence>
       {open && (
         <>
-          <div className="fixed inset-0 z-[8000]" onClick={onClose} aria-hidden />
+          <div className="fixed inset-0" style={{ zIndex: 1499 }} onClick={onClose} aria-hidden />
           <motion.div
             initial={{ opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{   opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed z-[8001] w-80 glass-panel overflow-hidden"
-            style={{ top: pos.top, right: pos.right }}
+            className="fixed w-80 glass-panel overflow-hidden"
+            style={{ top: pos.top, right: pos.right, zIndex: 1500 }}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/20 dark:border-white/6 px-4 py-3">
@@ -818,7 +735,7 @@ function TopBar({
     )?.[1] ?? "PeopleOS";
 
   return (
-    <header className="topbar-glass mx-4 mt-3 flex h-[56px] shrink-0 items-center justify-between px-5 gap-4">
+    <header className="topbar-glass mx-2 mt-2 sm:mx-4 sm:mt-3 flex h-[52px] sm:h-[56px] shrink-0 items-center justify-between px-3 sm:px-5 gap-2 sm:gap-4">
       {/* Mobile menu */}
       <button
         onClick={onMobileMenuOpen}
@@ -956,20 +873,24 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AnimatePresence>
           {mobileOpen && (
             <>
+              {/* Full-viewport backdrop — must cover entire screen */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed inset-0 z-40 bg-slate-900/45 backdrop-blur-sm lg:hidden"
+                className="fixed inset-0 lg:hidden bg-slate-900/50 backdrop-blur-sm"
+                style={{ zIndex: Z.drawer - 1 }}
                 onClick={() => setMobileOpen(false)}
               />
+              {/* Drawer panel — slides in from left */}
               <motion.div
                 initial={{ x: -290 }}
                 animate={{ x: 0 }}
                 exit={{ x: -290 }}
                 transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                className="fixed inset-y-0 left-0 z-50 p-3 lg:hidden"
+                className="fixed inset-y-0 left-0 lg:hidden p-2 sm:p-3 w-[280px] sm:w-[300px]"
+                style={{ zIndex: Z.drawer }}
               >
                 <Sidebar
                   collapsed={false}
@@ -990,8 +911,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             onCmdK={() => setCmdOpen(true)}
             sseStatus={sseStatus}
           />
-          <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-7xl px-6 py-6">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
               <motion.div
                 key={location.pathname}
                 initial={{ opacity: 0, y: 8 }}

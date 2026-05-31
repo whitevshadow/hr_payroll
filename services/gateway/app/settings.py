@@ -32,6 +32,7 @@ ROUTES: list[tuple[str, str]] = [
     ("/api/v1/payroll", settings.payroll_url),
     ("/api/v1/audit", settings.payroll_url),
     ("/api/v1/notifications", settings.payroll_url),
+    ("/api/v1/events", settings.payroll_url),
     ("/api/v1/payouts", settings.payout_url),
     ("/api/v1/reports", settings.reporting_url),
     ("/api/v1/blobs", settings.blobstore_url),
