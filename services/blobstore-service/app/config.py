@@ -83,8 +83,11 @@ class Settings(BaseSettings):
             if v.startswith(prefix):
                 return v[len(prefix):]
         return v
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
+    # No defaults — empty string triggers the startup guard in init_minio().
+    # Set via MINIO_ACCESS_KEY / MINIO_SECRET_KEY env vars (service account only).
+    # Root credentials must never appear in application configuration.
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
     MINIO_BUCKET: str = "blobs"
     MINIO_BUCKET_EMPLOYEE_DOCS: str = "default-employee-docs"
     MINIO_BUCKET_PAYROLL_OUTPUTS: str = "default-payroll-outputs"

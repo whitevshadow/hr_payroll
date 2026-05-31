@@ -72,10 +72,16 @@ async def register(
 async def login(
     body: LoginRequest, session: AsyncSession = Depends(get_session)
 ) -> TokenResponse:
+    # Both tenant_id AND email are required — unique constraint is (tenant_id, email),
+    # so omitting tenant_id allows cross-tenant row collision via scalar().
     user = await session.scalar(
-        select(User).where(User.email == body.email.lower())
+        select(User).where(
+            User.tenant_id == body.tenant_id,
+            User.email == body.email.lower(),
+        )
     )
     if not user or not verify_password(body.password, user.password_hash):
+        # Generic message: do not reveal whether tenant_id or password was wrong.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )

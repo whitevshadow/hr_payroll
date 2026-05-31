@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from hr_shared import mask_bank_account as _mask_bank_account
+
 
 def _rows(items: dict) -> str:
     return "".join(
@@ -57,7 +59,7 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
         <td><b>Location</b></td><td>{emp.get('work_location', '') or '-'}</td></tr>
     <tr><td><b>Days</b></td><td>Total {attendance.get('total_days', '-')},
         Payable {attendance.get('payable_days', '-')}, LOP {attendance.get('lop_days', '-')}</td>
-        <td><b>Bank A/C</b></td><td>{emp.get('bank_account', '') or '-'}</td></tr>
+        <td><b>Bank A/C</b></td><td>{_mask_bank_account(emp.get('bank_account'))}</td></tr>
   </table>
   <div class="cols">
     <div class="col">

@@ -27,6 +27,11 @@ class BaseServiceSettings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 120
 
+    # PII field-level encryption (DPDP Act 2023, s.8(4))
+    # Comma-separated Fernet keys; first key encrypts, all keys decrypt.
+    # MUST be set in production — see shared/hr_shared/crypto.py for keygen.
+    field_encryption_key: str = ""
+
     # Statutory / business defaults
     pt_default_state: str = "Maharashtra"
     pf_ceiling_enabled: bool = True

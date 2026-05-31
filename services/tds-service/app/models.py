@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from hr_shared import TenantAwareBase
+from hr_shared import EncryptedString, TenantAwareBase
 from sqlalchemy import Boolean, Date, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -50,8 +50,9 @@ class EmployeeTaxProfile(TenantAwareBase):
     __tablename__ = "employee_tax_profiles"
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    pan: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    aadhaar: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # DPDP Act 2023 s.8(4): PAN and Aadhaar are explicitly named sensitive data.
+    pan: Mapped[str | None] = mapped_column(EncryptedString, nullable=True)
+    aadhaar: Mapped[str | None] = mapped_column(EncryptedString, nullable=True)
     dob: Mapped[date | None] = mapped_column(Date, nullable=True)
     residential_status: Mapped[str] = mapped_column(String(32), default="RESIDENT")
     tax_regime: Mapped[str] = mapped_column(String(10), default="DEFAULT")

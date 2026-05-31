@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from hr_shared import TenantAwareBase
+from hr_shared import EncryptedString, TenantAwareBase
 from sqlalchemy import Date, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -26,10 +26,11 @@ class Employee(TenantAwareBase):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255))
-    pan_number: Mapped[str | None] = mapped_column(String(20))
-    bank_account: Mapped[str | None] = mapped_column(String(40))
-    bank_ifsc: Mapped[str | None] = mapped_column(String(20))
-    uan_number: Mapped[str | None] = mapped_column(String(30))
+    # DPDP Act 2023 s.8(4): PII fields encrypted at rest via Fernet.
+    pan_number: Mapped[str | None] = mapped_column(EncryptedString)
+    bank_account: Mapped[str | None] = mapped_column(EncryptedString)
+    bank_ifsc: Mapped[str | None] = mapped_column(EncryptedString)
+    uan_number: Mapped[str | None] = mapped_column(EncryptedString)
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     joining_date: Mapped[date | None] = mapped_column(Date)
     department_id: Mapped[uuid.UUID | None] = mapped_column(

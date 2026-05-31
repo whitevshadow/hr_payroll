@@ -1,0 +1,328 @@
+"""
+Attendance service role-guard tests.
+
+Threat model: a JWT-authenticated EMPLOYEE must be blocked from every
+write endpoint in the attendance service. Only HR_MANAGER+ may write
+attendance records; only ADMIN roles may unlock a locked month.
+
+Matrix tested:
+  Endpoint                        EMPLOYEE   HR_MANAGER  PAYROLL_ADMIN  ORG_ADMIN
+  POST /manual                      403          200          200          200
+  POST /bulk                        403          200          200          200
+  POST /monthly/{m}/validate        403          200          200          200
+  POST /monthly/{m}/lock            403          200          200          200
+  POST /monthly/{m}/unlock          403          403          200          200
+  GET  /monthly/{m}                 200          200          200          200  (read — open)
+  GET  /{emp_id}/{m}                200          200          200          200  (read — open)
+"""
+from __future__ import annotations
+
+import uuid
+from datetime import date
+from typing import AsyncGenerator
+from unittest.mock import AsyncMock, patch
+
+import pytest
+import pytest_asyncio
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+from jose import jwt
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.deps import get_session, runtime
+from app.main import app as attendance_app
+from app.models import AttendanceMonth, AttendanceRecord
+from hr_shared import TenantAwareBase
+
+# ---------------------------------------------------------------------------
+# Schema + session setup
+# ---------------------------------------------------------------------------
+
+_engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
+_session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+
+
+@pytest_asyncio.fixture(autouse=True, scope="function")
+async def _schema():
+    async with _engine.begin() as conn:
+        await conn.run_sync(TenantAwareBase.metadata.create_all)
+    yield
+    async with _engine.begin() as conn:
+        await conn.run_sync(TenantAwareBase.metadata.drop_all)
+
+
+@pytest_asyncio.fixture
+async def db() -> AsyncGenerator[AsyncSession, None]:
+    async with _session_factory() as s:
+        yield s
+
+
+# ---------------------------------------------------------------------------
+# JWT helpers (no real secret needed — we override get_context)
+# ---------------------------------------------------------------------------
+
+TENANT_ID = uuid.uuid4()
+JWT_SECRET = "test-secret"
+JWT_ALG = "HS256"
+
+
+def _token(roles: list[str], user_id: uuid.UUID | None = None) -> str:
+    uid = user_id or uuid.uuid4()
+    return jwt.encode(
+        {
+            "sub": str(uid),
+            "tenant_id": str(TENANT_ID),
+            "roles": roles,
+            "email": "user@test.com",
+        },
+        JWT_SECRET,
+        algorithm=JWT_ALG,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Client fixture with session + JWT secret overrides
+# ---------------------------------------------------------------------------
+
+@pytest_asyncio.fixture
+async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    async def _override_session():
+        yield db
+
+    attendance_app.dependency_overrides[get_session] = _override_session
+
+    # Patch jwt_secret so decode_token accepts our test tokens.
+    with patch.object(runtime.settings, "jwt_secret", JWT_SECRET), \
+         patch.object(runtime.settings, "jwt_algorithm", JWT_ALG):
+        async with AsyncClient(
+            transport=ASGITransport(app=attendance_app),
+            base_url="http://test",
+        ) as ac:
+            yield ac
+
+    attendance_app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Shared payloads
+# ---------------------------------------------------------------------------
+
+MONTH = "2026-04"
+EMP_ID = str(uuid.uuid4())
+
+_MANUAL_BODY = {
+    "employee_id": EMP_ID,
+    "month": "2026-04-01",
+    "total_days": 30,
+    "present_days": 28,
+    "cl_days": 0,
+    "sl_days": 0,
+    "pl_days": 0,
+    "wo_days": 4,
+    "holiday_days": 0,
+    "wfh_days": 0,
+    "overtime_hours": 0,
+}
+
+_BULK_BODY = {
+    "month": "2026-04-01",
+    "source": "CSV_UPLOAD",
+    "records": [_MANUAL_BODY],
+}
+
+_LOCK_BODY = {"reason": "Payroll cut-off"}
+_UNLOCK_BODY = {"reason": "Correction required"}
+
+
+# ---------------------------------------------------------------------------
+# Role tokens
+# ---------------------------------------------------------------------------
+
+EMPLOYEE_HDR = {"Authorization": f"Bearer {_token(['EMPLOYEE'])}"}
+HR_MGR_HDR = {"Authorization": f"Bearer {_token(['HR_MANAGER'])}"}
+PAYROLL_HDR = {"Authorization": f"Bearer {_token(['PAYROLL_ADMIN'])}"}
+ORG_ADMIN_HDR = {"Authorization": f"Bearer {_token(['ORG_ADMIN'])}"}
+
+
+# ---------------------------------------------------------------------------
+# POST /manual
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_manual_employee_blocked(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY, headers=EMPLOYEE_HDR)
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_manual_hr_manager_allowed(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY, headers=HR_MGR_HDR)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_manual_payroll_admin_allowed(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY, headers=PAYROLL_HDR)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_manual_org_admin_allowed(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY, headers=ORG_ADMIN_HDR)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_manual_unauthenticated_blocked(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY)
+    assert r.status_code in (401, 403), r.text
+
+
+# ---------------------------------------------------------------------------
+# POST /bulk
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_bulk_employee_blocked(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/bulk", json=_BULK_BODY, headers=EMPLOYEE_HDR)
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_bulk_hr_manager_allowed(client: AsyncClient):
+    r = await client.post("/api/v1/attendance/bulk", json=_BULK_BODY, headers=HR_MGR_HDR)
+    assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# POST /monthly/{month}/validate
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_validate_employee_blocked(client: AsyncClient):
+    r = await client.post(f"/api/v1/attendance/monthly/{MONTH}/validate", headers=EMPLOYEE_HDR)
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_validate_hr_manager_allowed(client: AsyncClient):
+    r = await client.post(f"/api/v1/attendance/monthly/{MONTH}/validate", headers=HR_MGR_HDR)
+    assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# POST /monthly/{month}/lock
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_lock_employee_blocked(client: AsyncClient):
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/lock", json=_LOCK_BODY, headers=EMPLOYEE_HDR
+    )
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_lock_hr_manager_allowed(client: AsyncClient):
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/lock", json=_LOCK_BODY, headers=HR_MGR_HDR
+    )
+    assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# POST /monthly/{month}/unlock — ADMIN_ROLES only (HR_MANAGER excluded)
+# ---------------------------------------------------------------------------
+
+async def _lock_month(db: AsyncSession) -> None:
+    """Seed a LOCKED AttendanceMonth so unlock has something to act on."""
+    m = date(2026, 4, 1)
+    ctrl = AttendanceMonth(
+        tenant_id=TENANT_ID,
+        month=m,
+        status="LOCKED",
+        locked_by=uuid.uuid4(),
+    )
+    db.add(ctrl)
+    await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_unlock_employee_blocked(client: AsyncClient, db: AsyncSession):
+    await _lock_month(db)
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=EMPLOYEE_HDR
+    )
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_unlock_hr_manager_blocked(client: AsyncClient, db: AsyncSession):
+    """HR_MANAGER can lock but NOT unlock — admin-only action."""
+    await _lock_month(db)
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=HR_MGR_HDR
+    )
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_unlock_payroll_admin_allowed(client: AsyncClient, db: AsyncSession):
+    await _lock_month(db)
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=PAYROLL_HDR
+    )
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_unlock_org_admin_allowed(client: AsyncClient, db: AsyncSession):
+    await _lock_month(db)
+    r = await client.post(
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=ORG_ADMIN_HDR
+    )
+    assert r.status_code == 200, r.text
+
+
+# ---------------------------------------------------------------------------
+# Read endpoints — accessible to all authenticated roles including EMPLOYEE
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_get_monthly_employee_allowed(client: AsyncClient):
+    r = await client.get(f"/api/v1/attendance/monthly/{MONTH}", headers=EMPLOYEE_HDR)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_get_single_record_employee_allowed(client: AsyncClient, db: AsyncSession):
+    """Employee can read their own record (404 if none exists — not 403)."""
+    r = await client.get(
+        f"/api/v1/attendance/{EMP_ID}/{MONTH}", headers=EMPLOYEE_HDR
+    )
+    assert r.status_code in (200, 404), r.text
+    assert r.status_code != 403
+
+
+# ---------------------------------------------------------------------------
+# Tenant isolation sanity check — guard uses ctx.tenant_id from JWT
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_manual_write_scoped_to_jwt_tenant(client: AsyncClient, db: AsyncSession):
+    """
+    After a successful write, the created AttendanceRecord must carry the
+    tenant_id from the JWT, not any value from the request body.
+    """
+    r = await client.post("/api/v1/attendance/manual", json=_MANUAL_BODY, headers=HR_MGR_HDR)
+    assert r.status_code == 200, r.text
+
+    record = await db.scalar(
+        __import__("sqlalchemy", fromlist=["select"]).select(AttendanceRecord).where(
+            AttendanceRecord.employee_id == uuid.UUID(EMP_ID)
+        )
+    )
+    assert record is not None
+    assert record.tenant_id == TENANT_ID, (
+        "AttendanceRecord tenant_id must match the JWT tenant, not be left as default"
+    )

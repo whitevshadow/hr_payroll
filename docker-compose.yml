@@ -134,25 +134,55 @@ services:
       <<: *common-env
       # Must be host:port WITHOUT scheme — _build_boto_client prepends http:// itself.
       MINIO_PUBLIC_ENDPOINT: localhost:9000
+      # Service account credentials (least-privilege IAM user created by minio-init).
+      # Root credentials are intentionally absent here.
+      MINIO_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
+      MINIO_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
     ports:
       - "8011:8011"
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      # Root credentials — only used by the minio container and minio-init.
+      # NEVER injected into application service containers.
+      # Values must be set in .env (git-ignored). See .env.example.
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs once: creates the blobstore-svc IAM user with a least-privilege policy.
+  # Application containers never receive MINIO_ROOT_USER / MINIO_ROOT_PASSWORD.
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: ["/bin/sh", "/scripts/init-minio.sh"]
+    volumes:
+      - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
+      MINIO_SERVICE_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
+      MINIO_SERVICE_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
+      MINIO_INTERNAL_ENDPOINT: minio:9000
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
 
   gateway:
     build:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from hr_shared import audit_log, money
+from hr_shared import audit_log, mask_bank_account as _mask_bank_account, mask_pan as _mask_pan, money
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -130,8 +130,10 @@ async def _compute_for_employee(
         "employee": {
             "emp_code": emp.get("emp_code"),
             "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
-            "pan": emp.get("pan_number"),
-            "bank_account": emp.get("bank_account"),
+            # Masked: breakdown_json is accessible to HR admins and stored in JSONB.
+            # Full PAN appears only on the employee's own Form 16 (ITA 1961 s.203).
+            "pan": _mask_pan(emp.get("pan_number")),
+            "bank_account": _mask_bank_account(emp.get("bank_account")),
             "designation": emp.get("designation"),
             "work_location": emp.get("work_location"),
         },

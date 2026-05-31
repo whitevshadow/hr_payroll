@@ -99,14 +99,53 @@ _bucket_resolver = BucketResolver(_minio_client, _boto_client)
 
 # ── Initialisation ─────────────────────────────────────────────────────────────
 
+# Known-bad credential values that must never reach a running service.
+# Expanded when new default-credential incidents are discovered.
+_FORBIDDEN_CREDENTIALS = frozenset({"minioadmin", "minioadmin123", "", "admin", "password"})
+
+
+def _assert_service_credentials() -> None:
+    """Fail fast if root or default credentials were injected into the service.
+
+    The blobstore-service must run with a least-privilege IAM account, never
+    with MinIO root credentials. This guard fires before any network I/O so
+    a misconfigured deployment is caught at startup, not at runtime.
+    """
+    key = settings.MINIO_ACCESS_KEY
+    secret = settings.MINIO_SECRET_KEY
+
+    if not key or not secret:
+        raise RuntimeError(
+            "MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be set. "
+            "Run scripts/init-minio.sh to provision a service account, "
+            "then set the credentials in .env."
+        )
+    if key in _FORBIDDEN_CREDENTIALS or secret in _FORBIDDEN_CREDENTIALS:
+        raise RuntimeError(
+            f"Forbidden MinIO credential detected (key={key!r}). "
+            "The blobstore-service must use a least-privilege IAM account, "
+            "not the MinIO root credentials. "
+            "See scripts/init-minio.sh and .env.example."
+        )
+    if len(secret) < 8:
+        raise RuntimeError(
+            "MINIO_SERVICE_SECRET_KEY must be at least 8 characters "
+            "(MinIO minimum). Generate one with: "
+            "python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+
+
 def init_minio() -> None:
     """
     Called at application startup.
-    1. Retries connection to MinIO with exponential back-off.
-    2. Creates the default bucket if it does not exist.
-    3. Applies permissive CORS so browsers can POST directly to MinIO.
+    1. Asserts that service (non-root) credentials are configured.
+    2. Retries connection to MinIO with exponential back-off.
+    3. Creates the default bucket if it does not exist.
+    4. Applies CORS so browsers can POST directly to MinIO.
     """
     global _minio_client, _boto_client, _boto_public_client, _bucket_resolver  # noqa: PLW0603
+
+    _assert_service_credentials()
 
     max_retries = settings.MINIO_MAX_RETRIES
     delay = settings.MINIO_RETRY_DELAY_SECONDS

@@ -9,7 +9,7 @@ from hr_shared import RequestContext
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_session
+from .deps import get_context, get_session, runtime
 from .models import AttendanceAudit, AttendanceMonth, AttendanceRecord
 from .schemas import (
     AttendanceBulkUpsert,
@@ -25,6 +25,11 @@ router = APIRouter(prefix="/api/v1/attendance", tags=["attendance"])
 
 _HR_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN")
 _ADMIN_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN")
+
+# Route-level guards — replacing bare Depends(get_context) on all write endpoints.
+# EMPLOYEE role must never reach any attendance write path.
+_require_hr = runtime.require_roles(*_HR_ROLES)      # manual, bulk, validate, lock
+_require_admin = runtime.require_roles(*_ADMIN_ROLES)  # unlock (higher privilege)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -110,7 +115,7 @@ async def _write_audit(
 @router.post("/manual", response_model=AttendanceOut, status_code=200)
 async def upsert_manual(
     body: AttendanceUpsert,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(_require_hr),
     session: AsyncSession = Depends(get_session),
 ):
     month = _first_of_month(body.month)
@@ -194,7 +199,7 @@ async def upsert_manual(
 @router.post("/bulk", status_code=200)
 async def bulk_upsert(
     body: AttendanceBulkUpsert,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(_require_hr),
     session: AsyncSession = Depends(get_session),
 ):
     month = _first_of_month(body.month)
@@ -317,7 +322,7 @@ async def get_month_status(
 @router.post("/monthly/{month}/validate", response_model=AttendanceMonthOut)
 async def validate_month(
     month: str,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(_require_hr),
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
@@ -339,7 +344,7 @@ async def validate_month(
 async def lock_month(
     month: str,
     body: LockRequest,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(_require_hr),
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
@@ -377,12 +382,9 @@ async def lock_month(
 async def unlock_month(
     month: str,
     body: UnlockRequest,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(_require_admin),
     session: AsyncSession = Depends(get_session),
 ):
-    if not any(r in (ctx.roles or []) for r in _ADMIN_ROLES):
-        raise HTTPException(status_code=403, detail="Only admins can unlock attendance")
-
     m = _parse_month(month)
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
