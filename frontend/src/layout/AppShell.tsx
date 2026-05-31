@@ -48,6 +48,7 @@ import { currentMonthFirst, relativeTime } from "../lib/format";
 import { CommandPalette, useCommandPalette } from "../components/CommandPalette";
 import { usePayrollSSE } from "../hooks/usePayrollSSE";
 import clsx from "clsx";
+import AppIcon from "../icons/icon.png";
 
 // ── Theme Context ──────────────────────────────────────────────────────────────
 const ThemeContext = createContext<{ dark: boolean; toggle: () => void }>({
@@ -263,12 +264,12 @@ function Sidebar({
       >
         {/* App icon */}
         <motion.div
-          className="sidebar-logo-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+          className="sidebar-logo-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl overflow-hidden"
           whileHover={{ scale: 1.08, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 22 }}
         >
-          <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
+          <img src={AppIcon} alt="PeopleOS Logo" className="h-full w-full object-cover" />
         </motion.div>
 
         <AnimatePresence mode="wait">
