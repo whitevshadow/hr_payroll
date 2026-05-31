@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { complianceApi } from "../api/compliance";
 import { employeesApi } from "../api/employees";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -38,6 +38,7 @@ export function Compliance() {
   const employees = useQuery({
     queryKey: qk.employees({ page_size: 200 }),
     queryFn: () => employeesApi.list({ page_size: 200 }),
+    staleTime: STALE_STABLE,
   });
 
   const empMap = Object.fromEntries(
@@ -168,7 +169,7 @@ export function Compliance() {
 
 function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -233,7 +234,7 @@ function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string>
 
 function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -285,7 +286,7 @@ function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string
 
 function PTTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

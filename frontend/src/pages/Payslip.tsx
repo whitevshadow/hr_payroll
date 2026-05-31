@@ -36,7 +36,7 @@ export function Payslip() {
         </button>
       </PageHeader>
 
-      <div className="card overflow-hidden p-0" style={{ height: "700px" }}>
+      <div className="card table-card overflow-hidden p-0" style={{ height: "700px" }}>
         {htmlQ.isLoading && <FullPageSpinner />}
         {htmlQ.isError && (
           <div className="flex h-full items-center justify-center text-red-600">

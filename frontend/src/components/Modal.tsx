@@ -46,14 +46,12 @@ export function Modal({
 
           {/* Panel */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 8 }}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 8 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className={clsx(
-              "relative z-10 w-full rounded-2xl bg-white dark:bg-slate-900",
-              "border border-slate-200 dark:border-slate-700/60",
-              "shadow-glass-lg",
+              "relative z-10 w-full glass-modal",
               {
                 "max-w-sm": size === "sm",
                 "max-w-lg": size === "md",

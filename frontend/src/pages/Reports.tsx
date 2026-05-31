@@ -129,7 +129,7 @@ export function Reports() {
             </button>
           </div>
 
-          <div className="card overflow-hidden p-0">
+          <div className="card table-card overflow-hidden p-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

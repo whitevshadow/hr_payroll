@@ -10,6 +10,7 @@ import { qk } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner } from "../components/Spinner";
+import { EmployeeDocumentsPanel } from "../components/EmployeeDocumentsPanel";
 import { formatINR } from "../lib/money";
 import { formatDate, formatMonth, firstToMonth } from "../lib/format";
 import { maskPii, type PiiType } from "../lib/pii";
@@ -76,7 +77,7 @@ export function EmployeeDetail() {
       {tab === "salary" && <SalaryTab employeeId={id!} />}
       {tab === "attendance" && <AttendanceTab employeeId={id!} />}
       {tab === "payslips" && <PayslipsTab employeeId={id!} />}
-      {tab === "documents" && <DocumentsTab />}
+      {tab === "documents" && <DocumentsTab employeeId={id!} />}
     </div>
   );
 }
@@ -123,7 +124,7 @@ function ProfileTab({
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="card">
+      <div className="card table-card">
         <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Basic Information</h3>
         <div className="space-y-2 text-sm">
           {rows.map((r) => (
@@ -231,7 +232,7 @@ function AttendanceTab({ employeeId }: { employeeId: string }) {
   );
 
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -273,7 +274,7 @@ function PayslipsTab({ employeeId }: { employeeId: string }) {
   const disbursed = cycles.data?.filter((c) => c.status === "DISBURSED") ?? [];
 
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -305,18 +306,13 @@ function PayslipsTab({ employeeId }: { employeeId: string }) {
   );
 }
 
-// ── Documents Tab (stub) ──────────────────────────────────────────────────
-function DocumentsTab() {
+// ── Documents Tab ────────────────────────────────────────────────────────
+function DocumentsTab({ employeeId }: { employeeId: string }) {
   return (
-    <div className="card text-center py-10">
-      <div className="text-4xl mb-3">📁</div>
-      <div className="text-sm font-semibold text-gray-700">Document Storage</div>
-      <div className="text-xs text-gray-400 mt-1">
-        Document upload & storage arrives in V2 (MinIO/S3).
-      </div>
-      <div className="mt-3 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-        Coming in V2 — # TODO(v2)
-      </div>
-    </div>
+    <EmployeeDocumentsPanel
+      employeeId={employeeId}
+      title="Employee Documents"
+      description="Upload and track identity, banking, and employment documents for this employee."
+    />
   );
 }

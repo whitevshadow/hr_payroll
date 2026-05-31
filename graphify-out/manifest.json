@@ -1,0 +1,1152 @@
+{
+  "O:\\Hr__PAYROLL\\.claude\\settings.local.json": {
+    "mtime": 1780158108.953191,
+    "ast_hash": "4afa48952c35e5e67d93effb3c61d235",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\package.json": {
+    "mtime": 1780159890.6592462,
+    "ast_hash": "ff15bb166b5826c0ac3a503457792861",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\postcss.config.js": {
+    "mtime": 1780158108.9570987,
+    "ast_hash": "33fad9c02cb0ec6d6030369ef6347d57",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\tailwind.config.js": {
+    "mtime": 1780161434.425764,
+    "ast_hash": "f490ac153113a518cf9bd81e8de95185",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\tsconfig.json": {
+    "mtime": 1780158108.9720185,
+    "ast_hash": "0476e282b2d4b2c196c3c3c1fdc2c55d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\vite.config.ts": {
+    "mtime": 1780158108.9720185,
+    "ast_hash": "16f9262f697a31bccd203550eeb35e4e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\App.tsx": {
+    "mtime": 1780158108.958097,
+    "ast_hash": "d2a3ab84c6a5107b75cef9cda6d0220b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\main.tsx": {
+    "mtime": 1780158108.9659543,
+    "ast_hash": "fae4880b217bd800a24c6258ba2f71d0",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\types.ts": {
+    "mtime": 1780158108.9710193,
+    "ast_hash": "784fba4b77f985f468c4af259548262c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\vite-env.d.ts": {
+    "mtime": 1780158108.9710193,
+    "ast_hash": "f29a9e4e7e256b9c5ac28c0dd11b5dc9",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\attendance.ts": {
+    "mtime": 1780158108.958097,
+    "ast_hash": "f702eb1f1e6a2fafc5a69b0763a34577",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\auth.ts": {
+    "mtime": 1780158108.9590967,
+    "ast_hash": "f94de1e9e46b3ffcd96dbbbee640722d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\auth.tsx": {
+    "mtime": 1780158108.9590967,
+    "ast_hash": "40c09ae8e94691e681b5289572f3065c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\client.ts": {
+    "mtime": 1780158108.9590967,
+    "ast_hash": "6ed44eb9c4d69d3ab294e0907e6a327d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\compliance.ts": {
+    "mtime": 1780158108.9590967,
+    "ast_hash": "c37b614cb479087841be537b9b2775fd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\employees.ts": {
+    "mtime": 1780161944.2265353,
+    "ast_hash": "590922d6ca37a758cb2a9380acf03b33",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\notifications.ts": {
+    "mtime": 1780158108.9600968,
+    "ast_hash": "32358b0cef0ddfe56455b13c45aa0db4",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\payout.ts": {
+    "mtime": 1780158108.9600968,
+    "ast_hash": "ac5160a56e7e5b5dd49c6fbbeb02d32a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\payroll.ts": {
+    "mtime": 1780158108.9600968,
+    "ast_hash": "2d048bda817c1fc42b55fbe0e513679e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\reporting.ts": {
+    "mtime": 1780158108.9607646,
+    "ast_hash": "ffc16f49eb1ab160565d0407bf62cf1d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\salary.ts": {
+    "mtime": 1780158108.9607646,
+    "ast_hash": "e3712d71f4cb7d2588c365b0ef6b8a96",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\api\\tds.ts": {
+    "mtime": 1780158108.9607646,
+    "ast_hash": "e3619439bd966b357e8d8982bcf2518e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\CommandPalette.tsx": {
+    "mtime": 1780159995.8991668,
+    "ast_hash": "881398bf326914b5684d0cdd7b40e61f",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\EmployeeDocumentsPanel.tsx": {
+    "mtime": 1780206918.4785821,
+    "ast_hash": "29bdc8c50e42b394703da1dc95a35807",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\EmptyState.tsx": {
+    "mtime": 1780161371.452373,
+    "ast_hash": "bbdbe35c8223e8a9dca0a26765c4d145",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\Layout.tsx": {
+    "mtime": 1780158108.9614387,
+    "ast_hash": "5014845049338c3fadcd801b7a5db9cf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\Modal.tsx": {
+    "mtime": 1780158856.6575522,
+    "ast_hash": "c7a863257d7d650ba62885abb5672fbd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\PageHeader.tsx": {
+    "mtime": 1780160369.781676,
+    "ast_hash": "67a944eeb65dfae763534ba8eef3e9d6",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\Spinner.tsx": {
+    "mtime": 1780158108.9614387,
+    "ast_hash": "715816b68d04db440bfd82dea5c92d07",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\StatusBadge.tsx": {
+    "mtime": 1780158108.9614387,
+    "ast_hash": "56b0c41c275faeb0921b3121ca3d9564",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\Stepper.tsx": {
+    "mtime": 1780158108.9624434,
+    "ast_hash": "84697cacd1e9138a5f971d0c67099021",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\Toast.tsx": {
+    "mtime": 1780158108.9624434,
+    "ast_hash": "596f79ab28843faf2158df1ddb946f27",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\components\\ui.tsx": {
+    "mtime": 1780158108.9624434,
+    "ast_hash": "1f7d190c984a5dd495d75b3f960116c3",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\data\\statutory-calendar.ts": {
+    "mtime": 1780158108.9634447,
+    "ast_hash": "a3c5b91f40f988fc801b917f65eb24fb",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\hooks\\usePayrollSSE.ts": {
+    "mtime": 1780159939.2853434,
+    "ast_hash": "a8c9c145a098b0970d4ce830e3b7301c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\layout\\AppShell.tsx": {
+    "mtime": 1780206983.5161865,
+    "ast_hash": "3d82b24ff9e656ba79778bf25b57ec57",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\layout\\ProtectedRoute.tsx": {
+    "mtime": 1780158108.9634447,
+    "ast_hash": "f620f9acf19259e2528b439742a86455",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\api.ts": {
+    "mtime": 1780158108.9634447,
+    "ast_hash": "9ab66d62f39989dce36fe9fbb3414272",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\auth.ts": {
+    "mtime": 1780158108.9649491,
+    "ast_hash": "fc1d335c522f5e2c861f72fc16bfb1c2",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\csv.ts": {
+    "mtime": 1780158108.9649491,
+    "ast_hash": "9da68fe64483db0c962d68b080dafbb7",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\format.ts": {
+    "mtime": 1780158108.9649491,
+    "ast_hash": "aa87612b5aa3cc16731eb6f9c413fa09",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\money.ts": {
+    "mtime": 1780158108.9649491,
+    "ast_hash": "f9ea7ca37016eee53516be4b8c830788",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\pii.ts": {
+    "mtime": 1780158108.9649491,
+    "ast_hash": "6be1b4a09cff14b7b37cf93ad3667c93",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\queryClient.ts": {
+    "mtime": 1780161934.8535602,
+    "ast_hash": "a1468ae7eda60222e24884d943189f92",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\roles.ts": {
+    "mtime": 1780158108.9659543,
+    "ast_hash": "ff61e0e6f60ea1a744c18f00458a774c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\schemas.ts": {
+    "mtime": 1780160439.3774633,
+    "ast_hash": "871b27ba62a52c8d712b97e4c7ad92c9",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\lib\\toast.ts": {
+    "mtime": 1780158108.9659543,
+    "ast_hash": "74ce2bfcedd89095220121167e157b0e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Attendance.tsx": {
+    "mtime": 1780162055.6866596,
+    "ast_hash": "ea68df0884d441472dd554722070bafd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\AuditLog.tsx": {
+    "mtime": 1780160291.6276119,
+    "ast_hash": "92d3a4360dce171b44dad5adcf1a0d02",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Compliance.tsx": {
+    "mtime": 1780162009.4071448,
+    "ast_hash": "073a054e5b373bcb958e2623c7dac88b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\CycleDetail.tsx": {
+    "mtime": 1780158108.9670224,
+    "ast_hash": "ddf4be722e6c5a80f4a90ea3fb25e3aa",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Cycles.tsx": {
+    "mtime": 1780158956.994969,
+    "ast_hash": "56dbb4b6a54a7f7209940e74bcbbad19",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\CycleSummary.tsx": {
+    "mtime": 1780160360.0271103,
+    "ast_hash": "c8d2d0c1cd864325518987ff8256483b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Dashboard.tsx": {
+    "mtime": 1780162040.3207393,
+    "ast_hash": "8b3079c27507e7d9e43aad617885d239",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Departments.tsx": {
+    "mtime": 1780162085.2446303,
+    "ast_hash": "2a616382347ea44d15873c45cb024042",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\EmployeeDetail.tsx": {
+    "mtime": 1780158956.9419365,
+    "ast_hash": "a9bb5ba6a52e0603202e3e658cb6e850",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Employees.tsx": {
+    "mtime": 1780158956.994969,
+    "ast_hash": "14d4ac152fdc0d78d0595196517cd49a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Login.tsx": {
+    "mtime": 1780158108.9690194,
+    "ast_hash": "baa2c36be947d613d8acb695bc5a1cbb",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\MyProfile.tsx": {
+    "mtime": 1780161994.891351,
+    "ast_hash": "142a12796fdeea0435fe4e0032f0250d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Payouts.tsx": {
+    "mtime": 1780158956.994969,
+    "ast_hash": "58bcf7a66a2b431b8a4ce05e6be9be0a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\PayrollCycles.tsx": {
+    "mtime": 1780158108.970019,
+    "ast_hash": "a4ca3fc3c31571d420fb6f11c2865d80",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Payslip.tsx": {
+    "mtime": 1780158956.994969,
+    "ast_hash": "989507a5e10220929eae4c7f0463449d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\PaySummary.tsx": {
+    "mtime": 1780158108.970019,
+    "ast_hash": "7dc3995b8557248c1a20f7cdb71ad61e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Reports.tsx": {
+    "mtime": 1780158956.994969,
+    "ast_hash": "9870c6f199a01aa6e4c6e6070a328a37",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\Salary.tsx": {
+    "mtime": 1780162073.8316474,
+    "ast_hash": "02cd5aebc22715f17c9071c50510b641",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\pages\\TDS.tsx": {
+    "mtime": 1780162028.6859515,
+    "ast_hash": "b20bf3ae0222b0596022b32474563692",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\colors.ts": {
+    "mtime": 1780158732.2640345,
+    "ast_hash": "bed1c64d85bdb91b8fcf66f67c754d16",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\glass.ts": {
+    "mtime": 1780158732.2650344,
+    "ast_hash": "3e295eb0e4b6ccd536aa466d1f7e270f",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\radius.ts": {
+    "mtime": 1780158732.3029397,
+    "ast_hash": "9d86a09ccd47cd57f4506ca1f16ddf85",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\shadows.ts": {
+    "mtime": 1780158732.2650344,
+    "ast_hash": "d36f6264767ff2f317e5341603f8b3bd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\spacing.ts": {
+    "mtime": 1780158732.3029397,
+    "ast_hash": "3b29a32acd5c723bbbc82056fab659bd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\typography.ts": {
+    "mtime": 1780158732.3317301,
+    "ast_hash": "3b1aa449806179dcd95bf5d54cbdb524",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\src\\tokens\\zindex.ts": {
+    "mtime": 1780158732.3317301,
+    "ast_hash": "32ec4d47fb07e5f2919685e39b14bc6a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\scripts\\generate_graph.py": {
+    "mtime": 1780158109.0045903,
+    "ast_hash": "6193fa392820721aa33dc1134929d42e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\scripts\\init-db.sql": {
+    "mtime": 1780158109.0045903,
+    "ast_hash": "c702b59cf7e6122e0acac2539786360e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\scripts\\migrate_doc_categories.sql": {
+    "mtime": 1780206026.3593688,
+    "ast_hash": "b0094b36de9d999e55a1cb2ca43b3d12",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\scripts\\seed.py": {
+    "mtime": 1780158109.0045903,
+    "ast_hash": "14af286b29afbd688f9d1d17e0ac6af1",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\deps.py": {
+    "mtime": 1780158109.0061047,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\main.py": {
+    "mtime": 1780158109.0061047,
+    "ast_hash": "063d439863542b9f32e63247de5b0718",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\models.py": {
+    "mtime": 1780158109.0061047,
+    "ast_hash": "99e4c14e5a3da1b1e81856ffcac299d4",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\routes.py": {
+    "mtime": 1780158109.0071125,
+    "ast_hash": "0253991ce0f8b07d5ffd03ba8d2cb8ee",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\schemas.py": {
+    "mtime": 1780158109.0071125,
+    "ast_hash": "60528efea91843313a83c5c0146df1ea",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\settings.py": {
+    "mtime": 1780158109.0071125,
+    "ast_hash": "37cfa14a5c3b5ac55aa04e256c81d4fd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\app\\__init__.py": {
+    "mtime": 1780158109.0061047,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\deps.py": {
+    "mtime": 1780158109.0081127,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\main.py": {
+    "mtime": 1780158109.0081127,
+    "ast_hash": "c91ed322018a194db88a35b01ba502f1",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\models.py": {
+    "mtime": 1780158109.0081127,
+    "ast_hash": "24675006aa88aea5e0e174449fcb49be",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\routes.py": {
+    "mtime": 1780158109.0091116,
+    "ast_hash": "bf23bec46d38e85b04c9dbb0959a8ac8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\schemas.py": {
+    "mtime": 1780158109.0091116,
+    "ast_hash": "5a02abaf1b9fa540abe28ad13dc44096",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\security.py": {
+    "mtime": 1780158109.0091116,
+    "ast_hash": "cf12da03d4f0deb6daa3007a46312c18",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\settings.py": {
+    "mtime": 1780158109.0101113,
+    "ast_hash": "63c9c939deddb8cfc7ebd54ab00ea831",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\app\\__init__.py": {
+    "mtime": 1780158109.0081127,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\.pyrightconfig.json": {
+    "mtime": 1773510777.0,
+    "ast_hash": "5fc5d58a8c4722a498c1d62fd52d9a9b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\auth.py": {
+    "mtime": 1780138940.138764,
+    "ast_hash": "252f24463eea3ce522d1dcc6bf15c835",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\config.py": {
+    "mtime": 1780205895.57173,
+    "ast_hash": "c132af459fef7a23841e8554d8e8147f",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\main.py": {
+    "mtime": 1780141874.0341463,
+    "ast_hash": "f58a4d976cc0ed545e5d609089602d10",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\scheduler.py": {
+    "mtime": 1780139738.5561392,
+    "ast_hash": "cd4fe4a4672005e1b0323d3dc59859e0",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\api\\blob_router.py": {
+    "mtime": 1780140156.1921637,
+    "ast_hash": "a585976b70ccd64cac7dba29d286c110",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\api\\bucket_router.py": {
+    "mtime": 1780139062.43795,
+    "ast_hash": "27711f84736106fe8bb277c83aa56849",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\api\\employee_doc_router.py": {
+    "mtime": 1780206773.890623,
+    "ast_hash": "e93b00fc84f72d7fa6862c2b4c1b94ab",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\api\\registry_router.py": {
+    "mtime": 1780139045.1490438,
+    "ast_hash": "17be35c1db125d096d15b9e96d5748e6",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\api\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\database\\base.py": {
+    "mtime": 1773497451.0,
+    "ast_hash": "cda455b50fcff708482ad63af090c401",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\database\\db.py": {
+    "mtime": 1780206781.3594036,
+    "ast_hash": "e4c69f03eae16153b266c5e637c0b129",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\database\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\events\\event_consumer.py": {
+    "mtime": 1780139834.246688,
+    "ast_hash": "6f886930b64beff36919f4d858db0b19",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\events\\event_producer.py": {
+    "mtime": 1780139588.498318,
+    "ast_hash": "dc10f99c11c22aa3e06f18ae6c236aa1",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\events\\outbox.py": {
+    "mtime": 1780139572.969013,
+    "ast_hash": "9805a3f1aaf09b80933083db9d1853a4",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\events\\__init__.py": {
+    "mtime": 1773507864.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\interfaces\\blob_store_interface.py": {
+    "mtime": 1776190137.754439,
+    "ast_hash": "0cef04b6f85cb2ed73ff603e76ee9e9d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\interfaces\\__init__.py": {
+    "mtime": 1773507850.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\blob_model.py": {
+    "mtime": 1780141445.4378772,
+    "ast_hash": "844062b5089e736786e15815e1667a46",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\document_audit.py": {
+    "mtime": 1780206658.791235,
+    "ast_hash": "d361e3a4af01446f9d39ab6580c000e6",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\document_registry.py": {
+    "mtime": 1776190137.781887,
+    "ast_hash": "2b5827d878fb7db43320b7eccef9f9f3",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\employee_document.py": {
+    "mtime": 1780206642.6958077,
+    "ast_hash": "713163b77c29cbe3b496867385548e4d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\outbox.py": {
+    "mtime": 1780139964.116197,
+    "ast_hash": "943d81f635b5bc5db830bfa4c89f42c2",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\models\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\repositories\\blob_repository.py": {
+    "mtime": 1780140111.8867862,
+    "ast_hash": "6fd8677c6284eb9b7bac66b9bc593100",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\repositories\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\schemas\\blob_schema.py": {
+    "mtime": 1780204734.8767552,
+    "ast_hash": "1a779a1b25a1015c4b09ae6562c2c3bd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\schemas\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\services\\blob_service.py": {
+    "mtime": 1780140216.938461,
+    "ast_hash": "3038dfb41d5c8caef20813c6fa468add",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\services\\registry_service.py": {
+    "mtime": 1773573896.0,
+    "ast_hash": "fcfb932ca2b6389c72716cdaea8a2fdf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\services\\__init__.py": {
+    "mtime": 1773572225.0,
+    "ast_hash": "cb492b7df9b5c170d7c87527940eff3b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\storage\\bucket_resolver.py": {
+    "mtime": 1780139811.738644,
+    "ast_hash": "5f396fc6bb5821238d10799dc51a0b37",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\storage\\minio_client.py": {
+    "mtime": 1780144103.61541,
+    "ast_hash": "f01daf86b70f4b5c0f264dece43d134f",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\storage\\virus_scan.py": {
+    "mtime": 1780140210.5108209,
+    "ast_hash": "7c16cd8b4306a4657b752cae47bdef00",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\app\\storage\\__init__.py": {
+    "mtime": 1773500320.0,
+    "ast_hash": "81051bcc2cf1bedf378224b0a93e2877",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\docker\\init-test-db.sh": {
+    "mtime": 1774116880.0,
+    "ast_hash": "4b20e5b8aa51ad5630d4292f63a91551",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\postgres\\init.sql": {
+    "mtime": 1780139475.7936692,
+    "ast_hash": "5033870c3080acd85c4f4bc00f12aedd",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\conftest.py": {
+    "mtime": 1780140602.634859,
+    "ast_hash": "aaa5f7471e6be234a3871f7ff6abd88e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_auth.py": {
+    "mtime": 1780140363.5078468,
+    "ast_hash": "a579910d09ca2f2ec5f0849b7cb276c3",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_blob_router.py": {
+    "mtime": 1780140398.5860677,
+    "ast_hash": "a7e24ac46276b2f3c73129c5e26524e8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_bucket_resolver.py": {
+    "mtime": 1780140346.696817,
+    "ast_hash": "1d7051d63f3016d7445e3bb3c2203db5",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_cursor.py": {
+    "mtime": 1780140354.4259899,
+    "ast_hash": "68e882617ff5a0327dcaeb137faf9f8d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_health.py": {
+    "mtime": 1780140431.4957526,
+    "ast_hash": "ce29bb7d686c5aa4bcc678500a7185fb",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\test_virus_scan.py": {
+    "mtime": 1780140375.7487218,
+    "ast_hash": "f828e4e2a059a34f0e2199fc1e687e32",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\__init__.py": {
+    "mtime": 1773504968.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\tests\\integration\\test_standalone_health.py": {
+    "mtime": 1773919210.0,
+    "ast_hash": "2644548af52cdf49e1fe1432dfecac28",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\conftest.py": {
+    "mtime": 1780158109.012112,
+    "ast_hash": "6bb0c5411316e93a61b0ea49fbbe8bc7",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\deps.py": {
+    "mtime": 1780158109.0111125,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\logic.py": {
+    "mtime": 1780158109.0111125,
+    "ast_hash": "a229b21c9f3a3b64c324ae6cd4adf16c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\main.py": {
+    "mtime": 1780158109.0111125,
+    "ast_hash": "9a257372c2eea288e2a0e7236aef4a3c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\models.py": {
+    "mtime": 1780158109.0111125,
+    "ast_hash": "9314fa8f07ec6baa3138c091415d8be8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\routes.py": {
+    "mtime": 1780158109.0111125,
+    "ast_hash": "84c57a8e4cfa03ebf5152c90642b12b5",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\schemas.py": {
+    "mtime": 1780158109.012112,
+    "ast_hash": "9fb5600800f0f8e22b66e274764fff62",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\settings.py": {
+    "mtime": 1780158109.012112,
+    "ast_hash": "cfabe8f91d636bc56c2c530179e9979a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\app\\__init__.py": {
+    "mtime": 1780158109.0101113,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\tests\\test_compliance_math.py": {
+    "mtime": 1780158109.0131118,
+    "ast_hash": "6c63b7bc11fcfd8ac8ce688dcc9d31d0",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\deps.py": {
+    "mtime": 1780158109.0131118,
+    "ast_hash": "f6c8178fea75d7bd8955049dcab5b707",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\main.py": {
+    "mtime": 1780158109.0131118,
+    "ast_hash": "03ea482afdb1a7b2944b06a449bb8cd2",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\models.py": {
+    "mtime": 1780158109.0131118,
+    "ast_hash": "c37edc2dac6cb638b030011fb6b67411",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\routes.py": {
+    "mtime": 1780161907.4426568,
+    "ast_hash": "dd4437d4706635e888eb0aae2af1728c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\schemas.py": {
+    "mtime": 1780161879.626806,
+    "ast_hash": "30783bb911bd839efc1405e405c08901",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\settings.py": {
+    "mtime": 1780158109.0146167,
+    "ast_hash": "bdcc315af7dc2d4f745fc8fa0b053898",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\app\\__init__.py": {
+    "mtime": 1780158109.0131118,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\gateway\\app\\main.py": {
+    "mtime": 1780158109.015624,
+    "ast_hash": "301c5aec523950a833720706c56f4778",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\gateway\\app\\settings.py": {
+    "mtime": 1780158466.8844976,
+    "ast_hash": "603afb3a42955b0f44a3d6e7a5e5961a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\gateway\\app\\__init__.py": {
+    "mtime": 1780158109.015624,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\deps.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\main.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "f9f6075b7b190f0f2cd59cabc87b0858",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\models.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "15697ac286bad71dc69e9b517f737461",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\routes.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "c2252393b8ea1791aafedf920ea19440",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\schemas.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "0002be5d70146aa7c7cbf3eae31614db",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\settings.py": {
+    "mtime": 1780158109.0181344,
+    "ast_hash": "0358d39ed48db3bd8e300b0b51af7617",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\app\\__init__.py": {
+    "mtime": 1780158109.0171342,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\client.py": {
+    "mtime": 1780158109.019134,
+    "ast_hash": "eff0fa1b7097095d72ae4841bb8c9e72",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\deps.py": {
+    "mtime": 1780158109.019134,
+    "ast_hash": "561d101de915d9e2daf766456110db9d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\main.py": {
+    "mtime": 1780158109.019134,
+    "ast_hash": "0384c8f670b91181aad805353363911c",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\models.py": {
+    "mtime": 1780158109.019134,
+    "ast_hash": "74155c653d1f6cace5c632f9cc2fe238",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\orchestrator.py": {
+    "mtime": 1780158109.0201342,
+    "ast_hash": "c55d2670fd639fe228771abe76b957f8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\routes.py": {
+    "mtime": 1780158109.0201342,
+    "ast_hash": "3a32b5a7678c2861a2644d47b0076876",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\schemas.py": {
+    "mtime": 1780158109.0201342,
+    "ast_hash": "1ab16c67985e8e3fe35853ba467cc2d9",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\settings.py": {
+    "mtime": 1780158109.0201342,
+    "ast_hash": "8cd90bf1195640857858bd0f30c77807",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\state.py": {
+    "mtime": 1780158109.0211341,
+    "ast_hash": "3002740e2c09e689704a5290ce165d71",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\app\\__init__.py": {
+    "mtime": 1780158109.0181344,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\deps.py": {
+    "mtime": 1780158109.0211341,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\main.py": {
+    "mtime": 1780158109.022134,
+    "ast_hash": "bf42355c2ff05b2eded93a57ed8a6102",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\models.py": {
+    "mtime": 1780158109.022134,
+    "ast_hash": "d6d85576ac9460ac4753a267966fc4e8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\routes.py": {
+    "mtime": 1780158109.022134,
+    "ast_hash": "2d68c17ababc19a486f26c6708887cba",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\schemas.py": {
+    "mtime": 1780158109.022134,
+    "ast_hash": "d2f4698f5326ee857ac7e1157fd925fa",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\settings.py": {
+    "mtime": 1780158109.022134,
+    "ast_hash": "cecf78314ecba3d230328964f2bbba90",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\template.py": {
+    "mtime": 1780158109.023134,
+    "ast_hash": "42e2f8ec8f9177791661a48b51b7d546",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\app\\__init__.py": {
+    "mtime": 1780158109.0211341,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\deps.py": {
+    "mtime": 1780158109.023134,
+    "ast_hash": "f371f4c17772be1172b7c8d96f3b64bf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\logic.py": {
+    "mtime": 1780158109.023134,
+    "ast_hash": "9d87a8ee866b1b316b9cd80adf175308",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\main.py": {
+    "mtime": 1780158109.0246391,
+    "ast_hash": "fcadf7ce4b7936696625848bb0625f12",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\models.py": {
+    "mtime": 1780158109.0246391,
+    "ast_hash": "3dd25b07fa8d1e3164a2da9ac3c4747b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\routes.py": {
+    "mtime": 1780158109.0246391,
+    "ast_hash": "4477f4d44f1efab88b39f92059f20c82",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\schemas.py": {
+    "mtime": 1780158109.0246391,
+    "ast_hash": "a1280b7a789e2a890c3cc0830356dbaf",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\settings.py": {
+    "mtime": 1780158109.0256455,
+    "ast_hash": "b73825fb3131282dd5d029f0c40eeb2a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\app\\__init__.py": {
+    "mtime": 1780158109.023134,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\conftest.py": {
+    "mtime": 1780070746.05529,
+    "ast_hash": "5c9647d5bc22657f11084a9242c592a8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\deps.py": {
+    "mtime": 1780119929.2998202,
+    "ast_hash": "48accf0278f40d146176a093ca22d327",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\logic.py": {
+    "mtime": 1780140270.3762548,
+    "ast_hash": "0c12b60443eef42f1c0cf3b154c29f53",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\main.py": {
+    "mtime": 1780069575.9317818,
+    "ast_hash": "d12d001aa2188255196cf1b3df9dd4a0",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\models.py": {
+    "mtime": 1780140042.83261,
+    "ast_hash": "c2d89bbf85293a717dc36b575883682d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\routes.py": {
+    "mtime": 1780140355.4456801,
+    "ast_hash": "7104611c3612d356497f8db374c7cf46",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\schemas.py": {
+    "mtime": 1780140065.3946548,
+    "ast_hash": "c4186b0a2c284896a61a6d7c3e9172ca",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\settings.py": {
+    "mtime": 1780070824.7406962,
+    "ast_hash": "bc2423f0fcd83ba3131489524f999ad4",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\app\\__init__.py": {
+    "mtime": 1780069450.91155,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\tests\\test_tds_math.py": {
+    "mtime": 1780140172.8168564,
+    "ast_hash": "977b0cabaf4c870ea1076de6e3880ae5",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\audit.py": {
+    "mtime": 1780158109.029156,
+    "ast_hash": "f1776885accb963a10116a11490466e1",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\auth.py": {
+    "mtime": 1780158109.029156,
+    "ast_hash": "a8fcf0082208ff7ae0ad0c6f285f0aee",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\base.py": {
+    "mtime": 1780158109.029156,
+    "ast_hash": "bf5d317e1500ad8434a511b7e2ac235e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\config.py": {
+    "mtime": 1780158109.029156,
+    "ast_hash": "ce554878075c63eb1308ab70981ec1e1",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\db.py": {
+    "mtime": 1780158109.029156,
+    "ast_hash": "ae34e203e54b5742163f9b55858de8a3",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\money.py": {
+    "mtime": 1780158109.0301564,
+    "ast_hash": "6d40be78b0bc21a0249dd77a49e85bda",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\service.py": {
+    "mtime": 1780158109.0301564,
+    "ast_hash": "cbdfde7f36538bd00d1ddc76347eae8d",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\shared\\hr_shared\\__init__.py": {
+    "mtime": 1780158109.028156,
+    "ast_hash": "dcbc2b6a5fead3dc17388145b9e04d7f",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\tests\\test_e2e.py": {
+    "mtime": 1780158109.031156,
+    "ast_hash": "7ac8905fe8cb907fe4d6d7b04e67b879",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\docker-compose.yml": {
+    "mtime": 1780205878.8002915,
+    "ast_hash": "73b92845a63d850f63bcb5e3a22d9534",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\README.md": {
+    "mtime": 1780158108.9546955,
+    "ast_hash": "38d17e538913f82aa1ea5d713d9a89cc",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\.agents\\rules\\graphify.md": {
+    "mtime": 1780158108.953191,
+    "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\.agents\\workflows\\graphify.md": {
+    "mtime": 1780158108.953191,
+    "ast_hash": "637776aa6f7496d069afe7520c845c8a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\frontend\\index.html": {
+    "mtime": 1780158108.9560914,
+    "ast_hash": "f57d52d5f69874bc67316a216c2c6b28",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\attendance-service\\requirements.txt": {
+    "mtime": 1780158109.0071125,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\auth-service\\requirements.txt": {
+    "mtime": 1780158109.0101113,
+    "ast_hash": "346a4b8b53ca56f4c34d0d4b0d65fa9b",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\AUDIT.md": {
+    "mtime": 1780138509.4060018,
+    "ast_hash": "8a6113db8e082c2fdd5646110b8a90c7",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\README.md": {
+    "mtime": 1780139933.4202814,
+    "ast_hash": "dbaee75bc6e887d1ca3a01d2b1420ea8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\blobstore-service\\requirements.txt": {
+    "mtime": 1780140174.1614983,
+    "ast_hash": "63157b139c8bb4eb52301bb15e5222d3",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\compliance-service\\requirements.txt": {
+    "mtime": 1780158109.012112,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\employee-service\\requirements.txt": {
+    "mtime": 1780158109.0146167,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\gateway\\requirements.txt": {
+    "mtime": 1780158109.0161283,
+    "ast_hash": "519c56e802fd2c32827cd2110dab9e3e",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payout-service\\requirements.txt": {
+    "mtime": 1780158109.0181344,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\payroll-service\\requirements.txt": {
+    "mtime": 1780158109.0211341,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\reporting-service\\requirements.txt": {
+    "mtime": 1780158109.023134,
+    "ast_hash": "d0b2c76fd02cab231a49d9a10cb2001a",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\salary-service\\requirements.txt": {
+    "mtime": 1780158109.0256455,
+    "ast_hash": "21a59f885fe29dd709bf46ab92bc72c8",
+    "semantic_hash": ""
+  },
+  "O:\\Hr__PAYROLL\\services\\tds-service\\requirements.txt": {
+    "mtime": 1780069581.805025,
+    "ast_hash": "c235b460106fb7539d3e09b39cc6339c",
+    "semantic_hash": ""
+  }
+}

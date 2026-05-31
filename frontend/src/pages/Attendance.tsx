@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { employeesApi } from "../api/employees";
 import { attendanceApi } from "../api/attendance";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { currentMonthValue, monthToFirst } from "../lib/format";
 import { toastService, extractErrorMessage } from "../lib/toast";
@@ -30,6 +30,7 @@ export function Attendance() {
   const employees = useQuery({
     queryKey: qk.employees({ status: "ACTIVE", page_size: 200 }),
     queryFn: () => employeesApi.list({ status: "ACTIVE", page_size: 200 }),
+    staleTime: STALE_STABLE,
   });
 
   useEffect(() => {
@@ -161,7 +162,7 @@ export function Attendance() {
         )}
       </div>
 
-      <div className="card overflow-hidden p-0">
+      <div className="card table-card overflow-hidden p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

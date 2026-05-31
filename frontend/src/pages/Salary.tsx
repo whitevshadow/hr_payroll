@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { employeesApi } from "../api/employees";
 import { salaryApi } from "../api/salary";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { formatINR, computeSalaryPreview } from "../lib/money";
 import { formatDate } from "../lib/format";
@@ -25,6 +25,7 @@ export function Salary() {
   const employees = useQuery({
     queryKey: qk.employees({ page_size: 200, status: "ACTIVE" }),
     queryFn: () => employeesApi.list({ page_size: 200, status: "ACTIVE" }),
+    staleTime: STALE_STABLE,
   });
 
   const selectedEmp = employees.data?.items.find((e) => e.id === selectedEmpId) as Employee | undefined;

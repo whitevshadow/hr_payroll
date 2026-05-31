@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { qk } from "../lib/queryClient";
@@ -45,12 +46,16 @@ const EVENT_COLORS: Record<string, string> = {
   PAYOUT_TRANSACTION_RETRIED: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
 };
 
+const ROW_HEIGHT = 52;
+
 export function AuditLog() {
   const [eventType, setEventType] = useState("");
   const [entityType, setEntityType] = useState("");
   const [traceId, setTraceId] = useState("");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any>(null);
   const [tab, setTab] = useState<"all" | "pii">("all");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeEventType = tab === "pii" ? "PII_ACCESSED" : eventType;
 
@@ -59,35 +64,67 @@ export function AuditLog() {
       event_type: activeEventType || undefined,
       entity_type: entityType || undefined,
       trace_id: traceId || undefined,
-      limit: 200,
+      limit: 500,
     }),
     queryFn: () =>
       payrollApi.getAudit({
         event_type: activeEventType || undefined,
-        limit: 200,
+        limit: 500,
       }),
+    staleTime: 60_000,
   });
 
-  const filtered = (logs.data ?? []).filter((e) => {
-    if (entityType && e.entity_type !== entityType) return false;
-    if (traceId && !e.trace_id?.startsWith(traceId)) return false;
-    return true;
+  const filtered = useMemo(() => {
+    const raw = logs.data ?? [];
+    return raw.filter((e) => {
+      if (entityType && e.entity_type !== entityType) return false;
+      if (traceId && !e.trace_id?.startsWith(traceId)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return (
+          e.event_type.toLowerCase().includes(q) ||
+          (e.entity_id ?? "").toLowerCase().includes(q) ||
+          (e.actor_id ?? "").toLowerCase().includes(q) ||
+          (e.trace_id ?? "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [logs.data, entityType, traceId, search]);
+
+  // Virtualizer for large lists
+  const rowVirtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 12,
   });
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalHeight = rowVirtualizer.getTotalSize();
 
   return (
     <div className="flex gap-5">
       <div className="flex-1 min-w-0">
         <PageHeader
           title="Audit Log"
-          subtitle="Immutable record of all system events"
+          subtitle={`Immutable record of all system events${filtered.length > 0 ? ` — ${filtered.length} entries` : ""}`}
         />
 
         {/* Tabs */}
         <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
-          {([["all", "All Events"], ["pii", "PII Access"]] as const).map(([t, l]) => (
+          {(
+            [
+              ["all", "All Events"],
+              ["pii", "PII Access"],
+            ] as const
+          ).map(([t, l]) => (
             <button
               key={t}
-              onClick={() => { setTab(t as "all" | "pii"); setSelected(null); }}
+              onClick={() => {
+                setTab(t as "all" | "pii");
+                setSelected(null);
+              }}
               className={clsx(
                 "px-4 py-2.5 text-sm font-medium transition-colors",
                 tab === t
@@ -104,120 +141,179 @@ export function AuditLog() {
         </div>
 
         {/* Filters */}
-        {tab === "all" && (
-          <div className="mb-4 flex flex-wrap gap-3">
-            <div>
-              <label className="label">Event Type</label>
-              <select
-                className="input text-sm"
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value)}
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t || "All events"}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Entity Type</label>
-              <select
-                className="input text-sm"
-                value={entityType}
-                onChange={(e) => setEntityType(e.target.value)}
-              >
-                {ENTITY_TYPES.map((t) => (
-                  <option key={t} value={t}>{t || "All entities"}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Trace ID (prefix)</label>
+        <div className="mb-4 flex flex-wrap gap-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              className="input pl-8 w-48 text-sm"
+              placeholder="Search…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {tab === "all" && (
+            <>
+              <div>
+                <select
+                  className="input text-sm"
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value)}
+                >
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t || "All events"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <select
+                  className="input text-sm"
+                  value={entityType}
+                  onChange={(e) => setEntityType(e.target.value)}
+                >
+                  {ENTITY_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t || "All entities"}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="relative">
                 <Hash className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="input pl-8 w-40 text-sm"
-                  placeholder="8 chars…"
+                  className="input pl-8 w-36 text-sm"
+                  placeholder="Trace ID…"
                   value={traceId}
                   onChange={(e) => setTraceId(e.target.value)}
                 />
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
-        <div className="card overflow-hidden p-0">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
-                <th className="th">Time</th>
-                <th className="th">Event</th>
-                <th className="th">Entity</th>
-                <th className="th">Actor</th>
-                <th className="th">Trace</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-              {logs.isLoading &&
-                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={5} />)}
-              {!logs.isLoading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      title="No audit events"
-                      description={
-                        tab === "pii"
-                          ? "No PII access events recorded."
-                          : "No events match the current filters."
-                      }
-                    />
-                  </td>
+        {/* Virtualized table */}
+        <div className="card table-card overflow-hidden p-0">
+          {/* Fixed header */}
+          <div className="sticky top-0 z-10">
+            <table className="w-full table-fixed">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 backdrop-blur-sm">
+                  <th className="th w-[160px]">Time</th>
+                  <th className="th w-[240px]">Event</th>
+                  <th className="th w-[200px]">Entity</th>
+                  <th className="th w-[100px]">Actor</th>
+                  <th className="th w-[100px]">Trace</th>
                 </tr>
-              )}
-              {filtered.map((e) => (
-                <tr
-                  key={e.id}
-                  className={clsx(
-                    "cursor-pointer tr-hover",
-                    selected?.id === e.id && "bg-accent-50/50 dark:bg-accent-900/10"
-                  )}
-                  onClick={() => setSelected(selected?.id === e.id ? null : e)}
-                >
-                  <td className="td">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      <Clock className="h-3 w-3" />
-                      {formatDateTime(e.created_at)}
-                    </div>
-                  </td>
-                  <td className="td">
-                    <span
+              </thead>
+            </table>
+          </div>
+
+          {logs.isLoading ? (
+            <table className="w-full table-fixed">
+              <tbody>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonRow key={i} cols={5} />
+                ))}
+              </tbody>
+            </table>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              title="No audit events"
+              description={
+                tab === "pii"
+                  ? "No PII access events recorded."
+                  : "No events match the current filters."
+              }
+            />
+          ) : (
+            <div
+              ref={scrollRef}
+              className="overflow-auto"
+              style={{ height: Math.min(totalHeight + 2, 560) }}
+            >
+              <div style={{ height: totalHeight, position: "relative" }}>
+                {virtualRows.map((virtualRow) => {
+                  const e = filtered[virtualRow.index];
+                  const isSelected = selected?.id === e.id;
+                  return (
+                    <div
+                      key={e.id}
+                      data-index={virtualRow.index}
+                      style={{
+                        position: "absolute",
+                        top: virtualRow.start,
+                        left: 0,
+                        right: 0,
+                        height: ROW_HEIGHT,
+                      }}
+                      onClick={() =>
+                        setSelected(isSelected ? null : e)
+                      }
                       className={clsx(
-                        "rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold",
-                        EVENT_COLORS[e.event_type] ??
-                          "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                        "flex items-center cursor-pointer border-b border-slate-50 dark:border-slate-800/50 px-0 transition-colors duration-75",
+                        isSelected
+                          ? "bg-accent-50/60 dark:bg-accent-900/12"
+                          : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                       )}
                     >
-                      {e.event_type}
-                    </span>
-                  </td>
-                  <td className="td text-xs">
-                    <span className="text-slate-600 dark:text-slate-400">{e.entity_type}</span>
-                    {e.entity_id && (
-                      <span className="ml-1.5 font-mono text-[10px] text-slate-400">
-                        #{e.entity_id.slice(0, 8)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="td font-mono text-xs text-slate-400">
-                    {e.actor_id?.slice(0, 8) ?? "—"}
-                  </td>
-                  <td className="td font-mono text-xs text-slate-400">
-                    {e.trace_id?.slice(0, 8) ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {/* Time */}
+                      <div className="px-4 w-[160px] shrink-0 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        {formatDateTime(e.created_at)}
+                      </div>
+
+                      {/* Event */}
+                      <div className="px-4 w-[240px] shrink-0">
+                        <span
+                          className={clsx(
+                            "rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold",
+                            EVENT_COLORS[e.event_type] ??
+                              "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                          )}
+                        >
+                          {e.event_type}
+                        </span>
+                      </div>
+
+                      {/* Entity */}
+                      <div className="px-4 w-[200px] shrink-0 text-xs">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {e.entity_type}
+                        </span>
+                        {e.entity_id && (
+                          <span className="ml-1.5 font-mono text-[10px] text-slate-400">
+                            #{e.entity_id.slice(0, 8)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Actor */}
+                      <div className="px-4 w-[100px] shrink-0 font-mono text-xs text-slate-400">
+                        {e.actor_id?.slice(0, 8) ?? "—"}
+                      </div>
+
+                      {/* Trace */}
+                      <div className="px-4 w-[100px] shrink-0 font-mono text-xs text-slate-400">
+                        {e.trace_id?.slice(0, 8) ?? "—"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Row count */}
+        {filtered.length > 0 && (
+          <div className="mt-2 text-xs text-slate-400">
+            Showing {filtered.length} event{filtered.length !== 1 ? "s" : ""}{" "}
+            {filtered.length < (logs.data?.length ?? 0) &&
+              `(filtered from ${logs.data?.length})`}
+          </div>
+        )}
       </div>
 
       {/* Detail drawer */}
@@ -232,12 +328,12 @@ export function AuditLog() {
           >
             <div className="card sticky top-0">
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                <span className="font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Event Detail
                 </span>
                 <button
                   onClick={() => setSelected(null)}
-                  className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -260,18 +356,19 @@ export function AuditLog() {
                 <div>
                   <dt className="label">Entity</dt>
                   <dd className="font-mono text-slate-700 dark:text-slate-300">
-                    {selected.entity_type} / {selected.entity_id ?? "—"}
+                    {selected.entity_type} /{" "}
+                    {selected.entity_id ?? "—"}
                   </dd>
                 </div>
                 <div>
                   <dt className="label">Actor ID</dt>
-                  <dd className="font-mono text-slate-700 dark:text-slate-300">
+                  <dd className="font-mono text-slate-700 dark:text-slate-300 break-all">
                     {selected.actor_id ?? "—"}
                   </dd>
                 </div>
                 <div>
                   <dt className="label">Trace ID</dt>
-                  <dd className="font-mono text-slate-700 dark:text-slate-300">
+                  <dd className="font-mono text-slate-700 dark:text-slate-300 break-all">
                     {selected.trace_id ?? "—"}
                   </dd>
                 </div>
@@ -284,7 +381,7 @@ export function AuditLog() {
                 <div>
                   <dt className="label mb-2">Payload</dt>
                   <dd>
-                    <pre className="overflow-auto rounded-lg bg-slate-50 dark:bg-slate-800 p-3 text-[10px] text-slate-700 dark:text-slate-300 max-h-64 font-mono">
+                    <pre className="overflow-auto rounded-lg bg-slate-50 dark:bg-slate-800 p-3 text-[10px] text-slate-700 dark:text-slate-300 max-h-56 font-mono leading-relaxed">
                       {JSON.stringify(selected.payload, null, 2)}
                     </pre>
                   </dd>

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { tdsApi } from "../api/tds";
 import { payrollApi } from "../api/payroll";
 import { employeesApi } from "../api/employees";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { FullPageSpinner, Skeleton } from "../components/Spinner";
 import { EmptyState } from "../components/EmptyState";
@@ -26,6 +26,7 @@ export function TDS() {
   const employees = useQuery({
     queryKey: qk.employees({ page_size: 200 }),
     queryFn: () => employeesApi.list({ page_size: 200 }),
+    staleTime: STALE_STABLE,
   });
 
   const latestCycle = cycles.data?.find((c) => c.status !== "DRAFT");
@@ -80,7 +81,7 @@ export function TDS() {
       {selectedEmpId && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* TDS Calculation */}
-          <div className="card">
+          <div className="card table-card">
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-50 dark:bg-accent-900/30">
                 <Receipt className="h-4 w-4 text-accent-600" />
@@ -168,7 +169,7 @@ export function TDS() {
           </div>
 
           {/* Investment Declaration */}
-          <div className="card">
+          <div className="card table-card">
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/30">
                 <FileText className="h-4 w-4 text-amber-600" />

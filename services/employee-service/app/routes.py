@@ -128,13 +128,20 @@ _PRIVILEGED = ("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")
 
 
 async def _resolve_my_employee(ctx: RequestContext, session: AsyncSession) -> Employee | None:
-    """Find the employee record linked to the caller (matched by email)."""
+    """Find the employee record linked to the caller (matched by email, case-insensitive).
+
+    New employees written through EmployeeCreate/EmployeeUpdate are already
+    normalised to lowercase by the schema validators, so LOWER() on the stored
+    value is only needed as a safety net for any legacy rows created before that
+    normalisation was added.
+    """
     if not ctx.email:
         return None
     return await session.scalar(
         select(Employee).where(
             Employee.tenant_id == ctx.tenant_id,
-            Employee.email == ctx.email.lower(),
+            Employee.email.isnot(None),
+            func.lower(Employee.email) == ctx.email.lower(),
         )
     )
 

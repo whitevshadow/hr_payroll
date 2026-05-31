@@ -2,15 +2,16 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import api from "../lib/api";
+import { employeesApi } from "../api/employees";
 import { payrollApi } from "../api/payroll";
 import { tdsApi } from "../api/tds";
 import { attendanceApi } from "../api/attendance";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner } from "../components/Spinner";
 import { EmptyState } from "../components/EmptyState";
+import { EmployeeDocumentsPanel } from "../components/EmployeeDocumentsPanel";
 import { formatINR } from "../lib/money";
 import { formatDate, formatMonth } from "../lib/format";
 import { toastService, extractErrorMessage } from "../lib/toast";
@@ -37,8 +38,9 @@ export function MyProfile() {
   });
 
   const meQ = useQuery({
-    queryKey: ["my-employee"],
-    queryFn: () => api.get<Employee>("/employees/me").then((r) => r.data),
+    queryKey: qk.myEmployee,
+    queryFn: () => employeesApi.me(),
+    staleTime: STALE_STABLE,
     retry: false,
   });
 
@@ -141,6 +143,12 @@ export function MyProfile() {
         />
       )}
 
+      <EmployeeDocumentsPanel
+        employeeId={me.id}
+        title="My Documents"
+        description="Upload identity, banking, and employment documents for HR review."
+      />
+
       {/* Investment declaration form (collapsible) */}
       <AnimatePresence>
         {showDecl && (
@@ -220,7 +228,7 @@ export function MyProfile() {
       </AnimatePresence>
 
       {/* Payslip history table */}
-      <div className="card overflow-hidden p-0">
+      <div className="card table-card overflow-hidden p-0">
         <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             Payslip History
@@ -294,7 +302,7 @@ function MyAttendance({ employeeId }: { employeeId: string }) {
   );
 
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <div className="border-b border-slate-100 dark:border-slate-800 px-5 py-3">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           My Attendance (6 months)

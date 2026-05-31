@@ -1,8 +1,9 @@
 """Unit tests for simplified New-regime TDS slab math."""
 
 from decimal import Decimal
+from datetime import date
 
-from app.logic import compute_tds
+from app.logic import REGISTRY, compute_annual_tds, compute_tds
 
 
 def D(x):
@@ -35,3 +36,42 @@ def test_tds_zero_below_threshold():
 def test_trace_has_all_slabs():
     r = compute_tds(D("100000"))
     assert len(r["tax_trace"]["slabs"]) == 7
+
+
+def test_law_selection_uses_payment_date_not_payroll_month():
+    old_law = REGISTRY.law_for_payment_date(date(2026, 3, 31))
+    new_law = REGISTRY.law_for_payment_date(date(2026, 4, 1))
+
+    assert old_law.version == "1961_v2025"
+    assert new_law.version == "2025_v2026"
+
+
+def test_annual_projection_allocates_remaining_tax_monthly():
+    r = compute_annual_tds(
+        salary_payment_date=date(2026, 4, 30),
+        monthly_gross=D("100000"),
+        previous_employer_tds=D("6000"),
+        current_employer_tds=D("3000"),
+        remaining_payroll_months=3,
+    )
+
+    assert r["annual_tax"] == D("54600.00")
+    assert r["remaining_tax"] == D("45600.00")
+    assert r["monthly_tds"] == D("15200.00")
+    assert r["tax_trace"]["monthly_allocation"]["remaining_payroll_months"] == 3
+
+
+def test_trace_hash_is_deterministic_for_same_inputs():
+    a = compute_annual_tds(
+        salary_payment_date=date(2026, 4, 30),
+        monthly_gross=D("100000"),
+        remaining_payroll_months=6,
+    )
+    b = compute_annual_tds(
+        salary_payment_date=date(2026, 4, 30),
+        monthly_gross=D("100000"),
+        remaining_payroll_months=6,
+    )
+
+    assert a["trace_hash"] == b["trace_hash"]
+    assert a["tax_trace"]["hash"] == b["tax_trace"]["hash"]

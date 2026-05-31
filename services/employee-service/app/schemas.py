@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class DepartmentCreate(BaseModel):
@@ -16,6 +16,11 @@ class DepartmentOut(BaseModel):
     id: uuid.UUID
     name: str
     cost_center: str | None = None
+
+
+def _normalize_email(v: str | None) -> str | None:
+    """Lowercase and strip whitespace so DB lookups are case-insensitive by convention."""
+    return v.strip().lower() if v else v
 
 
 class EmployeeBase(BaseModel):
@@ -32,6 +37,21 @@ class EmployeeBase(BaseModel):
     department_id: uuid.UUID | None = None
     designation: str | None = None
     work_location: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str | None) -> str | None:
+        return _normalize_email(v)
+
+    @field_validator("pan_number", mode="before")
+    @classmethod
+    def normalize_pan(cls, v: str | None) -> str | None:
+        return v.strip().upper() if v else v
+
+    @field_validator("bank_ifsc", mode="before")
+    @classmethod
+    def normalize_ifsc(cls, v: str | None) -> str | None:
+        return v.strip().upper() if v else v
 
 
 class EmployeeCreate(EmployeeBase):
@@ -51,6 +71,21 @@ class EmployeeUpdate(BaseModel):
     department_id: uuid.UUID | None = None
     designation: str | None = None
     work_location: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str | None) -> str | None:
+        return _normalize_email(v)
+
+    @field_validator("pan_number", mode="before")
+    @classmethod
+    def normalize_pan(cls, v: str | None) -> str | None:
+        return v.strip().upper() if v else v
+
+    @field_validator("bank_ifsc", mode="before")
+    @classmethod
+    def normalize_ifsc(cls, v: str | None) -> str | None:
+        return v.strip().upper() if v else v
 
 
 class EmployeeOut(EmployeeBase):

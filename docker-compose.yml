@@ -126,6 +126,34 @@ services:
       REPORTS_DIR: /app/reports
     depends_on: *depends-on-db
 
+  blobstore-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: blobstore-service, PORT: "8011" }
+    environment:
+      <<: *common-env
+      # Must be host:port WITHOUT scheme — _build_boto_client prepends http:// itself.
+      MINIO_PUBLIC_ENDPOINT: localhost:9000
+    ports:
+      - "8011:8011"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
   gateway:
     build:
       <<: *service-build
@@ -141,6 +169,7 @@ services:
       COMPLIANCE_URL: http://compliance-service:8008
       PAYOUT_URL: http://payout-service:8009
       REPORTING_URL: http://reporting-service:8010
+      BLOBSTORE_URL: http://blobstore-service:8011
     ports:
       - "8000:8000"
     depends_on:
@@ -153,6 +182,7 @@ services:
       - payroll-service
       - payout-service
       - reporting-service
+      - blobstore-service
 
   frontend:
     build:
@@ -167,3 +197,4 @@ services:
 
 volumes:
   pgdata:
+  minio-data:
