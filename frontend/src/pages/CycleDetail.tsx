@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { payoutApi } from "../api/payout";
+import { reportingApi } from "../api/reporting";
 import { qk } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { Stepper } from "../components/Stepper";
@@ -25,6 +26,7 @@ import {
   DollarSign,
   Users,
   TrendingDown,
+  Download,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -86,6 +88,11 @@ export function CycleDetail() {
       );
       qc.invalidateQueries({ queryKey: qk.cycle(cycleId!) });
     },
+  });
+
+  const bulkMut = useMutation({
+    mutationFn: () => reportingApi.downloadBulkPayslips(cycleId!),
+    onError: (err) => toastService.error(extractErrorMessage(err)),
   });
 
   const batches = useQuery({
@@ -233,6 +240,22 @@ export function CycleDetail() {
             <FileText className="h-4 w-4" />
             Review Summary
           </Link>
+
+          <button
+            className={clsx(
+              "btn-ghost",
+              (!isDisbursed && c.status !== "COMPUTED") && "pointer-events-none opacity-40"
+            )}
+            onClick={() => bulkMut.mutate()}
+            disabled={bulkMut.isPending}
+          >
+            {bulkMut.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Download ZIP
+          </button>
 
           <span
             title={

@@ -18,6 +18,22 @@ class DepartmentOut(BaseModel):
     cost_center: str | None = None
 
 
+class LocationCreate(BaseModel):
+    location_name: str
+    city: str
+    state: str
+    country: str = "India"
+
+
+class LocationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    location_name: str
+    city: str
+    state: str
+    country: str
+
+
 def _normalize_email(v: str | None) -> str | None:
     """Lowercase and strip whitespace so DB lookups are case-insensitive by convention."""
     return v.strip().lower() if v else v
@@ -36,7 +52,11 @@ class EmployeeBase(BaseModel):
     joining_date: date | None = None
     department_id: uuid.UUID | None = None
     designation: str | None = None
+    location_id: uuid.UUID | None = None
     work_location: str | None = None
+    city: str | None = None
+    state: str | None = None
+    branch: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -70,7 +90,11 @@ class EmployeeUpdate(BaseModel):
     joining_date: date | None = None
     department_id: uuid.UUID | None = None
     designation: str | None = None
+    location_id: uuid.UUID | None = None
     work_location: str | None = None
+    city: str | None = None
+    state: str | None = None
+    branch: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod

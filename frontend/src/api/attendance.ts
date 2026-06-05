@@ -47,6 +47,7 @@ export interface BulkRecord {
   holiday_days?: number;
   wfh_days?: number;
   overtime_hours?: number;
+  daily_status?: string;
 }
 
 export const attendanceApi = {
@@ -69,6 +70,7 @@ export const attendanceApi = {
     holiday_days?: number;
     wfh_days?: number;
     overtime_hours?: number;
+    daily_status?: string;
   }) =>
     api
       .post<AttendanceRecordFull>("/attendance/manual", body)

@@ -211,7 +211,8 @@ function getRemainingMonths(): number {
   const now = new Date();
   const mo = now.getMonth() + 1; // 1-12
   const fyMo = mo >= 4 ? mo - 3 : mo + 9; // 1=Apr … 12=Mar
-  return Math.max(1, 12 - fyMo);
+  // In March (fyMo=12), 12-12=0 → clamp to 1 so monthly TDS isn't infinity
+  return Math.max(1, 13 - fyMo);
 }
 
 function getFYMonthIndex(): number {
@@ -646,6 +647,15 @@ export function TDS() {
     staleTime: STALE_STABLE,
   });
 
+  // ── Fetch saved declarations ──────────────────────────────────────────────
+  const declQ = useQuery({
+    queryKey: qk.tdsDeclarations(selectedEmpId),
+    queryFn: () => tdsApi.getDeclarations(selectedEmpId),
+    enabled: !!selectedEmpId,
+    staleTime: STALE_STABLE,
+    retry: false,
+  });
+
   // ── Auto-select own employee for EMPLOYEE role ────────────────────────────
   useEffect(() => {
     if (empOnly && myEmpQ.data && !selectedEmpId) {
@@ -679,6 +689,51 @@ export function TDS() {
       setDecl((d) => ({ ...d, is_metro: salary.breakdown.is_metro }));
     }
   }, [salary?.breakdown.is_metro]);
+
+  // ── Auto-populate EPF from salary (12% of basic annually) ─────────────────
+  useEffect(() => {
+    if (basicM > 0) {
+      const epfAnnual = Math.round(basicM * 12 * 0.12);
+      setDecl((d) => (d.epf === 0 ? { ...d, epf: epfAnnual } : d));
+    }
+  }, [basicM]);
+
+  // ── Load saved declarations when available ────────────────────────────────
+  useEffect(() => {
+    if (declQ.data?.has_declaration && declQ.data.declaration_json) {
+      const dj = declQ.data.declaration_json as Record<string, any>;
+      const sec80c = (dj.sec_80c || {}) as Record<string, number>;
+      const sec80d = (dj.sec_80d || {}) as Record<string, number>;
+      const hra = (dj.hra || {}) as Record<string, any>;
+      const other = (dj.other || {}) as Record<string, number>;
+      const donations = (dj.donations_80g || {}) as Record<string, number>;
+
+      setDecl((d) => ({
+        ...d,
+        regime: (dj.regime_preference || "AUTO") as "OLD" | "NEW" | "AUTO",
+        epf: sec80c.epf ?? d.epf ?? 0,
+        ppf: sec80c.ppf ?? 0,
+        elss: sec80c.elss ?? 0,
+        lic: sec80c.lic ?? 0,
+        nsc: sec80c.nsc ?? 0,
+        taxSaverFD: sec80c.tax_saver_fd ?? 0,
+        homeLoanPrincipal: sec80c.home_loan_principal ?? 0,
+        nps80ccd: dj.nps_80ccd_1b ?? 0,
+        mediclaim_self: sec80d.self ?? 0,
+        mediclaim_parents: sec80d.parents ?? 0,
+        parents_senior: sec80d.parents_senior ?? false,
+        rent_monthly: hra.rent_monthly ?? 0,
+        is_metro: hra.is_metro ?? d.is_metro,
+        landlord_pan: hra.landlord_pan ?? "",
+        homeLoanInterest: dj.home_loan_24b ?? 0,
+        eduLoanInterest: dj.edu_loan_80e ?? 0,
+        donations100: donations.donations100 ?? 0,
+        donations50: donations.donations50 ?? 0,
+        lta: other.lta ?? 0,
+        professional_tax: other.professional_tax ?? 0,
+      }));
+    }
+  }, [declQ.data]);
 
   // ── Live tax computation (both regimes) ───────────────────────────────────
   const oldTax = useMemo(
@@ -733,6 +788,8 @@ export function TDS() {
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.audit({}) });
+      qc.invalidateQueries({ queryKey: qk.tdsDeclarations(selectedEmpId) });
+      qc.invalidateQueries({ queryKey: qk.tdsOverview(selectedEmpId) });
       toastService.success("Declaration submitted successfully.");
     },
     onError: (err) => toastService.error(extractErrorMessage(err)),

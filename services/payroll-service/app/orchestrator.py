@@ -99,7 +99,7 @@ async def _compute_for_employee(
             "cycle_id": str(cycle.id),
             "basic": str(basic),
             "monthly_gross": str(monthly_gross),
-            "state": settings.pt_default_state,
+            "state": emp.get("state") or "Maharashtra",  # Fallback for unmigrated data
             "month": cycle.period_start.month,
             "ceiling_on": settings.pf_ceiling_enabled,
         },

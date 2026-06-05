@@ -44,6 +44,10 @@ export const qk = {
 
   tdsCalc: (cycleId: string, empId: string) =>
     ["tds", cycleId, empId] as const,
+  tdsOverview: (empId: string) =>
+    ["tds-overview", empId] as const,
+  tdsDeclarations: (empId: string) =>
+    ["tds-declarations", empId] as const,
 
   payoutBatches: (cycleId: string) => ["payouts", cycleId] as const,
   payoutTransactions: (batchId: string) =>

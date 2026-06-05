@@ -33,6 +33,7 @@ class AttendanceRecord(TenantAwareBase):
     wfh_days: Mapped[Decimal] = mapped_column(Numeric(5, 1), default=0)
     overtime_hours: Mapped[Decimal] = mapped_column(Numeric(6, 1), default=0)
     attendance_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0)
+    daily_status: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class AttendanceMonth(TenantAwareBase):

@@ -9,7 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .deps import get_context, get_session, runtime
-from .models import Department, Employee
+from .models import Department, Employee, Location
 from .schemas import (
     DepartmentCreate,
     DepartmentOut,
@@ -17,12 +17,40 @@ from .schemas import (
     EmployeeOut,
     EmployeePage,
     EmployeeUpdate,
+    LocationCreate,
+    LocationOut,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["employees"])
 
 # Role guards
 _admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")
+
+
+# ---- Locations ---------------------------------------------------------
+
+@router.get("/locations", response_model=list[LocationOut])
+async def list_locations(
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    rows = await session.scalars(
+        select(Location).where(Location.tenant_id == ctx.tenant_id)
+    )
+    return list(rows)
+
+
+@router.post("/locations", response_model=LocationOut, status_code=201)
+async def create_location(
+    body: LocationCreate,
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    loc = Location(tenant_id=ctx.tenant_id, **body.model_dump())
+    session.add(loc)
+    await session.commit()
+    await session.refresh(loc)
+    return loc
 
 
 # ---- Departments -------------------------------------------------------
@@ -87,7 +115,16 @@ async def create_employee(
     )
     if dup:
         raise HTTPException(status_code=409, detail="emp_code already exists")
-    emp = Employee(tenant_id=ctx.tenant_id, **body.model_dump())
+    
+    dump = body.model_dump()
+    if dump.get("location_id"):
+        loc = await session.get(Location, dump["location_id"])
+        if loc and loc.tenant_id == ctx.tenant_id:
+            dump["city"] = loc.city
+            dump["state"] = loc.state
+            dump["work_location"] = loc.location_name
+    
+    emp = Employee(tenant_id=ctx.tenant_id, **dump)
     session.add(emp)
     await session.commit()
     await session.refresh(emp)
@@ -185,7 +222,16 @@ async def update_employee(
     emp = await session.get(Employee, employee_id)
     if not emp or emp.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Employee not found")
-    for k, v in body.model_dump(exclude_unset=True).items():
+        
+    dump = body.model_dump(exclude_unset=True)
+    if "location_id" in dump and dump["location_id"]:
+        loc = await session.get(Location, dump["location_id"])
+        if loc and loc.tenant_id == ctx.tenant_id:
+            dump["city"] = loc.city
+            dump["state"] = loc.state
+            dump["work_location"] = loc.location_name
+            
+    for k, v in dump.items():
         setattr(emp, k, v)
     await session.commit()
     await session.refresh(emp)

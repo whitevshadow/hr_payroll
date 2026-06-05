@@ -7,10 +7,15 @@ from hr_shared import RequestContext
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import logging
+
+import httpx
+
 from .deps import get_context, get_session
 from .logic import compute_breakdown
 from .models import SalaryComponent, SalaryStructure
 from .schemas import Breakdown, StructureCreate, StructureOut, StructureRevise
+from .settings import settings
 
 router = APIRouter(prefix="/api/v1/salary", tags=["salary"])
 
@@ -98,7 +103,10 @@ async def create_structure(
     )
     await session.commit()
     await session.refresh(structure)
-    return await _to_out(structure)
+    out = await _to_out(structure)
+    # Fire-and-forget TDS auto-compute
+    await _notify_tds(ctx, out)
+    return out
 
 
 @router.get("/structures/{employee_id}", response_model=StructureOut)
@@ -158,4 +166,42 @@ async def revise_structure(
     )
     await session.commit()
     await session.refresh(structure)
-    return await _to_out(structure)
+    out = await _to_out(structure)
+    # Fire-and-forget TDS auto-compute
+    await _notify_tds(ctx, out)
+    return out
+
+
+async def _notify_tds(ctx: RequestContext, structure_out: StructureOut) -> None:
+    """Notify TDS service of salary changes so it auto-computes tax.
+
+    This is a fire-and-forget call — if TDS is down, salary still succeeds.
+    """
+    logger = logging.getLogger(__name__)
+    bd = structure_out.breakdown
+    payload = {
+        "employee_id": str(structure_out.employee_id),
+        "ctc": str(structure_out.ctc),
+        "basic_monthly": str(bd.basic),
+        "hra_monthly": str(bd.hra),
+        "is_metro": bd.is_metro,
+    }
+    headers = {
+        "x-tenant-id": str(ctx.tenant_id),
+        "x-user-id": str(ctx.user_id),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                f"{settings.tds_url}/api/v1/tds/auto-compute",
+                json=payload,
+                headers=headers,
+            )
+            if resp.status_code < 300:
+                logger.info(f"TDS auto-compute success for {structure_out.employee_id}")
+            else:
+                logger.warning(
+                    f"TDS auto-compute returned {resp.status_code} for {structure_out.employee_id}: {resp.text[:200]}"
+                )
+    except Exception as exc:
+        logger.warning(f"TDS auto-compute failed (non-blocking) for {structure_out.employee_id}: {exc}")

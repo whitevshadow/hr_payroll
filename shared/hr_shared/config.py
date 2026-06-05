@@ -33,7 +33,6 @@ class BaseServiceSettings(BaseSettings):
     field_encryption_key: str = ""
 
     # Statutory / business defaults
-    pt_default_state: str = "Maharashtra"
     pf_ceiling_enabled: bool = True
 
     service_name: str = "service"

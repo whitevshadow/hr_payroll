@@ -3,10 +3,12 @@ from __future__ import annotations
 import io
 import os
 import uuid
+import zipfile
 
 import httpx
+from weasyprint import HTML
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, JSONResponse
 from hr_shared import RequestContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,49 +60,71 @@ async def generate_payslips(
     ctx: RequestContext = Depends(get_context),
     session: AsyncSession = Depends(get_session),
 ):
-    """Generate + persist a payslip per employee for a cycle (called on approve)."""
+    """Generate + persist a payslip per employee for a cycle, uploaded to MinIO."""
     token = _bearer(request)
-    os.makedirs(settings.reports_dir, exist_ok=True)
     cycle = await _fetch_cycle(token, body.cycle_id)
     generated = 0
-    for employee_id in body.employee_ids:
-        try:
-            result = await _fetch_result(token, body.cycle_id, employee_id)
-            html = _render(result, cycle)
-            path = os.path.join(
-                settings.reports_dir, f"payslip_{body.cycle_id}_{employee_id}.html"
-            )
-            with open(path, "w", encoding="utf-8") as fh:
-                fh.write(html)
-            status = "COMPLETED"
-        except Exception:
-            path = None
-            status = "FAILED"
+    
+    async with httpx.AsyncClient(timeout=30.0) as http:
+        for employee_id in body.employee_ids:
+            try:
+                # 1. Fetch data and render HTML
+                result = await _fetch_result(token, body.cycle_id, employee_id)
+                html = _render(result, cycle)
+                
+                # 2. Generate PDF via weasyprint
+                pdf_bytes = HTML(string=html).write_pdf()
+                
+                # 3. Upload to Blobstore Service
+                blobstore_upload_url = f"{settings.blobstore_url}/api/v1/blobs/upload"
+                files = {"file": (f"payslip_{employee_id}.pdf", pdf_bytes, "application/pdf")}
+                data = {"doc_type": "PAYSLIP", "employee_id": str(employee_id)}
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "X-Tenant-Id": str(ctx.tenant_id)
+                }
+                
+                blob_resp = await http.post(
+                    blobstore_upload_url,
+                    headers=headers,
+                    files=files,
+                    data=data
+                )
+                blob_resp.raise_for_status()
+                blob_data = blob_resp.json()
+                path = blob_data["blob_id"]  # Store the blob_id instead of local path
+                status = "COMPLETED"
+            except Exception as exc:
+                import logging
+                logging.error(f"Failed to generate payslip for {employee_id}: {exc}")
+                path = None
+                status = "FAILED"
 
-        # Idempotent: replace any prior report row for this (cycle, employee).
-        existing = await session.scalar(
-            select(GeneratedReport).where(
-                GeneratedReport.tenant_id == ctx.tenant_id,
-                GeneratedReport.cycle_id == body.cycle_id,
-                GeneratedReport.employee_id == uuid.UUID(str(employee_id)),
-            )
-        )
-        if existing:
-            existing.status = status
-            existing.file_path = path
-        else:
-            session.add(
-                GeneratedReport(
-                    tenant_id=ctx.tenant_id,
-                    cycle_id=body.cycle_id,
-                    employee_id=uuid.UUID(str(employee_id)),
-                    report_type="PAYSLIP",
-                    status=status,
-                    file_path=path,
+            # 4. Save to Database
+            existing = await session.scalar(
+                select(GeneratedReport).where(
+                    GeneratedReport.tenant_id == ctx.tenant_id,
+                    GeneratedReport.cycle_id == body.cycle_id,
+                    GeneratedReport.employee_id == uuid.UUID(str(employee_id)),
                 )
             )
-        if status == "COMPLETED":
-            generated += 1
+            if existing:
+                existing.status = status
+                existing.file_path = path
+            else:
+                session.add(
+                    GeneratedReport(
+                        tenant_id=ctx.tenant_id,
+                        cycle_id=body.cycle_id,
+                        employee_id=uuid.UUID(str(employee_id)),
+                        report_type="PAYSLIP",
+                        status=status,
+                        file_path=path,
+                    )
+                )
+            if status == "COMPLETED":
+                generated += 1
+
     await session.commit()
     return {"cycle_id": str(body.cycle_id), "generated": generated}
 
@@ -110,47 +134,83 @@ async def get_payslip(
     cycle_id: uuid.UUID,
     employee_id: uuid.UUID,
     request: Request,
-    format: str = "html",
+    inline: bool = False,
     ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
 ):
-    """Return the payslip as HTML (default) or PDF (?format=pdf)."""
+    """Fetch the MinIO presigned URL for the payslip blob."""
     token = _bearer(request)
-    result = await _fetch_result(token, cycle_id, employee_id)
-    cycle = await _fetch_cycle(token, cycle_id)
-    html = _render(result, cycle)
+    
+    existing = await session.scalar(
+        select(GeneratedReport).where(
+            GeneratedReport.tenant_id == ctx.tenant_id,
+            GeneratedReport.cycle_id == cycle_id,
+            GeneratedReport.employee_id == employee_id,
+            GeneratedReport.status == "COMPLETED"
+        )
+    )
+    if not existing or not existing.file_path:
+        raise HTTPException(status_code=404, detail="Payslip not found or not generated")
 
-    if format.lower() == "pdf":
-        try:
-            # TODO(v2): use WeasyPrint or a headless browser for real PDF export.
-            # xhtml2pdf is an optional dep that needs system build tools.
-            from xhtml2pdf import pisa
+    blob_id = existing.file_path
+    blobstore_url = f"{settings.blobstore_url}/api/v1/blobs/{blob_id}/url?inline={str(inline).lower()}"
+    
+    async with httpx.AsyncClient(timeout=10.0) as http:
+        resp = await http.get(
+            blobstore_url, 
+            headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(ctx.tenant_id)}
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to retrieve payslip URL")
+        
+        data = resp.json()
+        return {"url": data["url"]}
 
-            buf = io.BytesIO()
-            pisa.CreatePDF(html.replace("₹", "Rs."), dest=buf)
-            return Response(
-                content=buf.getvalue(),
-                media_type="application/pdf",
-                headers={
-                    "Content-Disposition": (
-                        f'attachment; filename="payslip_{employee_id}.pdf"'
-                    )
-                },
-            )
-        except ImportError:
-            # xhtml2pdf not installed — fall back to HTML with download headers.
-            return Response(
-                content=html.encode("utf-8"),
-                media_type="text/html",
-                headers={
-                    "Content-Disposition": (
-                        f'attachment; filename="payslip_{employee_id}.html"'
-                    )
-                },
-            )
-        except Exception as exc:  # pragma: no cover
-            raise HTTPException(status_code=500, detail=f"PDF generation failed: {exc}")
 
-    return HTMLResponse(content=html)
+@router.get("/payslips/bulk/{cycle_id}")
+async def bulk_download_payslips(
+    cycle_id: uuid.UUID,
+    request: Request,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Zip all generated payslips for a cycle and download."""
+    token = _bearer(request)
+    
+    stmt = select(GeneratedReport).where(
+        GeneratedReport.tenant_id == ctx.tenant_id,
+        GeneratedReport.cycle_id == cycle_id,
+        GeneratedReport.report_type == "PAYSLIP",
+        GeneratedReport.status == "COMPLETED"
+    )
+    rows = (await session.scalars(stmt)).all()
+    
+    if not rows:
+        raise HTTPException(status_code=404, detail="No payslips generated for this cycle.")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        async with httpx.AsyncClient(timeout=60.0) as http:
+            for row in rows:
+                if not row.file_path:
+                    continue
+                blob_id = row.file_path
+                
+                # Fetch raw bytes directly from blobstore
+                blob_url = f"{settings.blobstore_url}/api/v1/blobs/{blob_id}"
+                resp = await http.get(
+                    blob_url, 
+                    headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(ctx.tenant_id)}
+                )
+                if resp.status_code == 200:
+                    zip_file.writestr(f"payslip_{row.employee_id}.pdf", resp.content)
+
+    zip_buffer.seek(0)
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="payslips_cycle_{cycle_id}.zip"'}
+    )
 
 
 # ---- Generated reports list -----------------------------------------------

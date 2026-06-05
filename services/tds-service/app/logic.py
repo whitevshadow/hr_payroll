@@ -367,3 +367,188 @@ def compute_tds(monthly_gross: Decimal) -> dict[str, Any]:
         tax_regime="NEW",
         remaining_payroll_months=12,
     )
+
+
+def compare_regimes(
+    *,
+    salary_payment_date: date,
+    monthly_gross: Decimal,
+    fixed_pay: Decimal | None = None,
+    variable_pay: Decimal = Decimal("0"),
+    bonus: Decimal = Decimal("0"),
+    remaining_payroll_months: int = 12,
+    declarations: dict[str, Decimal] | None = None,
+    approved_proofs: dict[str, bool] | None = None,
+    current_employer_tds: Decimal = Decimal("0"),
+) -> dict[str, Any]:
+    """Compute TDS under both OLD and NEW regimes, return comparison."""
+
+    common = dict(
+        salary_payment_date=salary_payment_date,
+        monthly_gross=monthly_gross,
+        fixed_pay=fixed_pay,
+        variable_pay=variable_pay,
+        bonus=bonus,
+        remaining_payroll_months=remaining_payroll_months,
+        current_employer_tds=current_employer_tds,
+    )
+
+    new_result = compute_annual_tds(
+        **common,
+        tax_regime="NEW",
+        declarations=None,
+        approved_proofs=None,
+    )
+
+    old_result = compute_annual_tds(
+        **common,
+        tax_regime="OLD",
+        declarations=declarations or {},
+        approved_proofs=approved_proofs or {},
+    )
+
+    new_tax = new_result["annual_tax"]
+    old_tax = old_result["annual_tax"]
+    recommended = "OLD" if old_tax <= new_tax else "NEW"
+    savings = abs(new_tax - old_tax)
+
+    return {
+        "new_regime": new_result,
+        "old_regime": old_result,
+        "recommended": recommended,
+        "savings": money(savings),
+        "savings_description": f"{'Old' if recommended == 'OLD' else 'New'} Regime saves ₹{savings:,.0f} annually",
+    }
+
+
+def _remaining_fy_months(payment_date: date | None = None) -> int:
+    """How many months remain in the FY from Apr to Mar."""
+    d = payment_date or date.today()
+    mo = d.month
+    fy_month = mo - 3 if mo >= 4 else mo + 9  # 1=Apr .. 12=Mar
+    return max(1, 12 - fy_month)
+
+
+def compute_overview(
+    *,
+    ctc: Decimal,
+    basic_monthly: Decimal,
+    hra_monthly: Decimal,
+    is_metro: bool = False,
+    declarations: dict[str, Decimal] | None = None,
+    salary_payment_date: date | None = None,
+) -> dict[str, Any]:
+    """Full employee tax overview for the UI dashboard.
+
+    Called by the /tds/overview endpoint. Produces both-regime comparison,
+    recommendation, alerts, and effective rates — everything the frontend
+    KPI cards need.
+    """
+    payment_date = salary_payment_date or date.today()
+    remaining = _remaining_fy_months(payment_date)
+    monthly_gross = money(ctc / Decimal("12"))
+    decl = declarations or {}
+
+    # If no explicit approved_proofs provided, assume all declared items are self-attested
+    proofs: dict[str, bool] = {}
+    for key in ("80C", "80CCD_1B", "80D", "HRA", "PROFESSIONAL_TAX"):
+        if key in decl and decl[key] > 0:
+            proofs[key] = True
+
+    comparison = compare_regimes(
+        salary_payment_date=payment_date,
+        monthly_gross=monthly_gross,
+        fixed_pay=ctc,
+        remaining_payroll_months=remaining,
+        declarations=decl,
+        approved_proofs=proofs,
+    )
+
+    new_r = comparison["new_regime"]
+    old_r = comparison["old_regime"]
+    recommended = comparison["recommended"]
+    active = old_r if recommended == "OLD" else new_r
+
+    annual_gross = active["annual_gross"]
+    effective_rate = (
+        (active["annual_tax"] / annual_gross * 100) if annual_gross > 0 else Decimal("0")
+    )
+
+    # Generate smart alerts
+    alerts: list[dict[str, str]] = []
+    c80c_used = decl.get("80C", Decimal("0"))
+    if c80c_used < Decimal("150000"):
+        remaining_80c = Decimal("150000") - c80c_used
+        alerts.append({
+            "type": "warning",
+            "section": "80C",
+            "message": f"₹{remaining_80c:,.0f} remaining under Section 80C. Invest in PPF, ELSS, or LIC to reduce tax.",
+        })
+
+    if decl.get("80D", Decimal("0")) == 0:
+        alerts.append({
+            "type": "warning",
+            "section": "80D",
+            "message": "Medical insurance deduction (80D) not utilized. Self cover gives up to ₹25,000 deduction.",
+        })
+
+    if decl.get("HRA", Decimal("0")) == 0 and hra_monthly > 0:
+        alerts.append({
+            "type": "info",
+            "section": "HRA",
+            "message": "HRA exemption not declared. If you pay rent, submit HRA details to save tax.",
+        })
+
+    if comparison["savings"] > 0:
+        alerts.append({
+            "type": "success",
+            "section": "REGIME",
+            "message": comparison["savings_description"],
+        })
+
+    if effective_rate > 20:
+        alerts.append({
+            "type": "info",
+            "section": "RATE",
+            "message": f"Effective tax rate is {effective_rate:.1f}%. Consider maximising all deductions.",
+        })
+
+    return {
+        "employee_overview": {
+            "annual_gross": str(annual_gross),
+            "total_deductions": str(money(
+                annual_gross - active["taxable_income"]
+            )),
+            "taxable_income": str(active["taxable_income"]),
+            "annual_tax": str(active["annual_tax"]),
+            "remaining_tax": str(active["remaining_tax"]),
+            "monthly_tds": str(active["monthly_tds"]),
+            "effective_rate": str(money(effective_rate)),
+            "recommended_regime": recommended,
+        },
+        "new_regime": {
+            "annual_tax": str(new_r["annual_tax"]),
+            "monthly_tds": str(new_r["monthly_tds"]),
+            "taxable_income": str(new_r["taxable_income"]),
+            "effective_rate": str(
+                money(new_r["annual_tax"] / new_r["annual_gross"] * 100)
+                if new_r["annual_gross"] > 0 else "0.00"
+            ),
+            "tax_trace": new_r["tax_trace"],
+        },
+        "old_regime": {
+            "annual_tax": str(old_r["annual_tax"]),
+            "monthly_tds": str(old_r["monthly_tds"]),
+            "taxable_income": str(old_r["taxable_income"]),
+            "effective_rate": str(
+                money(old_r["annual_tax"] / old_r["annual_gross"] * 100)
+                if old_r["annual_gross"] > 0 else "0.00"
+            ),
+            "tax_trace": old_r["tax_trace"],
+        },
+        "savings": str(comparison["savings"]),
+        "recommended": recommended,
+        "remaining_months": remaining,
+        "alerts": alerts,
+    }
+

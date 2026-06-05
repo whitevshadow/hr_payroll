@@ -20,6 +20,7 @@ class AttendanceUpsert(BaseModel):
     holiday_days: Decimal = Decimal("0")
     wfh_days: Decimal = Decimal("0")
     overtime_hours: Decimal = Decimal("0")
+    daily_status: Optional[str] = None
 
 
 class AttendanceBulkItem(BaseModel):
@@ -33,6 +34,7 @@ class AttendanceBulkItem(BaseModel):
     holiday_days: Decimal = Decimal("0")
     wfh_days: Decimal = Decimal("0")
     overtime_hours: Decimal = Decimal("0")
+    daily_status: Optional[str] = None
 
 
 class AttendanceBulkUpsert(BaseModel):
@@ -68,6 +70,7 @@ class AttendanceOut(BaseModel):
     wfh_days: Decimal
     overtime_hours: Decimal
     attendance_pct: Decimal
+    daily_status: Optional[str]
 
 
 class AttendanceMonthOut(BaseModel):

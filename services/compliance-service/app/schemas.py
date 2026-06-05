@@ -11,7 +11,7 @@ class ComputeRequest(BaseModel):
     cycle_id: uuid.UUID
     basic: Decimal
     monthly_gross: Decimal
-    state: str = "Maharashtra"
+    state: str
     month: int = 1  # calendar month number (1-12), for PT February rule
     ceiling_on: bool = True
 

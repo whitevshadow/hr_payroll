@@ -16,6 +16,15 @@ class Department(TenantAwareBase):
     cost_center: Mapped[str | None] = mapped_column(String(100))
 
 
+class Location(TenantAwareBase):
+    __tablename__ = "locations"
+
+    location_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    city: Mapped[str] = mapped_column(String(100), nullable=False)
+    state: Mapped[str] = mapped_column(String(100), nullable=False)
+    country: Mapped[str] = mapped_column(String(100), default="India")
+
+
 class Employee(TenantAwareBase):
     __tablename__ = "employees"
     __table_args__ = (
@@ -37,4 +46,12 @@ class Employee(TenantAwareBase):
         UUID(as_uuid=True), ForeignKey("departments.id")
     )
     designation: Mapped[str | None] = mapped_column(String(120))
+    
+    # Location tracking
+    location_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("locations.id")
+    )
     work_location: Mapped[str | None] = mapped_column(String(120))
+    city: Mapped[str | None] = mapped_column(String(100))
+    state: Mapped[str | None] = mapped_column(String(100))
+    branch: Mapped[str | None] = mapped_column(String(100))

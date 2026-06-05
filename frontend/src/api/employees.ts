@@ -44,4 +44,8 @@ export const employeesApi = {
     api
       .post<Department>("/departments", { name, cost_center: costCenter })
       .then((r) => r.data),
+
+  /** List all locations in the current tenant. */
+  locations: () =>
+    api.get<import("../types").Location[]>("/locations").then((r) => r.data),
 };

@@ -30,7 +30,18 @@ export interface Employee {
   joining_date: string | null;
   department_id: string | null;
   designation: string | null;
+  location_id: string | null;
   work_location: string | null;
+  city: string | null;
+  state: string | null;
+  branch: string | null;
+}
+export interface Location {
+  id: string;
+  location_name: string;
+  city: string;
+  state: string;
+  country: string;
 }
 export interface EmployeePage {
   items: Employee[];
@@ -77,6 +88,7 @@ export interface AttendanceRecord {
   lop_days: string;
   payable_days: string;
   is_finalized: boolean;
+  daily_status?: string;
 }
 
 // ---- Payroll ------------------------------------------------------------

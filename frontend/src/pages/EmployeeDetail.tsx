@@ -118,7 +118,7 @@ function ProfileTab({
     { label: "Email", value: emp.email },
     { label: "Status", value: <StatusBadge status={emp.status} /> },
     { label: "Designation", value: emp.designation },
-    { label: "Work Location", value: emp.work_location },
+    { label: "Work Location", value: emp.work_location ? `${emp.work_location} (${emp.city}, ${emp.state})` : "—" },
     { label: "Joining Date", value: formatDate(emp.joining_date) },
   ];
 

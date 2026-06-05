@@ -172,6 +172,11 @@ class PresignedUrlRequest(BaseModel):
         description="Desired URL lifetime in seconds. Capped by server config.",
         examples=[3600],
     )
+    inline: bool = Field(
+        False,
+        description="If true, the URL forces inline display rather than an attachment download.",
+        examples=[True],
+    )
 
 
 # ── Error ──────────────────────────────────────────────────────────────────────

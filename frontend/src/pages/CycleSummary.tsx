@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { payrollApi } from "../api/payroll";
+import { reportingApi } from "../api/reporting";
 import { qk } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { SkeletonRow, Skeleton } from "../components/Spinner";
 import { formatINR } from "../lib/money";
-import { ChevronLeft, FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, FileText, AlertTriangle, CheckCircle2, Eye, Download } from "lucide-react";
 import type { PayrollResult } from "../types";
 import clsx from "clsx";
 
@@ -261,15 +262,38 @@ export function CycleSummary() {
                     </div>
 
                     {/* Payslip link */}
-                    <div className="px-4 w-[80px] shrink-0 text-right">
+                    <div className="px-4 w-[120px] shrink-0 flex items-center justify-end gap-3 text-right">
                       {!isFailed && (
-                        <Link
-                          to={`/payslips/${cycleId}/${r.employee_id}`}
-                          className="inline-flex items-center gap-0.5 text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
-                        >
-                          <FileText className="h-3 w-3" />
-                          Slip
-                        </Link>
+                        <>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { url } = await reportingApi.getPayslipUrl(cycleId!, r.employee_id, true);
+                                window.open(url, "_blank");
+                              } catch (e) {
+                                alert("Failed to load payslip.");
+                              }
+                            }}
+                            title="View Payslip"
+                            className="inline-flex items-center text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { url } = await reportingApi.getPayslipUrl(cycleId!, r.employee_id, false);
+                                window.location.assign(url);
+                              } catch (e) {
+                                alert("Failed to download payslip.");
+                              }
+                            }}
+                            title="Download Payslip"
+                            className="inline-flex items-center text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </>
                       )}
                       {isFailed && r.error && (
                         <span

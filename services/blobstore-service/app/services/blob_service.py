@@ -509,6 +509,7 @@ class BlobService:
         blob_id: uuid.UUID,
         tenant_id: uuid.UUID,
         expires_in_seconds: int | None = None,
+        inline: bool = False,
     ) -> PresignedUrlResponse:
         """
         Generate a temporary pre-signed download URL for *blob_id*.
@@ -537,6 +538,7 @@ class BlobService:
                 object_name=blob.object_key,
                 bucket_name=blob.bucket_name,
                 expiry_seconds=expiry,
+                inline=inline,
             )
         except Exception as exc:
             logger.exception("Presigned URL generation failed: %s", exc)

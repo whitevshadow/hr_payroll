@@ -532,18 +532,27 @@ export function Attendance() {
       const rec = recByEmp[emp.id];
       const defaultDays = Array<AttCode>(totalDays).fill("P");
       if (rec) {
-        // Reconstruct days array from summary (rough approximation — real impl would use daily records)
-        const presentN = Math.round(parseFloat(rec.present_days));
-        const lopN = Math.round(parseFloat(rec.lop_days));
-        const woN = Math.round(parseFloat(rec.wo_days));
-        const holN = Math.round(parseFloat(rec.holiday_days));
-        // Fill days: P...P, then WO, H, LOP
-        const days: AttCode[] = [];
-        let remaining = totalDays;
-        for (let i = 0; i < woN && remaining > 0; i++) { days.push("WO"); remaining--; }
-        for (let i = 0; i < holN && remaining > 0; i++) { days.push("H"); remaining--; }
-        for (let i = 0; i < lopN && remaining > 0; i++) { days.push("LOP"); remaining--; }
-        while (days.length < totalDays) days.push("P");
+        // Reconstruct days array from daily_status or fallback to summary
+        let days: AttCode[] = [];
+        if (rec.daily_status) {
+          const splitDays = rec.daily_status.split(",");
+          // ensure valid codes and right length
+          for (let i = 0; i < totalDays; i++) {
+             const code = (splitDays[i] as AttCode) || "P";
+             days.push(ATT_CODES.includes(code) ? code : "P");
+          }
+        } else {
+          const presentN = Math.round(parseFloat(rec.present_days));
+          const lopN = Math.round(parseFloat(rec.lop_days));
+          const woN = Math.round(parseFloat(rec.wo_days));
+          const holN = Math.round(parseFloat(rec.holiday_days));
+          // Fill days: P...P, then WO, H, LOP
+          let remaining = totalDays;
+          while (remaining > woN + holN + lopN) { days.push("P"); remaining--; }
+          for (let i = 0; i < woN && remaining > 0; i++) { days.push("WO"); remaining--; }
+          for (let i = 0; i < holN && remaining > 0; i++) { days.push("H"); remaining--; }
+          for (let i = 0; i < lopN && remaining > 0; i++) { days.push("LOP"); remaining--; }
+        }
         return {
           employee_id: emp.id,
           emp_code: emp.emp_code,
@@ -618,6 +627,7 @@ export function Attendance() {
             present_days: s.present,
             cl_days: s.cl, sl_days: s.sl, pl_days: s.pl,
             lop_days: s.lop, wo_days: s.wo, holiday_days: s.holiday, wfh_days: s.wfh,
+            daily_status: r.days.join(","),
           };
         });
       return attendanceApi.bulkUpsert({ month: monthToFirst(month), records, source: "EXCEL_IMPORT" });
@@ -643,6 +653,7 @@ export function Attendance() {
         present_days: s.present,
         cl_days: s.cl, sl_days: s.sl, pl_days: s.pl,
         wo_days: s.wo, holiday_days: s.holiday, wfh_days: s.wfh,
+        daily_status: r.days.join(","),
       };
     });
     saveMut.mutate(records);

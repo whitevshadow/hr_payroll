@@ -514,11 +514,12 @@ async def get_presigned_url(
         ge=1,
         description="Desired URL lifetime in seconds (server caps at PRESIGNED_URL_MAX_EXPIRY_SECONDS)",
     ),
+    inline: bool = Query(False, description="Set content disposition to inline instead of attachment"),
     tenant_id: uuid.UUID = Depends(_require_tenant),
     service: BlobService = Depends(get_blob_service),
 ) -> PresignedUrlResponse:
-    logger.debug("GET /blobs/%s/url expires_in=%s tenant=%s", blob_id, expires_in_seconds, tenant_id)
-    return await service.get_presigned_url(blob_id, tenant_id, expires_in_seconds=expires_in_seconds)
+    logger.debug("GET /blobs/%s/url expires_in=%s inline=%s tenant=%s", blob_id, expires_in_seconds, inline, tenant_id)
+    return await service.get_presigned_url(blob_id, tenant_id, expires_in_seconds=expires_in_seconds, inline=inline)
 
 
 # ── Pre-signed URL (POST) ──────────────────────────────────────────────────────
@@ -543,8 +544,8 @@ async def post_presigned_url(
     tenant_id: uuid.UUID = Depends(_require_tenant),
     service: BlobService = Depends(get_blob_service),
 ) -> PresignedUrlResponse:
-    logger.debug("POST /blobs/%s/url expires_in=%s tenant=%s", blob_id, body.expires_in_seconds, tenant_id)
-    return await service.get_presigned_url(blob_id, tenant_id, expires_in_seconds=body.expires_in_seconds)
+    logger.debug("POST /blobs/%s/url expires_in=%s inline=%s tenant=%s", blob_id, body.expires_in_seconds, body.inline, tenant_id)
+    return await service.get_presigned_url(blob_id, tenant_id, expires_in_seconds=body.expires_in_seconds, inline=body.inline)
 
 
 # ── Tags (PATCH) ───────────────────────────────────────────────────────────────

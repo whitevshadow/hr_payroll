@@ -579,6 +579,7 @@ def generate_presigned_url(
     object_name: str,
     bucket_name: str | None = None,
     expiry_seconds: int | None = None,
+    inline: bool = False,
 ) -> str:
     """Legacy sync presigned GET URL helper.
 
@@ -591,9 +592,14 @@ def generate_presigned_url(
         expiry_seconds or settings.PRESIGNED_URL_EXPIRY_SECONDS,
         settings.PRESIGNED_URL_MAX_EXPIRY_SECONDS,
     )
+    
+    params = {"Bucket": bucket, "Key": object_name}
+    if inline:
+        params["ResponseContentDisposition"] = "inline"
+
     url = _boto_public_client.generate_presigned_url(
         "get_object",
-        Params={"Bucket": bucket, "Key": object_name},
+        Params=params,
         ExpiresIn=expiry,
     )
     logger.debug("Generated presigned URL for '%s' (expires %ds).", object_name, expiry)

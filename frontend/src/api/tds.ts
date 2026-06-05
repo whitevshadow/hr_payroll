@@ -81,10 +81,70 @@ export interface DeclarationV2Payload {
   change_reason?: string;
 }
 
+export interface TDSOverviewResponse {
+  employee_overview: {
+    annual_gross: string;
+    total_deductions: string;
+    taxable_income: string;
+    annual_tax: string;
+    remaining_tax: string;
+    monthly_tds: string;
+    effective_rate: string;
+    recommended_regime: string;
+  };
+  new_regime: {
+    annual_tax: string;
+    monthly_tds: string;
+    taxable_income: string;
+    effective_rate: string;
+    tax_trace: TaxTrace;
+  };
+  old_regime: {
+    annual_tax: string;
+    monthly_tds: string;
+    taxable_income: string;
+    effective_rate: string;
+    tax_trace: TaxTrace;
+  };
+  savings: string;
+  recommended: string;
+  remaining_months: number;
+  alerts: { type: string; section: string; message: string }[];
+  salary: {
+    ctc: string;
+    basic_monthly: string;
+    hra_monthly: string;
+    is_metro: boolean;
+    epf_annual: string;
+  };
+  declaration_payload: Record<string, unknown>;
+  tax_year: string;
+}
+
+export interface TDSDeclarationResponse {
+  employee_id: string;
+  tax_year: string;
+  has_declaration: boolean;
+  declaration_json: Record<string, unknown>;
+  status: string | null;
+  version: number;
+  submitted_at?: string | null;
+}
+
 export const tdsApi = {
   getCalculation: (cycleId: string, empId: string) =>
     api
       .get<TDSComputeResponse>(`/tds/calculations/${cycleId}/${empId}`)
+      .then((r) => r.data),
+
+  getOverview: (employeeId: string) =>
+    api
+      .get<TDSOverviewResponse>(`/tds/overview/${employeeId}`)
+      .then((r) => r.data),
+
+  getDeclarations: (employeeId: string) =>
+    api
+      .get<TDSDeclarationResponse>(`/tds/declarations/${employeeId}`)
       .then((r) => r.data),
 
   compute: (body: {

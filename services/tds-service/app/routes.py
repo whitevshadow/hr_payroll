@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from hr_shared import RequestContext
 from pydantic import BaseModel
 from sqlalchemy import delete, select
@@ -11,8 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from decimal import Decimal
 
+import httpx
+import logging
+
 from .deps import get_context, get_session, runtime
-from .logic import REGISTRY, compute_annual_tds
+from .logic import REGISTRY, compute_annual_tds, compute_overview
 from .models import (
     DeclarationVersion,
     EmployeeDeclaration,
@@ -413,6 +416,245 @@ async def generate_form122(
     await session.commit()
     await session.refresh(row)
     return {"id": str(row.id), "status": row.status, "submission_mode": row.submission_mode}
+
+
+# ── Overview: full TDS dashboard for one employee ──────────────────────────────
+
+@router.get("/overview/{employee_id}")
+async def get_employee_overview(
+    employee_id: uuid.UUID,
+    request: Request,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Compute live TDS overview for an employee using their salary data.
+
+    This is the primary endpoint for the TDS dashboard. It fetches the salary
+    from the salary-service, runs both-regime comparison, and returns everything
+    the frontend needs.
+    """
+    from .settings import settings
+    logger = logging.getLogger(__name__)
+
+    # Forward the original Authorization header for inter-service auth
+    auth_val = request.headers.get("authorization", "")
+    headers = {
+        "x-tenant-id": str(ctx.tenant_id),
+        "x-user-id": str(ctx.user_id),
+    }
+    if auth_val:
+        headers["authorization"] = auth_val
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            salary_resp = await client.get(
+                f"{settings.salary_url}/api/v1/salary/structures/{employee_id}",
+                headers=headers,
+            )
+            if salary_resp.status_code == 404:
+                raise HTTPException(status_code=404, detail="No salary structure found for this employee")
+            salary_resp.raise_for_status()
+            salary = salary_resp.json()
+        except httpx.RequestError as exc:
+            logger.error(f"Failed to fetch salary for {employee_id}: {exc}")
+            raise HTTPException(status_code=502, detail=f"Salary service unavailable: {exc}")
+
+    bd = salary.get("breakdown", {})
+    ctc = Decimal(str(salary.get("ctc", "0")))
+    basic_monthly = Decimal(str(bd.get("basic", "0")))
+    hra_monthly = Decimal(str(bd.get("hra", "0")))
+    is_metro = bd.get("is_metro", False)
+
+    # Fetch existing declarations for this employee
+    decl_declarations: dict[str, Decimal] = {}
+    today = date.today()
+    fy_start = today.year if today.month >= 4 else today.year - 1
+    tax_year = f"{fy_start}-{str(fy_start + 1)[-2:]}"
+
+    existing_decl = await session.scalar(
+        select(EmployeeDeclaration).where(
+            EmployeeDeclaration.tenant_id == ctx.tenant_id,
+            EmployeeDeclaration.employee_id == employee_id,
+            EmployeeDeclaration.tax_year == tax_year,
+        )
+    )
+
+    decl_payload = {}
+    if existing_decl and existing_decl.declaration_json:
+        decl_payload = existing_decl.declaration_json
+        # Extract declarations into the format compute_overview expects
+        sec_80c = decl_payload.get("sec_80c", {})
+        if isinstance(sec_80c, dict):
+            total_80c = sum(Decimal(str(v)) for v in sec_80c.values() if isinstance(v, (int, float, str)))
+            decl_declarations["80C"] = min(total_80c, Decimal("150000"))
+        sec_80d = decl_payload.get("sec_80d", {})
+        if isinstance(sec_80d, dict):
+            total_80d = Decimal(str(sec_80d.get("self", 0))) + Decimal(str(sec_80d.get("parents", 0)))
+            decl_declarations["80D"] = total_80d
+        nps = decl_payload.get("nps_80ccd_1b", 0)
+        if nps:
+            decl_declarations["80CCD_1B"] = min(Decimal(str(nps)), Decimal("50000"))
+        hra_info = decl_payload.get("hra", {})
+        if isinstance(hra_info, dict) and hra_info.get("rent_monthly", 0) > 0:
+            rent_m = Decimal(str(hra_info["rent_monthly"]))
+            hra_exempt = min(
+                hra_monthly * 12,
+                rent_m * 12 - Decimal("0.1") * basic_monthly * 12,
+                basic_monthly * 12 * (Decimal("0.5") if hra_info.get("is_metro", is_metro) else Decimal("0.4")),
+            )
+            decl_declarations["HRA"] = max(Decimal("0"), hra_exempt)
+        other = decl_payload.get("other", {})
+        if isinstance(other, dict):
+            pt = other.get("professional_tax", 0)
+            if pt:
+                decl_declarations["PROFESSIONAL_TAX"] = min(Decimal(str(pt)), Decimal("2500"))
+
+    # Auto-populate EPF from basic (12% of annual basic, capped at 80C limit)
+    epf_annual = basic_monthly * 12 * Decimal("0.12")
+    if "80C" not in decl_declarations or decl_declarations["80C"] == 0:
+        decl_declarations["80C"] = min(epf_annual, Decimal("150000"))
+
+    overview = compute_overview(
+        ctc=ctc,
+        basic_monthly=basic_monthly,
+        hra_monthly=hra_monthly,
+        is_metro=is_metro,
+        declarations=decl_declarations,
+    )
+
+    # Include salary and declaration details for the frontend
+    overview["salary"] = {
+        "ctc": str(ctc),
+        "basic_monthly": str(basic_monthly),
+        "hra_monthly": str(hra_monthly),
+        "is_metro": is_metro,
+        "epf_annual": str(epf_annual),
+    }
+    overview["declaration_payload"] = decl_payload
+    overview["tax_year"] = tax_year
+
+    return overview
+
+
+# ── Declarations retrieval ─────────────────────────────────────────────────────
+
+@router.get("/declarations/{employee_id}")
+async def get_declarations(
+    employee_id: uuid.UUID,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Retrieve the latest declaration for an employee in the current FY."""
+    today = date.today()
+    fy_start = today.year if today.month >= 4 else today.year - 1
+    tax_year = f"{fy_start}-{str(fy_start + 1)[-2:]}"
+
+    decl = await session.scalar(
+        select(EmployeeDeclaration).where(
+            EmployeeDeclaration.tenant_id == ctx.tenant_id,
+            EmployeeDeclaration.employee_id == employee_id,
+            EmployeeDeclaration.tax_year == tax_year,
+        )
+    )
+
+    if not decl:
+        return {
+            "employee_id": str(employee_id),
+            "tax_year": tax_year,
+            "has_declaration": False,
+            "declaration_json": {},
+            "status": None,
+            "version": 0,
+        }
+
+    return {
+        "employee_id": str(employee_id),
+        "tax_year": decl.tax_year,
+        "has_declaration": True,
+        "declaration_json": decl.declaration_json,
+        "status": decl.status,
+        "version": decl.current_version,
+        "submitted_at": decl.submitted_at.isoformat() if decl.submitted_at else None,
+    }
+
+
+# ── Auto-compute: called by salary-service on create/revise ──────────────────
+
+class AutoComputeIn(BaseModel):
+    employee_id: uuid.UUID
+    ctc: Decimal
+    basic_monthly: Decimal
+    hra_monthly: Decimal
+    is_metro: bool = False
+
+
+@router.post("/auto-compute", status_code=200)
+async def auto_compute_tds(
+    body: AutoComputeIn,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Trigger TDS recalculation when salary is created/revised.
+
+    This stores a TDS profile and initial calculation so the employee
+    immediately has non-zero tax data in the system.
+    """
+    logger = logging.getLogger(__name__)
+    payment_date = date.today()
+    tax_year = tax_year_for_payment(payment_date)
+
+    # Run the overview computation
+    overview = compute_overview(
+        ctc=body.ctc,
+        basic_monthly=body.basic_monthly,
+        hra_monthly=body.hra_monthly,
+        is_metro=body.is_metro,
+    )
+
+    # Ensure a tax profile exists
+    existing_profile = await session.scalar(
+        select(EmployeeTaxProfile).where(
+            EmployeeTaxProfile.tenant_id == ctx.tenant_id,
+            EmployeeTaxProfile.employee_id == body.employee_id,
+            EmployeeTaxProfile.status == "ACTIVE",
+        )
+    )
+    if not existing_profile:
+        session.add(EmployeeTaxProfile(
+            tenant_id=ctx.tenant_id,
+            employee_id=body.employee_id,
+            tax_regime="DEFAULT",
+            effective_from=payment_date,
+            status="ACTIVE",
+        ))
+
+    await write_tax_audit(
+        session,
+        ctx=ctx,
+        event_type="TDS_AUTO_COMPUTED.v1",
+        employee_id=body.employee_id,
+        new_values={
+            "ctc": str(body.ctc),
+            "tax_year": tax_year,
+            "recommended_regime": overview["recommended"],
+            "monthly_tds": overview["employee_overview"]["monthly_tds"],
+        },
+        reason="salary created/revised",
+    )
+    await session.commit()
+
+    logger.info(
+        f"Auto-computed TDS for employee {body.employee_id}: "
+        f"CTC={body.ctc}, recommended={overview['recommended']}, "
+        f"monthly_tds={overview['employee_overview']['monthly_tds']}"
+    )
+
+    return {
+        "employee_id": str(body.employee_id),
+        "tax_year": tax_year,
+        "overview": overview["employee_overview"],
+        "recommended": overview["recommended"],
+    }
 
 
 # ---- TDS Declarations (stub for V1.1) ------------------------------------------

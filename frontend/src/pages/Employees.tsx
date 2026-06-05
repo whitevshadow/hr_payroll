@@ -58,6 +58,11 @@ export function Employees() {
     queryFn: () => employeesApi.departments(),
   });
 
+  const locs = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => employeesApi.locations(),
+  });
+
   const list = useQuery({
     queryKey: qk.employees({ search: search || undefined, page, page_size: PAGE_SIZE }),
     queryFn: () => employeesApi.list({ search: search || undefined, page, page_size: PAGE_SIZE }),
@@ -241,6 +246,7 @@ export function Employees() {
         <EmployeeModal
           value={editing}
           departments={depts.data ?? []}
+          locations={locs.data ?? []}
           onClose={() => { setEditing(null); setFormError(""); }}
           onSave={() => saveMut.mutate(editing)}
           saving={saveMut.isPending}
@@ -253,10 +259,11 @@ export function Employees() {
 }
 
 function EmployeeModal({
-  value, departments, onClose, onSave, saving, error, onChange,
+  value, departments, locations, onClose, onSave, saving, error, onChange,
 }: {
   value: Partial<Employee>;
   departments: { id: string; name: string }[];
+  locations: import("../types").Location[];
   onClose: () => void;
   onSave: () => void;
   saving: boolean;
@@ -305,10 +312,14 @@ function EmployeeModal({
             onChange={(e) => set("designation", e.target.value)} />
         </div>
         <div>
-          <label className="label" htmlFor="f-loc">Work Location</label>
-          <input id="f-loc" className="input" placeholder="e.g. Mumbai (metro)"
-            value={value.work_location ?? ""}
-            onChange={(e) => set("work_location", e.target.value)} />
+          <label className="label" htmlFor="f-loc">Work Location *</label>
+          <select id="f-loc" className="input" value={value.location_id ?? ""}
+            onChange={(e) => set("location_id", e.target.value || null)}>
+            <option value="">— Select Location —</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>{l.location_name} ({l.city}, {l.state})</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label" htmlFor="f-dept">Department</label>

@@ -159,6 +159,7 @@ async def upsert_manual(
         record.wfh_days = Decimal(str(body.wfh_days))
         record.overtime_hours = Decimal(str(body.overtime_hours))
         record.attendance_pct = pct
+        record.daily_status = body.daily_status
         if ctrl and ctrl.status == "VALIDATED":
             ctrl.status = "DRAFT"  # edit resets validation
     else:
@@ -178,6 +179,7 @@ async def upsert_manual(
             wfh_days=Decimal(str(body.wfh_days)),
             overtime_hours=Decimal(str(body.overtime_hours)),
             attendance_pct=pct,
+            daily_status=body.daily_status,
             is_finalized=False,
         )
         session.add(record)
@@ -243,6 +245,7 @@ async def bulk_upsert(
             record.wfh_days = Decimal(str(item.wfh_days))
             record.overtime_hours = Decimal(str(item.overtime_hours))
             record.attendance_pct = pct
+            record.daily_status = item.daily_status
             updated += 1
         else:
             session.add(AttendanceRecord(
@@ -261,6 +264,7 @@ async def bulk_upsert(
                 wfh_days=Decimal(str(item.wfh_days)),
                 overtime_hours=Decimal(str(item.overtime_hours)),
                 attendance_pct=pct,
+                daily_status=item.daily_status,
                 is_finalized=False,
             ))
             created += 1

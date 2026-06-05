@@ -20,7 +20,11 @@ export const EmployeeSchema = z.object({
   joining_date: z.string().nullable(),
   department_id: z.string().uuid().nullable(),
   designation: z.string().nullable(),
+  location_id: z.string().uuid().nullable(),
   work_location: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  branch: z.string().nullable(),
 });
 export type Employee = z.infer<typeof EmployeeSchema>;
 
