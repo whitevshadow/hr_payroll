@@ -8,3 +8,7 @@ node_modules/
 frontend/dist/
 *.egg-info/
 .DS_Store
+.agents/
+.claude/
+graphify-out/
+powershell.cmd

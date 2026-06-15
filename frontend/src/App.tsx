@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
+import { ClientProvider } from "./lib/ClientContext";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { canViewAudit, isEmployeeOnly } from "./lib/roles";
@@ -21,11 +22,14 @@ import { Reports } from "./pages/Reports";
 import { Payslip } from "./pages/Payslip";
 import { AuditLog } from "./pages/AuditLog";
 import { MyProfile } from "./pages/MyProfile";
+import { Clients } from "./pages/Clients";
 
 function Shell({ children }: { children: React.ReactElement }) {
   return (
     <ProtectedRoute>
-      <AppShell>{children}</AppShell>
+      <ClientProvider>
+        <AppShell>{children}</AppShell>
+      </ClientProvider>
     </ProtectedRoute>
   );
 }
@@ -72,6 +76,7 @@ export default function App() {
       <Route path="/employees" element={<Shell><HrRoute><Employees /></HrRoute></Shell>} />
       <Route path="/employees/:id" element={<Shell><HrRoute><EmployeeDetail /></HrRoute></Shell>} />
       <Route path="/departments" element={<Shell><HrRoute><Departments /></HrRoute></Shell>} />
+      <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
       <Route path="/salary" element={<Shell><HrRoute><Salary /></HrRoute></Shell>} />
       <Route path="/attendance" element={<Shell><HrRoute><Attendance /></HrRoute></Shell>} />
       <Route path="/cycles" element={<Shell><HrRoute><Cycles /></HrRoute></Shell>} />

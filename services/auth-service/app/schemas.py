@@ -12,7 +12,6 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    tenant_id: uuid.UUID
     email: EmailStr
     password: str
 

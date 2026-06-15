@@ -12,10 +12,8 @@ import { Zap, Mail, Lock, Building2, AlertCircle, ArrowRight } from "lucide-reac
 export function Login() {
   const { isAuthenticated } = useAuth();
   const nav = useNavigate();
-  const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("admin@demo.com");
   const [password, setPassword] = useState("Admin@123");
-  const [tenantName, setTenantName] = useState("Demo Corp");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -26,19 +24,8 @@ export function Login() {
     setBusy(true);
     setError("");
     try {
-      let token: string;
-      if (tab === "login") {
-        const { data } = await api.post<{ access_token: string }>("/auth/login", { email, password });
-        token = data.access_token;
-      } else {
-        const { data } = await api.post<{ access_token: string }>("/auth/register", {
-          tenant_name: tenantName,
-          email,
-          password,
-        });
-        token = data.access_token;
-      }
-      setToken(token);
+      const { data } = await api.post<{ access_token: string }>("/auth/login", { email, password });
+      setToken(data.access_token);
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       nav("/");
     } catch (err) {
@@ -125,52 +112,14 @@ export function Login() {
         >
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {tab === "login" ? "Welcome back" : "Create organisation"}
+              Welcome back
             </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {tab === "login"
-                ? "Sign in to your account to continue"
-                : "Set up your HR & Payroll workspace"}
+              Sign in to your account to continue
             </p>
           </div>
 
-          {/* Tab switcher */}
-          <div className="mb-6 flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
-            {(["login", "register"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-200 ${
-                  tab === t
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
-              >
-                {t === "login" ? "Sign in" : "Register org"}
-              </button>
-            ))}
-          </div>
-
           <form onSubmit={submit} className="space-y-4">
-            {tab === "register" && (
-              <div>
-                <label className="label" htmlFor="tenant">
-                  Organisation name
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    id="tenant"
-                    className="input pl-9"
-                    value={tenantName}
-                    onChange={(e) => setTenantName(e.target.value)}
-                    placeholder="Acme Inc."
-                    required
-                  />
-                </div>
-              </div>
-            )}
 
             <div>
               <label className="label" htmlFor="email">Email address</label>
@@ -221,7 +170,7 @@ export function Login() {
                 </>
               ) : (
                 <>
-                  {tab === "login" ? "Sign in" : "Create workspace"}
+                  Sign in
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}

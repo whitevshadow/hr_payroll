@@ -4,13 +4,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Search, Plus, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { employeesApi } from "../api/employees";
-import { qk } from "../lib/queryClient";
+import { clientsApi } from "../api/clients";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
 import { SkeletonRow } from "../components/Spinner";
+import { BulkImportModal } from "../components/BulkImportModal";
 import { extractErrorMessage } from "../lib/toast";
+import { useClientContext } from "../lib/ClientContext";
 import type { Employee } from "../types";
 import clsx from "clsx";
 
@@ -49,7 +52,9 @@ export function Employees() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const { selectedClientId, setSelectedClientId } = useClientContext();
   const [editing, setEditing] = useState<Partial<Employee> | null>(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [formError, setFormError] = useState("");
   const PAGE_SIZE = 10;
 
@@ -63,9 +68,15 @@ export function Employees() {
     queryFn: () => employeesApi.locations(),
   });
 
+  const clients = useQuery({
+    queryKey: qk.clients(),
+    queryFn: () => clientsApi.list({ page_size: 200, status: "ACTIVE" }),
+    staleTime: STALE_STABLE,
+  });
+
   const list = useQuery({
-    queryKey: qk.employees({ search: search || undefined, page, page_size: PAGE_SIZE }),
-    queryFn: () => employeesApi.list({ search: search || undefined, page, page_size: PAGE_SIZE }),
+    queryKey: qk.employees({ search: search || undefined, page, page_size: PAGE_SIZE, client_id: selectedClientId || undefined }),
+    queryFn: () => employeesApi.list({ search: search || undefined, page, page_size: PAGE_SIZE, client_id: selectedClientId || undefined }),
     placeholderData: (prev) => prev,
   });
 
@@ -93,14 +104,19 @@ export function Employees() {
   return (
     <div>
       <PageHeader title="Employees" subtitle={`${total} total employees`}>
-        <button className="btn" onClick={() => setEditing({ ...EMPTY_EMP })}>
-          <Plus className="h-4 w-4" />
-          Add Employee
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="btn-ghost" onClick={() => setShowBulkImport(true)}>
+            Bulk Import Employees
+          </button>
+          <button className="btn" onClick={() => setEditing({ ...EMPTY_EMP, client_id: selectedClientId || undefined })}>
+            <Plus className="h-4 w-4" />
+            Add Employee
+          </button>
+        </div>
       </PageHeader>
 
-      {/* Search bar */}
-      <div className="mb-4 flex gap-3">
+      {/* Filters & Search */}
+      <div className="mb-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -109,6 +125,23 @@ export function Employees() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
+        </div>
+        <div className="flex-1 max-w-[200px]">
+          <select
+            className="input"
+            value={selectedClientId || ""}
+            onChange={(e) => {
+              setSelectedClientId(e.target.value || null);
+              setPage(1);
+            }}
+          >
+            <option value="">All Clients</option>
+            {clients.data?.items.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.client_name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -119,6 +152,7 @@ export function Employees() {
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
               <th className="th">Employee</th>
               <th className="th">Code</th>
+              <th className="th">Client</th>
               <th className="th">Designation</th>
               <th className="th">Location</th>
               <th className="th">Status</th>
@@ -166,6 +200,11 @@ export function Employees() {
                       {e.emp_code}
                     </span>
                   </td>
+                  <td className="td text-slate-600 dark:text-slate-400 text-[12px]">
+                    {e.client_id
+                      ? (clients.data?.items.find((c) => c.id === e.client_id)?.client_name ?? <span className="text-slate-300">—</span>)
+                      : <span className="text-slate-300 dark:text-slate-700">—</span>}
+                  </td>
                   <td className="td text-slate-600 dark:text-slate-400">
                     {e.designation ?? "—"}
                   </td>
@@ -195,7 +234,7 @@ export function Employees() {
               ))}
             {!list.isLoading && list.data?.items.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <EmptyState
                     title="No employees found"
                     description={
@@ -217,36 +256,37 @@ export function Employees() {
       </div>
 
       {/* Pagination */}
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-sm text-slate-500 dark:text-slate-400">
-          Showing {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} of {total}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            className="btn-ghost-sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400">
-            {page} / {pages}
-          </span>
-          <button
-            className="btn-ghost-sm"
-            disabled={page >= pages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+      {pages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+          <div>
+            Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total}
+          </div>
+          <div className="flex gap-1">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(p => p - 1)}
+              className="btn-ghost-sm px-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              disabled={page === pages}
+              onClick={() => setPage(p => p + 1)}
+              className="btn-ghost-sm px-2"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
+      {/* Add/Edit Modal */}
       {editing && (
         <EmployeeModal
           value={editing}
           departments={depts.data ?? []}
           locations={locs.data ?? []}
+          clients={clients.data?.items ?? []}
           onClose={() => { setEditing(null); setFormError(""); }}
           onSave={() => saveMut.mutate(editing)}
           saving={saveMut.isPending}
@@ -254,16 +294,29 @@ export function Employees() {
           onChange={setEditing}
         />
       )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <BulkImportModal
+          onClose={() => setShowBulkImport(false)}
+          onImported={() => {
+            setShowBulkImport(false);
+            setPage(1);
+            qc.invalidateQueries({ queryKey: ["employees"] });
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function EmployeeModal({
-  value, departments, locations, onClose, onSave, saving, error, onChange,
+  value, departments, locations, clients, onClose, onSave, saving, error, onChange,
 }: {
   value: Partial<Employee>;
   departments: { id: string; name: string }[];
   locations: import("../types").Location[];
+  clients: import("../types").Client[];
   onClose: () => void;
   onSave: () => void;
   saving: boolean;
@@ -348,6 +401,14 @@ function EmployeeModal({
           <label className="label" htmlFor="f-join">Joining Date</label>
           <input id="f-join" className="input" type="date" value={value.joining_date ?? ""}
             onChange={(e) => set("joining_date", e.target.value || null)} />
+        </div>
+        <div className="col-span-2">
+          <label className="label" htmlFor="f-client">Client Company</label>
+          <select id="f-client" className="input" value={value.client_id ?? ""}
+            onChange={(e) => set("client_id", e.target.value || null)}>
+            <option value="">— No Client —</option>
+            {clients.map((c) => <option key={c.id} value={c.id}>{c.client_name} ({c.client_code})</option>)}
+          </select>
         </div>
       </div>
       {error && (

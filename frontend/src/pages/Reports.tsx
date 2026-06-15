@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import api from "../lib/api";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
+import { useClientContext } from "../lib/ClientContext";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner, Spinner } from "../components/Spinner";
@@ -25,6 +26,7 @@ import clsx from "clsx";
 export function Reports() {
   const qc = useQueryClient();
   const [cycleId, setCycleId] = useState("");
+  const { selectedClientId } = useClientContext();
 
   const cycles = useQuery({ queryKey: qk.cycles, queryFn: () => payrollApi.listCycles() });
   const defaultCycle = cycles.data?.find((c) => c.status === "DISBURSED")?.id ?? "";
@@ -77,19 +79,21 @@ export function Reports() {
             </h2>
           </div>
 
-          {/* Cycle selector */}
-          <div className="mb-4">
-            <label className="label">Payroll Cycle</label>
-            <select
-              className="input w-56"
-              value={activeCycle}
-              onChange={(e) => setCycleId(e.target.value)}
-            >
-              <option value="">All cycles</option>
-              {cycles.data?.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+          {/* Cycle + Client selector */}
+          <div className="mb-4 flex flex-wrap gap-3">
+            <div>
+              <label className="label">Payroll Cycle</label>
+              <select
+                className="input w-56"
+                value={activeCycle}
+                onChange={(e) => setCycleId(e.target.value)}
+              >
+                <option value="">All cycles</option>
+                {cycles.data?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Quick actions */}

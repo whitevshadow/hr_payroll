@@ -59,6 +59,10 @@ export const qk = {
   audit: (params?: Record<string, unknown>) => ["audit", params] as const,
 
   notifications: ["notifications"] as const,
+
+  clients: (params?: Record<string, unknown>) => ["clients", params] as const,
+  client: (id: string) => ["client", id] as const,
+  clientCredentials: (id: string) => ["client-credentials", id] as const,
 };
 
 // ── QueryClient ─────────────────────────────────────────────────────────────

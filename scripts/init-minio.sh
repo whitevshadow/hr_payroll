@@ -58,8 +58,6 @@ cat > "${POLICY_FILE}" << 'EOF'
         "s3:PutEncryptionConfiguration",
         "s3:GetLifecycleConfiguration",
         "s3:PutLifecycleConfiguration",
-        "s3:GetBucketCORS",
-        "s3:PutBucketCORS",
         "s3:GetBucketTagging",
         "s3:PutBucketTagging"
       ],

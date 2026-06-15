@@ -35,6 +35,7 @@ export interface Employee {
   city: string | null;
   state: string | null;
   branch: string | null;
+  client_id: string | null;
 }
 export interface Location {
   id: string;
@@ -51,6 +52,60 @@ export interface EmployeePage {
 }
 export type EmployeeCreate = Omit<Employee, "id">;
 export type EmployeeUpdate = Partial<Omit<Employee, "id" | "emp_code">>;
+
+// ---- Clients ----------------------------------------------------------------
+export interface Client {
+  id: string;
+  client_code: string;
+  client_name: string;
+  legal_name: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  area: string | null;
+  city: string | null;
+  state: string | null;
+  country: string;
+  pincode: string | null;
+  gst_number: string | null;
+  pan_number: string | null;
+  tan_number: string | null;
+  cin_number: string | null;
+  contact_person: string | null;
+  contact_email: string | null;
+  contact_mobile: string | null;
+  contact_telephone: string | null;
+  pf_establishment_code: string | null;
+  esic_employer_code: string | null;
+  professional_tax_number: string | null;
+  labour_license_number: string | null;
+  shop_act_number: string | null;
+  status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  created_at: string;
+  updated_at: string;
+}
+export interface ClientPage {
+  items: Client[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+export type ClientCreate = Omit<Client, "id" | "status" | "created_at" | "updated_at">;
+export type ClientUpdate = Partial<Omit<Client, "id" | "client_code" | "status" | "created_at" | "updated_at">>;
+export interface ClientCredential {
+  id: string;
+  client_id: string;
+  portal_type: "PF" | "ESIC" | "GST";
+  portal_name: string | null;
+  username: string | null;
+  has_password: boolean;
+  last_rotated_at: string | null;
+}
+export interface CredentialReveal {
+  id: string;
+  portal_type: string;
+  username: string | null;
+  password: string | null;
+}
 
 // ---- Salary -------------------------------------------------------------
 export interface SalaryBreakdown {

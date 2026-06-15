@@ -15,6 +15,7 @@ class Settings(BaseServiceSettings):
     payout_url: str = "http://payout-service:8009"
     reporting_url: str = "http://reporting-service:8010"
     blobstore_url: str = "http://blobstore-service:8011"
+    client_url: str = "http://client-service:8012"
 
 
 settings = Settings()
@@ -38,6 +39,8 @@ ROUTES: list[tuple[str, str]] = [
     ("/api/v1/blobs", settings.blobstore_url),
     ("/api/v1/bucket-config", settings.blobstore_url),
     ("/api/v1/registry", settings.blobstore_url),
+    ("/api/v1/clients", settings.client_url),
+    ("/api/v1/locations", settings.employee_url),
     ("/api/v1/employee-docs", settings.blobstore_url),
 ]
 

@@ -12,6 +12,7 @@ export interface EmployeeListParams {
   page_size?: number;
   search?: string;
   status?: string;
+  client_id?: string;
 }
 
 export const employeesApi = {
@@ -48,4 +49,49 @@ export const employeesApi = {
   /** List all locations in the current tenant. */
   locations: () =>
     api.get<import("../types").Location[]>("/locations").then((r) => r.data),
+
+  /** Bulk-import employees from an array of parsed rows. */
+  bulkImport: (rows: BulkImportRow[]) =>
+    api.post<BulkImportResult>("/employees/bulk-import", { rows }).then((r) => r.data),
 };
+
+export interface BulkImportRow {
+  emp_code: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  mobile?: string;
+  department?: string;
+  designation?: string;
+  work_location?: string;
+  joining_date?: string;         // ISO YYYY-MM-DD
+  employment_type?: string;
+  basic_salary?: number;         // annual CTC — used by frontend to call salary-service
+  pan_number?: string;
+  uan_number?: string;
+  bank_account?: string;
+  bank_ifsc?: string;
+  gender?: string;
+  date_of_birth?: string;
+  state?: string;
+  city?: string;
+  branch?: string;
+}
+
+export interface RowResult {
+  row_index: number;
+  emp_code: string;
+  name: string;
+  status: "created" | "duplicate" | "error";
+  error?: string;
+  employee_id?: string;
+  work_location?: string;
+}
+
+export interface BulkImportResult {
+  total: number;
+  created: number;
+  duplicates: number;
+  errors: number;
+  rows: RowResult[];
+}

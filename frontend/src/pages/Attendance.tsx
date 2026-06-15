@@ -20,6 +20,7 @@ import { currentMonthValue, monthToFirst, formatDateTime } from "../lib/format";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { useAuth } from "../lib/auth";
 import { hasRole, isEmployeeOnly } from "../lib/roles";
+import { useClientContext } from "../lib/ClientContext";
 import type { Employee } from "../types";
 import clsx from "clsx";
 
@@ -449,6 +450,7 @@ export function Attendance() {
 
   const [month, setMonth] = useState(currentMonthValue());
   const [activeTab, setActiveTab] = useState<ActiveTab>("summary");
+  const { selectedClientId } = useClientContext();
 
   // Grid state
   const [gridRows, setGridRows] = useState<AttRow[]>([]);
@@ -492,7 +494,9 @@ export function Attendance() {
   const canEdit = isHR && !isLocked;
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const employees = employeesQ.data?.items ?? [];
+  const employees = (selectedClientId
+    ? (employeesQ.data?.items ?? []).filter((e) => e.client_id === selectedClientId)
+    : (employeesQ.data?.items ?? []));
   const monthlyRecords = monthlyQ.data?.records ?? [];
 
   const empById = useMemo(() => {

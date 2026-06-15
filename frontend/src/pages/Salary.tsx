@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { employeesApi } from "../api/employees";
 import { salaryApi } from "../api/salary";
+import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { formatINR, computeSalaryPreview } from "../lib/money";
@@ -10,6 +10,7 @@ import { formatDate } from "../lib/format";
 import { FullPageSpinner } from "../components/Spinner";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import type { Employee, SalaryStructure } from "../types";
+import { useClientContext } from "../lib/ClientContext";
 import { DollarSign, RefreshCw, TrendingUp, Building2, Calculator } from "lucide-react";
 import clsx from "clsx";
 
@@ -22,9 +23,17 @@ export function Salary() {
   const [effFrom, setEffFrom] = useState(TODAY);
   const [formError, setFormError] = useState("");
 
+  const { selectedClientId, setSelectedClientId } = useClientContext();
+
+  const clientsQ = useQuery({
+    queryKey: qk.clients(),
+    queryFn: () => clientsApi.list({ page_size: 200, status: "ACTIVE" }),
+    staleTime: STALE_STABLE,
+  });
+
   const employees = useQuery({
-    queryKey: qk.employees({ page_size: 200, status: "ACTIVE" }),
-    queryFn: () => employeesApi.list({ page_size: 200, status: "ACTIVE" }),
+    queryKey: qk.employees({ page_size: 200, status: "ACTIVE", client_id: selectedClientId || undefined }),
+    queryFn: () => employeesApi.list({ page_size: 200, status: "ACTIVE", client_id: selectedClientId || undefined }),
     staleTime: STALE_STABLE,
   });
 
@@ -70,9 +79,33 @@ export function Salary() {
         subtitle="Manage and preview employee salary breakdowns"
       />
 
-      {/* Employee selector */}
-      <div className="mb-6 max-w-sm">
-        <label className="label" htmlFor="emp-sel">Select Employee</label>
+      {/* Selectors */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 max-w-2xl">
+        {/* Client selector */}
+        <div className="flex-1">
+          <label className="label" htmlFor="client-sel">Select Client</label>
+          <select
+            id="client-sel"
+            className="input"
+            value={selectedClientId || ""}
+            onChange={(e) => {
+              setSelectedClientId(e.target.value || null);
+              setSelectedEmpId("");
+              setCtc("");
+            }}
+          >
+            <option value="">All Clients</option>
+            {clientsQ.data?.items.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.client_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Employee selector */}
+        <div className="flex-1">
+          <label className="label" htmlFor="emp-sel">Select Employee</label>
         <select
           id="emp-sel"
           className="input"
@@ -86,6 +119,7 @@ export function Salary() {
             </option>
           ))}
         </select>
+        </div>
       </div>
 
       {selectedEmpId && (

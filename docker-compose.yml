@@ -2,9 +2,10 @@ name: hr-payroll
 
 x-common-env: &common-env
   DATABASE_URL: postgresql+asyncpg://hr:hr@postgres:5432/hr_payroll
-  JWT_SECRET: super-secret-shared-key-change-me
+  JWT_SECRET: ${JWT_SECRET:-super-secret-shared-key-change-me}
   JWT_ALGORITHM: HS256
   ACCESS_TOKEN_MINUTES: "120"
+  FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?FIELD_ENCRYPTION_KEY must be set in .env}
 
 x-service-build: &service-build
   context: .
@@ -155,6 +156,7 @@ services:
       # Values must be set in .env (git-ignored). See .env.example.
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -184,6 +186,16 @@ services:
         condition: service_healthy
     restart: "no"
 
+  client-service:
+    build:
+      <<: *service-build
+      args: { SERVICE: client-service, PORT: "8012" }
+    environment:
+      <<: *common-env
+      # Shares employee_schema so that client_id FK from employees resolves.
+      DB_SCHEMA: employee_schema
+    depends_on: *depends-on-db
+
   gateway:
     build:
       <<: *service-build
@@ -200,6 +212,7 @@ services:
       PAYOUT_URL: http://payout-service:8009
       REPORTING_URL: http://reporting-service:8010
       BLOBSTORE_URL: http://blobstore-service:8011
+      CLIENT_URL: http://client-service:8012
     ports:
       - "8000:8000"
     depends_on:
@@ -213,6 +226,7 @@ services:
       - payout-service
       - reporting-service
       - blobstore-service
+      - client-service
 
   frontend:
     build:

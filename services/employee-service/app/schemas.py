@@ -57,6 +57,7 @@ class EmployeeBase(BaseModel):
     city: str | None = None
     state: str | None = None
     branch: str | None = None
+    client_id: uuid.UUID | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -95,6 +96,7 @@ class EmployeeUpdate(BaseModel):
     city: str | None = None
     state: str | None = None
     branch: str | None = None
+    client_id: uuid.UUID | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -122,3 +124,53 @@ class EmployeePage(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# ── Bulk Import ──────────────────────────────────────────────────────────────
+
+class BulkImportRow(BaseModel):
+    """One row from the Excel/CSV template."""
+    emp_code: str
+    first_name: str
+    last_name: str
+    email: str | None = None
+    mobile: str | None = None
+    department: str | None = None
+    designation: str | None = None
+    work_location: str | None = None
+    joining_date: date | None = None
+    employment_type: str | None = None
+    # Financials (used by frontend to call salary-service)
+    basic_salary: float | None = None
+    # Optional PII
+    pan_number: str | None = None
+    uan_number: str | None = None
+    bank_account: str | None = None
+    bank_ifsc: str | None = None
+    gender: str | None = None
+    date_of_birth: date | None = None
+    state: str | None = None
+    city: str | None = None
+    branch: str | None = None
+
+
+class BulkImportRequest(BaseModel):
+    rows: list[BulkImportRow]
+
+
+class RowResult(BaseModel):
+    row_index: int         # 0-based row number in uploaded file
+    emp_code: str
+    name: str
+    status: str            # "created" | "duplicate" | "error"
+    error: str | None = None
+    employee_id: str | None = None   # UUID of created employee (for salary creation)
+    work_location: str | None = None
+
+
+class BulkImportResult(BaseModel):
+    total: int
+    created: int
+    duplicates: int
+    errors: int
+    rows: list[RowResult]

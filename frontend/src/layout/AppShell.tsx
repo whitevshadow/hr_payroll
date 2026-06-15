@@ -39,15 +39,18 @@ import {
   WifiOff,
   PanelLeftClose,
   PanelLeftOpen,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
 import { Z } from "../lib/zIndex";
 import { notificationsApi } from "../api/notifications";
-import { qk } from "../lib/queryClient";
+import { clientsApi } from "../api/clients";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { currentMonthFirst, relativeTime } from "../lib/format";
 import { CommandPalette, useCommandPalette } from "../components/CommandPalette";
 import { usePayrollSSE } from "../hooks/usePayrollSSE";
+import { useClientContext } from "../lib/ClientContext";
 import clsx from "clsx";
 
 // ── Theme Context ──────────────────────────────────────────────────────────────
@@ -105,8 +108,9 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Organization",
     hrOnly: true,
     items: [
-      { to: "/employees",   label: "Employees",   icon: Users,    hrOnly: true },
-      { to: "/departments", label: "Departments", icon: Building2, hrOnly: true },
+      { to: "/employees",   label: "Employees",   icon: Users,     hrOnly: true },
+      { to: "/departments", label: "Departments", icon: Building2,  hrOnly: true },
+      { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
     ],
   },
   {
@@ -702,6 +706,7 @@ function TopBar({
   const { dark, toggle: toggleTheme } = useTheme();
   const location  = useLocation();
   const [params, setParams] = useSearchParams();
+  const { selectedClientId, setSelectedClientId } = useClientContext();
 
   const isDashboard = location.pathname === "/";
   const months = Array.from({ length: 6 }, (_, i) => {
@@ -710,6 +715,12 @@ function TopBar({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }).reverse();
   const period = params.get("period") || currentMonthFirst().slice(0, 7);
+
+  const clientsQuery = useQuery({
+    queryKey: qk.clients(),
+    queryFn: () => clientsApi.list({ page_size: 200, status: "ACTIVE" }),
+    staleTime: STALE_STABLE,
+  });
 
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "U";
   const userName  = user?.email?.split("@")[0] ?? "admin";
@@ -727,6 +738,7 @@ function TopBar({
     "/reports":     "Reports",
     "/audit":       "Audit Log",
     "/me":          "My Payslips",
+    "/clients":     "Clients",
   };
 
   const title =
@@ -774,6 +786,23 @@ function TopBar({
 
       {/* ── Right: utilities ───────────────────────────────────────────── */}
       <div className="flex items-center gap-1 ml-auto">
+        {/* Global Client Selector */}
+        {!isEmployeeOnly(user) && (
+          <div className="flex items-center gap-2 mr-1 sm:mr-3">
+            <span className="hidden sm:inline text-[11px] font-medium text-slate-400">Context:</span>
+            <select
+              className="search-glass px-2 sm:px-3 py-1.5 text-[11px] font-semibold text-accent-700 dark:text-accent-400 cursor-pointer max-w-[100px] sm:max-w-none"
+              value={selectedClientId || ""}
+              onChange={(e) => setSelectedClientId(e.target.value || null)}
+            >
+              <option value="">All Clients</option>
+              {clientsQuery.data?.items.map(c => (
+                <option key={c.id} value={c.id}>{c.client_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Period selector */}
         {isDashboard && (
           <div className="hidden md:flex items-center gap-2 mr-1">

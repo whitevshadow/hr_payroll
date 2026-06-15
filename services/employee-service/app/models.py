@@ -55,3 +55,9 @@ class Employee(TenantAwareBase):
     city: Mapped[str | None] = mapped_column(String(100))
     state: Mapped[str | None] = mapped_column(String(100))
     branch: Mapped[str | None] = mapped_column(String(100))
+
+    # Client mapping — FK enforced at DB level by client-service schema init;
+    # omitted from SQLAlchemy metadata to avoid cross-service table resolution.
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
