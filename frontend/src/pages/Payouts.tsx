@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useClientContext } from "../lib/ClientContext";
+import { AlertTriangle, CheckCircle2, CreditCard, DollarSign, RefreshCw, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { payrollApi } from "../api/payroll";
 import { payoutApi } from "../api/payout";
@@ -11,10 +13,11 @@ import { EmptyState } from "../components/EmptyState";
 import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { motion } from "framer-motion";
-import { CreditCard, CheckCircle2, AlertTriangle, DollarSign, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 
 export function Payouts() {
+  const { selectedClientId } = useClientContext();
+
   const qc = useQueryClient();
 
   const cycles = useQuery({ queryKey: qk.cycles, queryFn: () => payrollApi.listCycles() });
@@ -52,6 +55,17 @@ export function Payouts() {
   const success = txns.filter((t) => t.status === "SUCCESS").length;
   const failed = txns.filter((t) => t.status === "FAILED" || t.status === "MANUAL_REVIEW").length;
   const total = txns.reduce((s, t) => s + parseFloat(t.amount || "0"), 0);
+
+  
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -139,7 +153,7 @@ export function Payouts() {
       )}
 
       {/* Transactions table */}
-      <div className="card overflow-hidden p-0">
+      <div className="card table-card overflow-hidden p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

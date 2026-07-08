@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 # First registered admin gets the full admin role set for V1.
 BOOTSTRAP_ROLES = ["ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN"]
-VALID_ROLES = {"SUPER_ADMIN", "ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "EMPLOYEE"}
+VALID_ROLES = {"SUPER_ADMIN", "ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "EMPLOYEE", "CLIENT_ADMIN", "COMPLIANCE_OFFICER", "CLIENT_MANAGER"}
 ADMIN_ROLES = {"SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN"}
 
 
@@ -72,10 +72,16 @@ async def register(
 async def login(
     body: LoginRequest, session: AsyncSession = Depends(get_session)
 ) -> TokenResponse:
-    user = await session.scalar(
-        select(User).where(User.email == body.email.lower())
-    )
+    # Login using email only, grabbing the first match if cross-tenant emails exist.
+    user = (
+        await session.scalars(
+            select(User).where(
+                User.email == body.email.lower(),
+            )
+        )
+    ).first()
     if not user or not verify_password(body.password, user.password_hash):
+        # Generic message: do not reveal whether tenant_id or password was wrong.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
@@ -140,3 +146,38 @@ async def create_user(
         session.add(Role(tenant_id=ctx.tenant_id, user_id=user.id, role_name=role_name))
     await session.commit()
     return {"user_id": str(user.id), "email": user.email, "roles": body.roles}
+
+
+@router.get("/users")
+async def list_users(
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    if not any(r in ADMIN_ROLES for r in ctx.roles):
+        raise HTTPException(status_code=403, detail="Requires admin role")
+    rows = await session.scalars(select(User).where(User.tenant_id == ctx.tenant_id))
+    return [
+        {
+            "id": str(u.id),
+            "email": u.email,
+            "is_active": u.is_active,
+            "roles": [r.role_name for r in u.roles]
+        }
+        for u in rows
+    ]
+
+
+@router.delete("/users/{user_id}")
+async def deactivate_user(
+    user_id: uuid.UUID,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    if not any(r in ADMIN_ROLES for r in ctx.roles):
+        raise HTTPException(status_code=403, detail="Requires admin role")
+    user = await session.get(User, user_id)
+    if not user or user.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    await session.commit()
+    return {"detail": "User deactivated"}

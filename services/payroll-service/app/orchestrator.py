@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from decimal import Decimal
 
-from hr_shared import audit_log, money
+from hr_shared import audit_log, mask_bank_account as _mask_bank_account, mask_pan as _mask_pan, money
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,12 +64,12 @@ async def _upsert_result(
 
 
 async def _compute_for_employee(
-    http, token: str, cycle: PayrollCycle, emp: dict
+    http, token: str, cycle: PayrollCycle, emp: dict, client_id: str | None = None
 ) -> dict:
     """Pull from every service and aggregate. Returns the result dict."""
     employee_id = emp["id"]
 
-    salary = await client.get_salary_breakdown(http, token, employee_id)
+    salary = await client.get_salary_breakdown(http, token, employee_id, client_id)
     bd = salary["breakdown"]
     monthly_gross = money(bd["monthly_gross"])
     basic = money(bd["basic"])
@@ -77,7 +78,7 @@ async def _compute_for_employee(
 
     # Attendance (fall back to full period, no LOP, if not entered).
     period_days = (cycle.period_end - cycle.period_start).days + 1
-    att = await client.get_attendance(http, token, employee_id, _month_str(cycle.period_start))
+    att = await client.get_attendance(http, token, employee_id, _month_str(cycle.period_start), client_id)
     if att:
         total_days = int(att["total_days"])
         lop_days = Decimal(str(att["lop_days"]))
@@ -97,12 +98,14 @@ async def _compute_for_employee(
         {
             "employee_id": employee_id,
             "cycle_id": str(cycle.id),
+            "client_id": str(cycle.client_id) if cycle.client_id else None,
             "basic": str(basic),
             "monthly_gross": str(monthly_gross),
-            "state": settings.pt_default_state,
+            "state": emp.get("state") or "ALL",  # Uses state-specific or ALL settings
             "month": cycle.period_start.month,
             "ceiling_on": settings.pf_ceiling_enabled,
         },
+        client_id,
     )
     employee_pf = money(comp["employee_pf"])
     employee_esi = money(comp["employee_esi"])
@@ -117,6 +120,7 @@ async def _compute_for_employee(
             "cycle_id": str(cycle.id),
             "monthly_gross": str(monthly_gross),
         },
+        client_id,
     )
     monthly_tds = money(tds["monthly_tds"])
 
@@ -130,8 +134,10 @@ async def _compute_for_employee(
         "employee": {
             "emp_code": emp.get("emp_code"),
             "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
-            "pan": emp.get("pan_number"),
-            "bank_account": emp.get("bank_account"),
+            # Masked: breakdown_json is accessible to HR admins and stored in JSONB.
+            # Full PAN appears only on the employee's own Form 16 (ITA 1961 s.203).
+            "pan": _mask_pan(emp.get("pan_number")),
+            "bank_account": _mask_bank_account(emp.get("bank_account")),
             "designation": emp.get("designation"),
             "work_location": emp.get("work_location"),
         },
@@ -188,8 +194,9 @@ async def run_cycle(
 
     async with client.make_client() as http:
         try:
-            employees = await client.list_active_employees(http, token)
+            employees = await client.list_active_employees(http, token, str(cycle.client_id) if cycle.client_id else None)
         except ServiceCallError as exc:
+            logging.error("[payroll] Failed to fetch employees: %s", exc)
             cycle.status = state.FAILED
             await session.commit()
             return {
@@ -203,7 +210,7 @@ async def run_cycle(
 
         for emp in employees:
             try:
-                result = await _compute_for_employee(http, token, cycle, emp)
+                result = await _compute_for_employee(http, token, cycle, emp, str(cycle.client_id) if cycle.client_id else None)
                 await _upsert_result(
                     session,
                     ctx.tenant_id,
@@ -229,6 +236,7 @@ async def run_cycle(
             except Exception as exc:  # per-employee failure isolates
                 failed += 1
                 msg = f"employee {emp.get('emp_code', emp['id'])}: {exc}"
+                logging.error("[payroll] Per-employee failure: %s", msg)
                 errors.append(msg)
                 await _upsert_result(
                     session,
@@ -299,6 +307,7 @@ async def approve_cycle(
             http,
             token,
             {"cycle_id": str(cycle.id), "transactions": transactions},
+            str(cycle.client_id) if cycle.client_id else None,
         )
         await audit_log(
             session,
@@ -319,6 +328,7 @@ async def approve_cycle(
                 "cycle_id": str(cycle.id),
                 "employee_ids": [str(r.employee_id) for r in results],
             },
+            str(cycle.client_id) if cycle.client_id else None,
         )
         await audit_log(
             session,

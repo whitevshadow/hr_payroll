@@ -37,6 +37,8 @@ class PayrollCycle(TenantAwareBase):
     __tablename__ = "payroll_cycles"
 
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    financial_year: Mapped[str | None] = mapped_column(String(9))
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="DRAFT")

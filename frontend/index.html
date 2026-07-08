@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PeopleOS — HR & Payroll</title>
     <meta name="description" content="Enterprise HR & Payroll management platform. Manage employees, payroll cycles, compliance, TDS, and more." />
+    <link rel="icon" type="image/svg+xml" href="/src/icons/zap-favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Portal roots — overlays mount here, outside the React tree stacking context -->
+    <div id="modal-root"></div>
+    <div id="drawer-root"></div>
+    <div id="popover-root"></div>
+    <div id="tooltip-root"></div>
+    <div id="toast-root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

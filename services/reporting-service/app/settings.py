@@ -6,6 +6,7 @@ class Settings(BaseServiceSettings):
     db_schema: str = "reporting_schema"
 
     payroll_url: str = "http://payroll-service:8006"
+    blobstore_url: str = "http://blobstore-service:8011"
     reports_dir: str = "/app/reports"
 
 

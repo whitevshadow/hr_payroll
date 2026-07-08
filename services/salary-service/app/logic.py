@@ -25,11 +25,19 @@ def compute_breakdown(ctc: Decimal, work_location: str | None) -> dict:
     metro = is_metro(work_location)
     hra_rate = Decimal("0.50") if metro else Decimal("0.40")
     hra = money(basic * hra_rate)
-    special_allowance = money(monthly_gross - basic - hra)
+    conveyance = money(Decimal("1600.00"))
+    medical = money(Decimal("1250.00"))
+    
+    special_allowance = money(monthly_gross - basic - hra - conveyance - medical)
+    if special_allowance < Decimal("0"):
+        special_allowance = Decimal("0")
+        
     return {
         "monthly_gross": monthly_gross,
         "basic": basic,
         "hra": hra,
+        "conveyance": conveyance,
+        "medical": medical,
         "special_allowance": special_allowance,
         "is_metro": metro,
     }

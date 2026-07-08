@@ -15,7 +15,7 @@ export function PageHeader({
   return (
     <div className={clsx("mb-6 flex flex-wrap items-start justify-between gap-4", className)}>
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 leading-tight">
+        <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-slate-50 leading-tight">
           {title}
         </h1>
         {subtitle && (

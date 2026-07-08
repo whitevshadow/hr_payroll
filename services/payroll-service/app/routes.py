@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import orchestrator
 from .client import ServiceCallError
-from .deps import get_context, get_session, runtime
+from .deps import get_context, get_client_context, get_session, runtime
 from .models import Notification, NotificationBase, PayrollCycle, PayrollResult
 from .schemas import (
     CycleCreate,
@@ -44,12 +44,14 @@ async def _load_cycle(session, tenant_id, cycle_id) -> PayrollCycle:
 @router.post("/payroll/cycles", response_model=CycleOut, status_code=201)
 async def create_cycle(
     body: CycleCreate,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     cycle = PayrollCycle(
         tenant_id=ctx.tenant_id,
         name=body.name,
+        client_id=body.client_id or ctx.client_id,
+        financial_year=body.financial_year,
         period_start=body.period_start,
         period_end=body.period_end,
         is_dry_run=body.is_dry_run,
@@ -64,21 +66,25 @@ async def create_cycle(
 
 @router.get("/payroll/cycles", response_model=list[CycleOut])
 async def list_cycles(
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
+    client_id: uuid.UUID | None = None,
+    financial_year: str | None = None,
 ):
-    rows = await session.scalars(
-        select(PayrollCycle)
-        .where(PayrollCycle.tenant_id == ctx.tenant_id)
-        .order_by(PayrollCycle.created_at.desc())
-    )
+    q = select(PayrollCycle).where(PayrollCycle.tenant_id == ctx.tenant_id)
+    if client_id:
+        q = q.where(PayrollCycle.client_id == client_id)
+    if financial_year:
+        q = q.where(PayrollCycle.financial_year == financial_year)
+    
+    rows = await session.scalars(q.order_by(PayrollCycle.created_at.desc()))
     return list(rows)
 
 
 @router.get("/payroll/cycles/{cycle_id}", response_model=CycleOut)
 async def get_cycle(
     cycle_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     return await _load_cycle(session, ctx.tenant_id, cycle_id)
@@ -88,7 +94,7 @@ async def get_cycle(
 async def run_cycle(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     cycle = await _load_cycle(session, ctx.tenant_id, cycle_id)
@@ -133,7 +139,7 @@ async def _result_for(session, tenant_id, cycle_id, employee_id):
 async def get_my_result(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Self-service: return the caller's own result for a cycle."""
@@ -149,7 +155,7 @@ async def get_result(
     cycle_id: uuid.UUID,
     employee_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     # EMPLOYEE-only role may read only their own result.
@@ -169,7 +175,7 @@ async def get_result(
 @router.get("/payroll/cycles/{cycle_id}/summary", response_model=CycleSummary)
 async def cycle_summary(
     cycle_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     cycle = await _load_cycle(session, ctx.tenant_id, cycle_id)
@@ -240,7 +246,7 @@ async def list_audit(
 
 @router.get("/notifications")
 async def get_notifications(
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
     limit: int = Query(20, le=100),
 ):
@@ -276,7 +282,7 @@ async def get_notifications(
 @router.post("/notifications/{notification_id}/read", status_code=204)
 async def mark_read(
     notification_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     from sqlalchemy import or_

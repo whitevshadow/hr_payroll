@@ -9,7 +9,7 @@ from hr_shared import RequestContext, money
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_session
+from .deps import get_context, get_client_context, get_session
 from .models import PayoutBatch, PayoutTransaction
 from .schemas import BatchCreate, BatchCreateResponse, BatchOut, TxnOut
 
@@ -28,7 +28,7 @@ def _bank_reference() -> str:
 @router.post("/batches", response_model=BatchCreateResponse, status_code=201)
 async def create_batch(
     body: BatchCreate,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Simulated disbursement: mark every transaction SUCCESS.
@@ -97,7 +97,7 @@ async def create_batch(
 @router.get("/batches/{cycle_id}", response_model=list[BatchOut])
 async def get_batches(
     cycle_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     rows = await session.scalars(
@@ -112,7 +112,7 @@ async def get_batches(
 @router.get("/transactions/{batch_id}", response_model=list[TxnOut])
 async def get_transactions(
     batch_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     batch = await session.get(PayoutBatch, batch_id)
@@ -127,7 +127,7 @@ async def get_transactions(
 @router.post("/transactions/{transaction_id}/retry", response_model=TxnOut)
 async def retry_transaction(
     transaction_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Simulated retry: re-marks a FAILED transaction as SUCCESS.

@@ -21,13 +21,16 @@ class ServiceCallError(Exception):
         super().__init__(f"{service}: {detail}")
 
 
-def _headers(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
+def _headers(token: str, client_id: str | None = None) -> dict:
+    h = {"Authorization": f"Bearer {token}"}
+    if client_id:
+        h["x-client-id"] = client_id
+    return h
 
 
-async def _get(client: httpx.AsyncClient, service: str, url: str, token: str):
+async def _get(client: httpx.AsyncClient, service: str, url: str, token: str, client_id: str | None = None):
     try:
-        resp = await client.get(url, headers=_headers(token))
+        resp = await client.get(url, headers=_headers(token, client_id))
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPStatusError as exc:
@@ -36,9 +39,9 @@ async def _get(client: httpx.AsyncClient, service: str, url: str, token: str):
         raise ServiceCallError(service, f"unreachable: {exc}")
 
 
-async def _post(client: httpx.AsyncClient, service: str, url: str, token: str, json: dict):
+async def _post(client: httpx.AsyncClient, service: str, url: str, token: str, json: dict, client_id: str | None = None):
     try:
-        resp = await client.post(url, headers=_headers(token), json=json)
+        resp = await client.post(url, headers=_headers(token, client_id), json=json)
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPStatusError as exc:
@@ -51,42 +54,46 @@ def make_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=settings.http_timeout_seconds)
 
 
-async def list_active_employees(client, token: str) -> list[dict]:
+async def list_active_employees(client, token: str, client_id: str | None = None) -> list[dict]:
     data = await _get(
         client,
         "employee-service",
         f"{settings.employee_url}/api/v1/employees?status=ACTIVE&page_size=200",
         token,
+        client_id,
     )
     return data["items"]
 
 
-async def get_my_employee(client, token: str) -> dict:
+async def get_my_employee(client, token: str, client_id: str | None = None) -> dict:
     """Resolve the caller's own employee record via employee-service."""
     return await _get(
         client,
         "employee-service",
         f"{settings.employee_url}/api/v1/employees/me",
         token,
+        client_id,
     )
 
 
-async def get_salary_breakdown(client, token: str, employee_id: str) -> dict:
+async def get_salary_breakdown(client, token: str, employee_id: str, client_id: str | None = None) -> dict:
     return await _get(
         client,
         "salary-service",
         f"{settings.salary_url}/api/v1/salary/structures/{employee_id}",
         token,
+        client_id,
     )
 
 
-async def get_attendance(client, token: str, employee_id: str, month: str) -> dict | None:
+async def get_attendance(client, token: str, employee_id: str, month: str, client_id: str | None = None) -> dict | None:
     try:
         return await _get(
             client,
             "attendance-service",
             f"{settings.attendance_url}/api/v1/attendance/{employee_id}/{month}",
             token,
+            client_id,
         )
     except ServiceCallError as exc:
         if "404" in exc.detail:
@@ -94,41 +101,45 @@ async def get_attendance(client, token: str, employee_id: str, month: str) -> di
         raise
 
 
-async def compute_compliance(client, token: str, payload: dict) -> dict:
+async def compute_compliance(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,
         "compliance-service",
         f"{settings.compliance_url}/api/v1/compliance/compute",
         token,
         payload,
+        client_id,
     )
 
 
-async def compute_tds(client, token: str, payload: dict) -> dict:
+async def compute_tds(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,
         "tds-service",
         f"{settings.tds_url}/api/v1/tds/compute",
         token,
         payload,
+        client_id,
     )
 
 
-async def create_payout_batch(client, token: str, payload: dict) -> dict:
+async def create_payout_batch(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,
         "payout-service",
         f"{settings.payout_url}/api/v1/payouts/batches",
         token,
         payload,
+        client_id,
     )
 
 
-async def generate_payslips(client, token: str, payload: dict) -> dict:
+async def generate_payslips(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,
         "reporting-service",
         f"{settings.reporting_url}/api/v1/reports/payslips/generate",
         token,
         payload,
+        client_id,
     )

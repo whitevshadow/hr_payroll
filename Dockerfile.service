@@ -11,6 +11,15 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Install PDF dependencies only for reporting-service
+RUN if [ "$SERVICE" = "reporting-service" ]; then \
+      export DEBIAN_FRONTEND=noninteractive && \
+      apt-get update && \
+      apt-get install -y --no-install-recommends \
+        libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 shared-mime-info && \
+      rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # Install the shared package first (cached unless shared changes).
 COPY shared/ /app/shared/
 RUN pip install --no-cache-dir -e /app/shared

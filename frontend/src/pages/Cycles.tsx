@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useClientContext } from "../lib/ClientContext";
+import { ChevronRight, CircleDollarSign, Plus, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,7 +13,6 @@ import { EmptyState } from "../components/EmptyState";
 import { SkeletonRow } from "../components/Spinner";
 import { formatDate, formatMonth } from "../lib/format";
 import { extractErrorMessage } from "../lib/toast";
-import { Plus, ChevronRight, CircleDollarSign } from "lucide-react";
 
 const WORKFLOW_STEPS = [
   { status: "DRAFT", label: "Draft", desc: "Setup" },
@@ -78,6 +79,8 @@ function defaultPeriod() {
 }
 
 export function Cycles() {
+  const { selectedClientId } = useClientContext();
+
   const qc = useQueryClient();
   const nav = useNavigate();
   const [showNew, setShowNew] = useState(false);
@@ -98,6 +101,17 @@ export function Cycles() {
     },
     onError: (err) => setFormError(extractErrorMessage(err)),
   });
+
+  
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -123,7 +137,7 @@ export function Cycles() {
       </div>
 
       {/* Cycles table */}
-      <div className="card overflow-hidden p-0">
+      <div className="card table-card overflow-hidden p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

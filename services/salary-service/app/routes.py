@@ -7,18 +7,72 @@ from hr_shared import RequestContext
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_session
+import logging
+import httpx
+
+from .deps import get_context, get_client_context, get_session, runtime
 from .logic import compute_breakdown
-from .models import SalaryComponent, SalaryStructure
-from .schemas import Breakdown, StructureCreate, StructureOut, StructureRevise
+from .models import SalaryComponent, SalaryStructure, SalaryTemplate
+from .schemas import (
+    Breakdown,
+    SalaryTemplateCreate,
+    SalaryTemplateOut,
+    StructureCreate,
+    StructureOut,
+    StructureRevise,
+)
+from .settings import settings
 
 router = APIRouter(prefix="/api/v1/salary", tags=["salary"])
 
+_ADMIN = runtime.require_roles("SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN")
 
-def _components_from_breakdown(b: dict) -> list[tuple[str, "object"]]:
+# ── Templates ─────────────────────────────────────────────────────────────────
+
+@router.get("/templates", response_model=list[SalaryTemplateOut])
+async def list_templates(
+    ctx: RequestContext = Depends(_ADMIN),
+    session: AsyncSession = Depends(get_session),
+    client_id: uuid.UUID | None = None,
+):
+    q = select(SalaryTemplate).where(
+        SalaryTemplate.tenant_id == ctx.tenant_id,
+        SalaryTemplate.is_active.is_(True),
+    )
+    if client_id:
+        q = q.where(SalaryTemplate.client_id == client_id)
+    rows = await session.scalars(q)
+    return list(rows)
+
+
+@router.post("/templates", response_model=SalaryTemplateOut, status_code=201)
+async def create_template(
+    body: SalaryTemplateCreate,
+    ctx: RequestContext = Depends(_ADMIN),
+    session: AsyncSession = Depends(get_session),
+):
+    tpl = SalaryTemplate(
+        tenant_id=ctx.tenant_id,
+        client_id=body.client_id,
+        template_name=body.template_name,
+        description=body.description,
+        is_active=body.is_active,
+        template_components=[c.model_dump(mode="json") for c in body.template_components],
+    )
+    session.add(tpl)
+    await session.commit()
+    await session.refresh(tpl)
+    return tpl
+
+
+# ── Structures ────────────────────────────────────────────────────────────────
+
+def _components_from_breakdown(b: dict) -> list[tuple[str, object]]:
     return [
         ("Basic", b["basic"]),
         ("HRA", b["hra"]),
+        ("Conveyance", b["conveyance"]),
+        ("Medical", b["medical"]),
         ("Special Allowance", b["special_allowance"]),
     ]
 
@@ -33,6 +87,7 @@ async def _to_out(structure: SalaryStructure) -> StructureOut:
         effective_to=structure.effective_to,
         is_active=structure.is_active,
         work_location=structure.work_location,
+        template_id=structure.template_id,
         components=structure.components,
         breakdown=Breakdown(**b),
     )
@@ -45,6 +100,7 @@ async def _build_structure(
     ctc,
     effective_from,
     work_location: str | None,
+    template_id: uuid.UUID | None,
 ) -> SalaryStructure:
     # Deactivate any currently-active structure for this employee.
     await session.execute(
@@ -64,9 +120,14 @@ async def _build_structure(
         effective_from=effective_from,
         work_location=work_location,
         is_active=True,
+        template_id=template_id,
     )
     session.add(structure)
     await session.flush()
+    
+    # If template_id provided, we could use template logic, but for V2
+    # standardizing on the expanded breakdown is usually what we want.
+    # The components map from the breakdown directly for now.
     for name, amount in _components_from_breakdown(breakdown):
         session.add(
             SalaryComponent(
@@ -85,7 +146,7 @@ async def _build_structure(
 @router.post("/structures", response_model=StructureOut, status_code=201)
 async def create_structure(
     body: StructureCreate,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     structure = await _build_structure(
@@ -95,16 +156,20 @@ async def create_structure(
         body.ctc,
         body.effective_from,
         body.work_location,
+        body.template_id,
     )
     await session.commit()
     await session.refresh(structure)
-    return await _to_out(structure)
+    out = await _to_out(structure)
+    # Fire-and-forget TDS auto-compute
+    await _notify_tds(ctx, out)
+    return out
 
 
 @router.get("/structures/{employee_id}", response_model=StructureOut)
 async def get_active_structure(
     employee_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     structure = await session.scalar(
@@ -122,7 +187,7 @@ async def get_active_structure(
 @router.get("/structures/{employee_id}/history", response_model=list[StructureOut])
 async def get_structure_history(
     employee_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Return all salary structures for an employee, newest first."""
@@ -141,7 +206,7 @@ async def get_structure_history(
 async def revise_structure(
     structure_id: uuid.UUID,
     body: StructureRevise,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     old = await session.get(SalaryStructure, structure_id)
@@ -155,7 +220,46 @@ async def revise_structure(
         body.ctc,
         body.effective_from,
         work_location,
+        body.template_id or old.template_id,
     )
     await session.commit()
     await session.refresh(structure)
-    return await _to_out(structure)
+    out = await _to_out(structure)
+    # Fire-and-forget TDS auto-compute
+    await _notify_tds(ctx, out)
+    return out
+
+
+async def _notify_tds(ctx: RequestContext, structure_out: StructureOut) -> None:
+    """Notify TDS service of salary changes so it auto-computes tax.
+
+    This is a fire-and-forget call — if TDS is down, salary still succeeds.
+    """
+    logger = logging.getLogger(__name__)
+    bd = structure_out.breakdown
+    payload = {
+        "employee_id": str(structure_out.employee_id),
+        "ctc": str(structure_out.ctc),
+        "basic_monthly": str(bd.basic),
+        "hra_monthly": str(bd.hra),
+        "is_metro": bd.is_metro,
+    }
+    headers = {
+        "x-tenant-id": str(ctx.tenant_id),
+        "x-user-id": str(ctx.user_id),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                f"{settings.tds_url}/api/v1/tds/auto-compute",
+                json=payload,
+                headers=headers,
+            )
+            if resp.status_code < 300:
+                logger.info(f"TDS auto-compute success for {structure_out.employee_id}")
+            else:
+                logger.warning(
+                    f"TDS auto-compute returned {resp.status_code} for {structure_out.employee_id}: {resp.text[:200]}"
+                )
+    except Exception as exc:
+        logger.warning(f"TDS auto-compute failed (non-blocking) for {structure_out.employee_id}: {exc}")

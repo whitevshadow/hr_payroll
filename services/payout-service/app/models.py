@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from hr_shared import TenantAwareBase
+from hr_shared import EncryptedString, TenantAwareBase
 from sqlalchemy import ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -37,6 +37,7 @@ class PayoutTransaction(TenantAwareBase):
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     idempotency_key: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="QUEUED")
-    bank_reference: Mapped[str | None] = mapped_column(String(60))
+    # Bank reference number ties a transaction to a specific account — PII under DPDP.
+    bank_reference: Mapped[str | None] = mapped_column(EncryptedString)
 
     batch: Mapped[PayoutBatch] = relationship(back_populates="transactions")

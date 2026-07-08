@@ -8,13 +8,16 @@ import type {
 } from "../types";
 
 export const payrollApi = {
-  listCycles: () => api.get<PayrollCycle[]>("/payroll/cycles").then((r) => r.data),
+  listCycles: (client_id?: string, financial_year?: string) => 
+    api.get<PayrollCycle[]>("/payroll/cycles", { params: { client_id, financial_year } }).then((r) => r.data),
 
   getCycle: (id: string) =>
     api.get<PayrollCycle>(`/payroll/cycles/${id}`).then((r) => r.data),
 
   createCycle: (body: {
     name: string;
+    client_id?: string | null;
+    financial_year?: string | null;
     period_start: string;
     period_end: string;
     is_dry_run?: boolean;

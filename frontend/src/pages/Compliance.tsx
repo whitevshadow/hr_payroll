@@ -5,14 +5,15 @@ import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { complianceApi } from "../api/compliance";
 import { employeesApi } from "../api/employees";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
+import { useClientContext } from "../lib/ClientContext";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { FullPageSpinner } from "../components/Spinner";
 import { formatINR } from "../lib/money";
 import { toCSV } from "../lib/csv";
-import { Download, ShieldCheck } from "lucide-react";
+import { Users, Download, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 
 type CompTab = "pf" | "esi" | "pt";
@@ -20,6 +21,7 @@ type CompTab = "pf" | "esi" | "pt";
 export function Compliance() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<CompTab>("pf");
+  const { selectedClientId } = useClientContext();
 
   const cycles = useQuery({ queryKey: qk.cycles, queryFn: () => payrollApi.listCycles() });
 
@@ -38,14 +40,20 @@ export function Compliance() {
   const employees = useQuery({
     queryKey: qk.employees({ page_size: 200 }),
     queryFn: () => employeesApi.list({ page_size: 200 }),
+    staleTime: STALE_STABLE,
   });
 
+  const filteredEmployees = selectedClientId
+    ? (employees.data?.items ?? []).filter((e) => e.client_id === selectedClientId)
+    : (employees.data?.items ?? []);
+
   const empMap = Object.fromEntries(
-    (employees.data?.items ?? []).map((e) => [
+    filteredEmployees.map((e) => [
       e.id,
       `${e.first_name} ${e.last_name} (${e.emp_code})`,
     ])
   );
+  const filteredEmpIds = new Set(filteredEmployees.map((e) => e.id));
 
   const t = summary.data?.totals;
 
@@ -54,6 +62,17 @@ export function Compliance() {
     esi: "ESI",
     pt: "Professional Tax",
   };
+
+  
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -71,7 +90,7 @@ export function Compliance() {
         </button>
       </PageHeader>
 
-      {/* Cycle selector */}
+      {/* Cycle + Client selector */}
       <div className="mb-5 flex flex-wrap gap-3">
         <div>
           <label className="label">Cycle</label>
@@ -154,13 +173,13 @@ export function Compliance() {
       )}
 
       {summary.data && tab === "pf" && (
-        <PFTable rows={summary.data.pf} empMap={empMap} />
+        <PFTable rows={selectedClientId ? summary.data.pf.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.pf} empMap={empMap} />
       )}
       {summary.data && tab === "esi" && (
-        <ESITable rows={summary.data.esi} empMap={empMap} />
+        <ESITable rows={selectedClientId ? summary.data.esi.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.esi} empMap={empMap} />
       )}
       {summary.data && tab === "pt" && (
-        <PTTable rows={summary.data.pt} empMap={empMap} />
+        <PTTable rows={selectedClientId ? summary.data.pt.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.pt} empMap={empMap} />
       )}
     </div>
   );
@@ -168,7 +187,7 @@ export function Compliance() {
 
 function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -233,7 +252,7 @@ function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string>
 
 function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -285,7 +304,7 @@ function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string
 
 function PTTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card overflow-hidden p-0">
+    <div className="card table-card overflow-hidden p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">

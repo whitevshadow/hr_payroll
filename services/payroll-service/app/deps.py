@@ -1,5 +1,6 @@
 from hr_shared import AuditBase, TenantAwareBase
 from hr_shared.service import ServiceRuntime
+from hr_shared.auth import build_client_context_dependency
 from .settings import settings
 from . import models  # noqa: F401 — registers all models with metadata
 from .models import NotificationBase
@@ -13,3 +14,4 @@ runtime = ServiceRuntime(
 )
 get_session = runtime.get_session
 get_context = runtime.get_context
+get_client_context = build_client_context_dependency(get_context)
