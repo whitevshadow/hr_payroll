@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -26,6 +26,7 @@ class RequestContext:
     tenant_id: uuid.UUID
     roles: list[str] = field(default_factory=list)
     email: str | None = None
+    client_id: uuid.UUID | None = None
 
 
 def create_access_token(
@@ -69,6 +70,7 @@ def build_context_dependency(secret: str, algorithm: str = "HS256"):
 
     async def get_current_context(
         creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+        x_client_id: str | None = Header(None, alias="x-client-id"),
     ) -> RequestContext:
         if creds is None or not creds.credentials:
             raise HTTPException(
@@ -77,11 +79,19 @@ def build_context_dependency(secret: str, algorithm: str = "HS256"):
             )
         payload = decode_token(creds.credentials, secret, algorithm)
         try:
+            client_uuid = None
+            if x_client_id:
+                try:
+                    client_uuid = uuid.UUID(x_client_id)
+                except ValueError:
+                    pass
+
             return RequestContext(
                 user_id=uuid.UUID(payload["sub"]),
                 tenant_id=uuid.UUID(payload["tenant_id"]),
                 roles=payload.get("roles", []),
                 email=payload.get("email"),
+                client_id=client_uuid,
             )
         except (KeyError, ValueError) as exc:
             raise HTTPException(
@@ -90,6 +100,18 @@ def build_context_dependency(secret: str, algorithm: str = "HS256"):
             ) from exc
 
     return get_current_context
+
+
+def build_client_context_dependency(base_context_dep):
+    """Return a FastAPI dependency that enforces x-client-id is present."""
+    async def get_client_context(ctx: RequestContext = Depends(base_context_dep)) -> RequestContext:
+        if not ctx.client_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing or invalid x-client-id header",
+            )
+        return ctx
+    return get_client_context
 
 
 # Placeholder so ``from hr_shared import get_current_context`` resolves; real

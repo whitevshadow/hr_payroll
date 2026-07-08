@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useClientContext } from "../lib/ClientContext";
+import { Building2, Edit2, Hash, Loader2, Plus, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Plus, Building2, Users, Hash, Edit2, Loader2 } from "lucide-react";
 import { employeesApi } from "../api/employees";
 import { qk, STALE_STABLE } from "../lib/queryClient";
 import { Modal, ModalFooter } from "../components/Modal";
@@ -27,6 +28,8 @@ const DEPT_COLORS = [
 ];
 
 export function Departments() {
+  const { selectedClientId } = useClientContext();
+
   const qc = useQueryClient();
   const [editing,   setEditing]   = useState<Partial<Department> | null>(null);
   const [formError, setFormError] = useState("");
@@ -68,6 +71,17 @@ export function Departments() {
 
   const isLoading = depts.isLoading;
   const list      = depts.data ?? [];
+
+  
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

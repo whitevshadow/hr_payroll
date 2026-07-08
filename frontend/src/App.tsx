@@ -3,7 +3,7 @@ import { AppShell } from "./layout/AppShell";
 import { ClientProvider } from "./lib/ClientContext";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
-import { canViewAudit, isEmployeeOnly } from "./lib/roles";
+import { canViewAudit } from "./lib/roles";
 import { EmptyState } from "./components/EmptyState";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
@@ -21,8 +21,14 @@ import { Payouts } from "./pages/Payouts";
 import { Reports } from "./pages/Reports";
 import { Payslip } from "./pages/Payslip";
 import { AuditLog } from "./pages/AuditLog";
-import { MyProfile } from "./pages/MyProfile";
 import { Clients } from "./pages/Clients";
+import { Leave } from "./pages/Leave";
+import { LeaveBalance } from "./pages/LeaveBalance";
+import { Locations } from "./pages/Locations";
+import { FinancialYears } from "./pages/FinancialYears";
+import { ClientDashboard } from "./pages/ClientDashboard";
+import { LeaveManagement } from "./pages/LeaveManagement";
+import { AdminPayslips } from "./pages/AdminPayslips";
 
 function Shell({ children }: { children: React.ReactElement }) {
   return (
@@ -45,10 +51,10 @@ function Forbidden() {
   );
 }
 
-/** Gate a route for HR+ roles (not EMPLOYEE-only). */
+/** Gate a route for HR+ roles. */
 function HrRoute({ children }: { children: React.ReactElement }) {
-  const { user } = useAuth();
-  if (isEmployeeOnly(user)) return <Forbidden />;
+  // If there are specific roles, check them here.
+  // For now, all authenticated users are admin.
   return children;
 }
 
@@ -59,10 +65,8 @@ function AuditRoute({ children }: { children: React.ReactElement }) {
   return children;
 }
 
-/** Dashboard for HR+, self-service for EMPLOYEE-only. */
+/** Dashboard for Admin */
 function Home() {
-  const { user } = useAuth();
-  if (isEmployeeOnly(user)) return <Navigate to="/me" replace />;
   return <Dashboard />;
 }
 
@@ -77,6 +81,12 @@ export default function App() {
       <Route path="/employees/:id" element={<Shell><HrRoute><EmployeeDetail /></HrRoute></Shell>} />
       <Route path="/departments" element={<Shell><HrRoute><Departments /></HrRoute></Shell>} />
       <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
+      <Route path="/clients/:id" element={<Shell><HrRoute><ClientDashboard /></HrRoute></Shell>} />
+      <Route path="/locations" element={<Shell><HrRoute><Locations /></HrRoute></Shell>} />
+      <Route path="/financial-years" element={<Shell><HrRoute><FinancialYears /></HrRoute></Shell>} />
+      <Route path="/leave" element={<Shell><HrRoute><Leave /></HrRoute></Shell>} />
+      <Route path="/leave-management" element={<Shell><HrRoute><LeaveManagement /></HrRoute></Shell>} />
+      <Route path="/leave-balance" element={<Shell><HrRoute><LeaveBalance /></HrRoute></Shell>} />
       <Route path="/salary" element={<Shell><HrRoute><Salary /></HrRoute></Shell>} />
       <Route path="/attendance" element={<Shell><HrRoute><Attendance /></HrRoute></Shell>} />
       <Route path="/cycles" element={<Shell><HrRoute><Cycles /></HrRoute></Shell>} />
@@ -86,10 +96,10 @@ export default function App() {
       <Route path="/tds" element={<Shell><HrRoute><TDS /></HrRoute></Shell>} />
       <Route path="/payouts" element={<Shell><HrRoute><Payouts /></HrRoute></Shell>} />
       <Route path="/reports" element={<Shell><HrRoute><Reports /></HrRoute></Shell>} />
+      <Route path="/payslips" element={<Shell><HrRoute><AdminPayslips /></HrRoute></Shell>} />
       <Route path="/audit" element={<Shell><AuditRoute><AuditLog /></AuditRoute></Shell>} />
 
-      {/* Self-service + payslip (accessible to all authenticated users) */}
-      <Route path="/me" element={<Shell><MyProfile /></Shell>} />
+      {/* Payslip View (accessible to authenticated users) */}
       <Route path="/payslips/:cycleId/:employeeId" element={<Shell><Payslip /></Shell>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

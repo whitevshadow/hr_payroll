@@ -17,10 +17,12 @@ class TDSCalculation(TenantAwareBase):
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     cycle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    tax_year: Mapped[str | None] = mapped_column(String(9), nullable=True)
     taxable_income: Mapped[Decimal] = mapped_column(M, default=0)
     annual_tax: Mapped[Decimal] = mapped_column(M, default=0)
     remaining_tax: Mapped[Decimal] = mapped_column(M, default=0)
     monthly_tds: Mapped[Decimal] = mapped_column(M, default=0)
+    reconciliation_status: Mapped[str | None] = mapped_column(String(20), default="PENDING")
     regime_applied: Mapped[str] = mapped_column(String(10), default="NEW")
     law_version: Mapped[str] = mapped_column(String(32), default="2025_v2026")
     salary_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)

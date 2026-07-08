@@ -13,7 +13,7 @@ from hr_shared import RequestContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_session
+from .deps import get_context, get_client_context, get_session
 from .models import GeneratedReport
 from .schemas import GenerateRequest
 from .settings import settings
@@ -57,7 +57,7 @@ def _render(result: dict, cycle: dict) -> str:
 async def generate_payslips(
     body: GenerateRequest,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Generate + persist a payslip per employee for a cycle, uploaded to MinIO."""
@@ -103,7 +103,7 @@ async def generate_payslips(
             # 4. Save to Database
             existing = await session.scalar(
                 select(GeneratedReport).where(
-                    GeneratedReport.tenant_id == ctx.tenant_id,
+                    GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
                     GeneratedReport.cycle_id == body.cycle_id,
                     GeneratedReport.employee_id == uuid.UUID(str(employee_id)),
                 )
@@ -111,6 +111,7 @@ async def generate_payslips(
             if existing:
                 existing.status = status
                 existing.file_path = path
+                existing.blob_id = path
             else:
                 session.add(
                     GeneratedReport(
@@ -120,6 +121,7 @@ async def generate_payslips(
                         report_type="PAYSLIP",
                         status=status,
                         file_path=path,
+                        blob_id=uuid.UUID(path) if path else None,
                     )
                 )
             if status == "COMPLETED":
@@ -135,7 +137,7 @@ async def get_payslip(
     employee_id: uuid.UUID,
     request: Request,
     inline: bool = False,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Fetch the MinIO presigned URL for the payslip blob."""
@@ -143,7 +145,7 @@ async def get_payslip(
     
     existing = await session.scalar(
         select(GeneratedReport).where(
-            GeneratedReport.tenant_id == ctx.tenant_id,
+            GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
             GeneratedReport.cycle_id == cycle_id,
             GeneratedReport.employee_id == employee_id,
             GeneratedReport.status == "COMPLETED"
@@ -171,14 +173,14 @@ async def get_payslip(
 async def bulk_download_payslips(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Zip all generated payslips for a cycle and download."""
     token = _bearer(request)
     
     stmt = select(GeneratedReport).where(
-        GeneratedReport.tenant_id == ctx.tenant_id,
+        GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
         GeneratedReport.cycle_id == cycle_id,
         GeneratedReport.report_type == "PAYSLIP",
         GeneratedReport.status == "COMPLETED"
@@ -217,12 +219,12 @@ async def bulk_download_payslips(
 
 @router.get("/generated")
 async def list_generated(
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
     cycle_id: uuid.UUID | None = None,
     report_type: str | None = None,
 ):
-    stmt = select(GeneratedReport).where(GeneratedReport.tenant_id == ctx.tenant_id)
+    stmt = select(GeneratedReport).where(GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id)
     if cycle_id:
         stmt = stmt.where(GeneratedReport.cycle_id == cycle_id)
     if report_type:
@@ -243,59 +245,28 @@ async def list_generated(
     ]
 
 
-# ---- Stub report types (Form 16, PF ECR) -----------------------------------
-
-@router.post("/form-16/{year}", status_code=201)
-async def generate_form16(
-    year: int,
-    ctx: RequestContext = Depends(get_context),
+@router.post("/generate", status_code=201)
+async def generate_report(
+    body: GenerateRequest,
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a Form 16 generation request row.
-
-    # TODO(v2): Implement actual Form 16 XML/PDF generator (TRACES integration).
-    """
-    row = GeneratedReport(
-        tenant_id=ctx.tenant_id,
-        cycle_id=uuid.uuid4(),  # no specific cycle for annual
-        employee_id=None,
-        report_type="FORM_16",
-        status="FAILED",
-        file_path=None,
-    )
-    session.add(row)
-    await session.commit()
-    return {
-        "id": str(row.id),
-        "report_type": "FORM_16",
-        "status": "FAILED",
-        "reason": "Form 16 generation arrives in V2. # TODO(v2)",
-    }
-
-
-@router.post("/pf-ecr/{cycle_id}", status_code=201)
-async def generate_pf_ecr(
-    cycle_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
-    session: AsyncSession = Depends(get_session),
-):
-    """Create a PF ECR generation request row.
-
-    # TODO(v2): Generate PF ECR text file from pf_contributions for EPFO portal.
-    """
+    """Generate generic or statutory reports (BANK_ADVICE, PF_ECR, ESI_ECR, PT_REPORT, TDS_REPORT)."""
+    # For now, this is a stub. It creates a queued request.
+    cycle_id = body.cycle_id or uuid.uuid4()
     row = GeneratedReport(
         tenant_id=ctx.tenant_id,
         cycle_id=cycle_id,
         employee_id=None,
-        report_type="PF_ECR",
-        status="FAILED",
+        report_type=body.report_type,
+        status="QUEUED",
         file_path=None,
     )
     session.add(row)
     await session.commit()
     return {
         "id": str(row.id),
-        "report_type": "PF_ECR",
-        "status": "FAILED",
-        "reason": "PF ECR generator arrives in V2. # TODO(v2)",
+        "report_type": body.report_type,
+        "status": "QUEUED",
+        "message": f"{body.report_type} generation arrives in V2. Queued for processing.",
     }

@@ -97,9 +97,10 @@ async def _compute_for_employee(
         {
             "employee_id": employee_id,
             "cycle_id": str(cycle.id),
+            "client_id": str(cycle.client_id) if cycle.client_id else None,
             "basic": str(basic),
             "monthly_gross": str(monthly_gross),
-            "state": emp.get("state") or "Maharashtra",  # Fallback for unmigrated data
+            "state": emp.get("state") or "ALL",  # Uses state-specific or ALL settings
             "month": cycle.period_start.month,
             "ceiling_on": settings.pf_ceiling_enabled,
         },

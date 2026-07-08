@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .deps import runtime
 from .routes import router
+from .leave_routes import router as leave_router
 
 app = FastAPI(title="attendance-service", lifespan=runtime.lifespan())
 app.add_middleware(
@@ -12,6 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(leave_router)
 
 
 @app.get("/health")

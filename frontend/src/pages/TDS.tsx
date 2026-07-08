@@ -15,6 +15,7 @@ import {
   Users, Search, ArrowRight, Zap, ShieldCheck,
   Calendar, Scale, PiggyBank, IndianRupee,
 } from "lucide-react";
+import { useClientContext } from "../lib/ClientContext";
 import { tdsApi } from "../api/tds";
 import { salaryApi } from "../api/salary";
 import { payrollApi } from "../api/payroll";
@@ -605,6 +606,8 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function TDS() {
+  const { selectedClientId } = useClientContext();
+
   const { user } = useAuth();
   const qc = useQueryClient();
   const empOnly = isEmployeeOnly(user);
@@ -671,7 +674,18 @@ export function TDS() {
       }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
+
+  return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   // ── Derived salary/tax inputs ─────────────────────────────────────────────

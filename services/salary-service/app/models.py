@@ -5,9 +5,20 @@ from datetime import date
 from decimal import Decimal
 
 from hr_shared import TenantAwareBase
-from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Date, ForeignKey, Numeric, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+
+class SalaryTemplate(TenantAwareBase):
+    """Reusable salary templates per client."""
+    __tablename__ = "salary_templates"
+
+    client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    template_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    template_components: Mapped[dict] = mapped_column(JSONB, default=list)
 
 
 class SalaryStructure(TenantAwareBase):
@@ -24,6 +35,7 @@ class SalaryStructure(TenantAwareBase):
     effective_to: Mapped[date | None] = mapped_column(Date)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     work_location: Mapped[str | None] = mapped_column(String(120))
+    template_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     components: Mapped[list["SalaryComponent"]] = relationship(
         back_populates="structure",

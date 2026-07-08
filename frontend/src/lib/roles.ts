@@ -8,7 +8,10 @@ export type AppRole =
   | "ORG_ADMIN"
   | "HR_MANAGER"
   | "PAYROLL_ADMIN"
-  | "EMPLOYEE";
+  | "EMPLOYEE"
+  | "CLIENT_ADMIN"
+  | "COMPLIANCE_OFFICER"
+  | "CLIENT_MANAGER";
 
 const ADMIN_ROLES: AppRole[] = ["SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN"];
 const HR_ROLES: AppRole[] = [...ADMIN_ROLES, "HR_MANAGER"];

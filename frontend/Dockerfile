@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Cache npm install layer separately.
 COPY package.json ./
+RUN cat package.json
 RUN npm install --legacy-peer-deps
 
 # Bake VITE_API_BASE at build time. Override with --build-arg if needed.

@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict
 
 class CycleCreate(BaseModel):
     name: str
+    client_id: uuid.UUID | None = None
+    financial_year: str | None = None
     period_start: date
     period_end: date
     is_dry_run: bool = False
@@ -18,6 +20,8 @@ class CycleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     name: str
+    client_id: uuid.UUID | None = None
+    financial_year: str | None = None
     period_start: date
     period_end: date
     status: str

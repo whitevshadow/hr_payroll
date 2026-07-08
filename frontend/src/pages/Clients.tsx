@@ -28,6 +28,7 @@ import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE, STALE_OPERATIONAL } from "../lib/queryClient";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
+import { ClientDocumentsPanel } from "../components/ClientDocumentsPanel";
 import { Skeleton } from "../components/Spinner";
 import { extractErrorMessage } from "../lib/toast";
 import clsx from "clsx";
@@ -543,6 +544,7 @@ export function Clients() {
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [confirmArchive, setConfirmArchive] = useState<Client | null>(null);
+  const [activeTab, setActiveTab] = useState<"details" | "credentials" | "documents">("details");
 
   // Debounce search
   useEffect(() => {
@@ -695,7 +697,7 @@ export function Clients() {
                   initial="hidden"
                   animate="show"
                   className="group flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/25 transition-colors cursor-pointer"
-                  onClick={() => setDetailClient(client)}
+                  onClick={() => { setDetailClient(client); setActiveTab("details"); }}
                 >
                   {/* Icon + name */}
                   <div className="flex flex-1 items-center gap-3 min-w-0">
@@ -801,89 +803,125 @@ export function Clients() {
                 </button>
               </div>
 
+              {/* Tabs */}
+              <div className="flex items-center gap-6 px-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                {(["details", "credentials", "documents"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={clsx(
+                      "py-3 text-[13px] font-semibold transition-colors relative",
+                      activeTab === tab
+                        ? "text-accent-600 dark:text-accent-400"
+                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                    )}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    {activeTab === tab && (
+                      <motion.div
+                        layoutId="client-drawer-tab"
+                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent-600 dark:bg-accent-400"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+
               {/* Drawer body */}
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-                {/* Status */}
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={detailClient.status} />
-                  {detailClient.city && (
-                    <span className="text-[12px] text-slate-400">
-                      <MapPin className="inline h-3 w-3 mr-0.5" />
-                      {[detailClient.city, detailClient.state].filter(Boolean).join(", ")}
-                    </span>
-                  )}
-                </div>
+                {activeTab === "details" && (
+                  <div className="space-y-5">
+                    {/* Status */}
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={detailClient.status} />
+                      {detailClient.city && (
+                        <span className="text-[12px] text-slate-400">
+                          <MapPin className="inline h-3 w-3 mr-0.5" />
+                          {[detailClient.city, detailClient.state].filter(Boolean).join(", ")}
+                        </span>
+                      )}
+                    </div>
 
-                {/* Address */}
-                {(detailClient.address_line1 || detailClient.pincode) && (
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Address</div>
-                    <div className="text-[12.5px] text-slate-600 dark:text-slate-400 space-y-0.5">
-                      {[detailClient.address_line1, detailClient.address_line2, detailClient.area, `${detailClient.city ?? ""} ${detailClient.pincode ?? ""}`.trim()].filter(Boolean).map((l, i) => (
-                        <div key={i}>{l}</div>
-                      ))}
+                    {/* Address */}
+                    {(detailClient.address_line1 || detailClient.pincode) && (
+                      <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Address</div>
+                        <div className="text-[12.5px] text-slate-600 dark:text-slate-400 space-y-0.5">
+                          {[detailClient.address_line1, detailClient.address_line2, detailClient.area, `${detailClient.city ?? ""} ${detailClient.pincode ?? ""}`.trim()].filter(Boolean).map((l, i) => (
+                            <div key={i}>{l}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tax */}
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Tax Details</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          ["GST", detailClient.gst_number],
+                          ["PAN", detailClient.pan_number],
+                          ["TAN", detailClient.tan_number],
+                          ["CIN", detailClient.cin_number],
+                        ].map(([label, val]) =>
+                          val ? (
+                            <div key={label} className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2">
+                              <div className="text-[9.5px] font-semibold uppercase tracking-wider text-slate-400">{label}</div>
+                              <div className="text-[12px] font-mono text-slate-700 dark:text-slate-300 mt-0.5">{val}</div>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contact */}
+                    {detailClient.contact_person && (
+                      <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Contact</div>
+                        <div className="text-[12.5px] text-slate-600 dark:text-slate-400">
+                          <div className="font-medium text-slate-800 dark:text-slate-200">{detailClient.contact_person}</div>
+                          {detailClient.contact_email && <div>{detailClient.contact_email}</div>}
+                          {detailClient.contact_mobile && <div>{detailClient.contact_mobile}</div>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Statutory */}
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Statutory Registrations</div>
+                      <div className="space-y-1">
+                        {[
+                          ["PF Code", detailClient.pf_establishment_code],
+                          ["ESIC Code", detailClient.esic_employer_code],
+                          ["PT No.", detailClient.professional_tax_number],
+                          ["Labour Lic.", detailClient.labour_license_number],
+                          ["Shop Act", detailClient.shop_act_number],
+                        ].map(([label, val]) =>
+                          val ? (
+                            <div key={label} className="flex items-center justify-between text-[12px]">
+                              <span className="text-slate-400">{label}</span>
+                              <span className="font-mono text-slate-700 dark:text-slate-300">{val}</span>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Tax */}
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Tax Details</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      ["GST", detailClient.gst_number],
-                      ["PAN", detailClient.pan_number],
-                      ["TAN", detailClient.tan_number],
-                      ["CIN", detailClient.cin_number],
-                    ].map(([label, val]) =>
-                      val ? (
-                        <div key={label} className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2">
-                          <div className="text-[9.5px] font-semibold uppercase tracking-wider text-slate-400">{label}</div>
-                          <div className="text-[12px] font-mono text-slate-700 dark:text-slate-300 mt-0.5">{val}</div>
-                        </div>
-                      ) : null
-                    )}
-                  </div>
-                </div>
-
-                {/* Contact */}
-                {detailClient.contact_person && (
+                {activeTab === "credentials" && (
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Contact</div>
-                    <div className="text-[12.5px] text-slate-600 dark:text-slate-400">
-                      <div className="font-medium text-slate-800 dark:text-slate-200">{detailClient.contact_person}</div>
-                      {detailClient.contact_email && <div>{detailClient.contact_email}</div>}
-                      {detailClient.contact_mobile && <div>{detailClient.contact_mobile}</div>}
-                    </div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Portal Credentials</div>
+                    <ClientCredentialsPanel client={detailClient} />
                   </div>
                 )}
 
-                {/* Statutory */}
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Statutory Registrations</div>
-                  <div className="space-y-1">
-                    {[
-                      ["PF Code", detailClient.pf_establishment_code],
-                      ["ESIC Code", detailClient.esic_employer_code],
-                      ["PT No.", detailClient.professional_tax_number],
-                      ["Labour Lic.", detailClient.labour_license_number],
-                      ["Shop Act", detailClient.shop_act_number],
-                    ].map(([label, val]) =>
-                      val ? (
-                        <div key={label} className="flex items-center justify-between text-[12px]">
-                          <span className="text-slate-400">{label}</span>
-                          <span className="font-mono text-slate-700 dark:text-slate-300">{val}</span>
-                        </div>
-                      ) : null
-                    )}
+                {activeTab === "documents" && (
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Documents</div>
+                    <ClientDocumentsPanel client={detailClient} />
                   </div>
-                </div>
-
-                {/* Credentials */}
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Portal Credentials</div>
-                  <ClientCredentialsPanel client={detailClient} />
-                </div>
+                )}
               </div>
 
               {/* Drawer footer */}

@@ -20,45 +20,63 @@ import {
   CalendarDays,
   ExternalLink,
   ChevronRight,
+  RefreshCw,
+  Users,
 } from "lucide-react";
+import { blobstoreApi } from "../api/blobstore";
+import { employeesApi } from "../api/employees";
 import clsx from "clsx";
 
 export function Reports() {
   const qc = useQueryClient();
   const [cycleId, setCycleId] = useState("");
   const { selectedClientId } = useClientContext();
+  const [reportType, setReportType] = useState("");
+  const [fyId, setFyId] = useState("");
+
+  const fys = useQuery({ queryKey: ["financial-years"], queryFn: employeesApi.financialYears });
+  const activeFy = fyId || fys.data?.find((f: any) => f.is_active)?.id || "";
 
   const cycles = useQuery({ queryKey: qk.cycles, queryFn: () => payrollApi.listCycles() });
   const defaultCycle = cycles.data?.find((c) => c.status === "DISBURSED")?.id ?? "";
   const activeCycle = cycleId || defaultCycle;
 
   const reports = useQuery({
-    queryKey: qk.generatedReports({ cycle_id: activeCycle || undefined }),
+    queryKey: qk.generatedReports({ cycle_id: activeCycle || undefined, report_type: reportType || undefined }),
     queryFn: () =>
       api
-        .get("/reports/generated", { params: activeCycle ? { cycle_id: activeCycle } : {} })
+        .get("/reports/generated", { params: { ...(activeCycle ? { cycle_id: activeCycle } : {}), ...(reportType ? { report_type: reportType } : {}) } })
         .then((r) => r.data as any[]),
   });
 
-  const form16Mut = useMutation({
-    mutationFn: () =>
-      api.post(`/reports/form-16/${new Date().getFullYear()}`).then((r) => r.data),
+  const generateMut = useMutation({
+    mutationFn: (type: string) => api.post("/reports/generate", { report_type: type, cycle_id: activeCycle || undefined }).then(r => r.data),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: qk.generatedReports({}) });
-      toastService.info(data.reason ?? "Form 16 request queued.");
+      toastService.info(data.message ?? `${data.report_type} generation queued.`);
     },
     onError: (err) => toastService.error(extractErrorMessage(err)),
   });
 
-  const pfecrMut = useMutation({
-    mutationFn: () =>
-      api.post(`/reports/pf-ecr/${activeCycle}`).then((r) => r.data),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: qk.generatedReports({}) });
-      toastService.info(data.reason ?? "PF ECR request queued.");
-    },
-    onError: (err) => toastService.error(extractErrorMessage(err)),
-  });
+  const downloadBlob = async (blobId: string, type: string) => {
+    try {
+      const res = await blobstoreApi.getPresignedUrl(blobId);
+      window.open(res.url, '_blank');
+    } catch (e) {
+      toastService.error("Could not download report file.");
+    }
+  };
+
+  
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -79,12 +97,19 @@ export function Reports() {
             </h2>
           </div>
 
-          {/* Cycle + Client selector */}
+          {/* Cycle + Type selector */}
           <div className="mb-4 flex flex-wrap gap-3">
+            <div>
+              <label className="label">Financial Year</label>
+              <select className="input min-w-[120px]" value={activeFy} onChange={e => setFyId(e.target.value)}>
+                <option value="">All FYs</option>
+                {fys.data?.map((f: any) => <option key={f.id} value={f.id}>{f.year_label}</option>)}
+              </select>
+            </div>
             <div>
               <label className="label">Payroll Cycle</label>
               <select
-                className="input w-56"
+                className="input min-w-[160px]"
                 value={activeCycle}
                 onChange={(e) => setCycleId(e.target.value)}
               >
@@ -94,42 +119,56 @@ export function Reports() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="label">Report Type</label>
+              <select className="input min-w-[120px]" value={reportType} onChange={e => setReportType(e.target.value)}>
+                <option value="">All Types</option>
+                <option value="PAYSLIP">Payslips</option>
+                <option value="PF_ECR">PF ECR</option>
+                <option value="ESI_ECR">ESI ECR</option>
+                <option value="PT_REPORT">PT Report</option>
+                <option value="FORM_16">Form 16</option>
+                <option value="BANK_ADVICE">Bank Advice</option>
+              </select>
+            </div>
           </div>
 
           {/* Quick actions */}
           <div className="mb-4 flex flex-wrap gap-2">
-            {activeCycle && (
-              <Link
-                to={`/cycles/${activeCycle}/summary`}
-                className="btn-ghost-sm"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Payslips
-              </Link>
-            )}
             <button
               className="btn-ghost-sm"
-              disabled={!activeCycle || pfecrMut.isPending}
-              onClick={() => pfecrMut.mutate()}
+              disabled={generateMut.isPending}
+              onClick={() => generateMut.mutate("PF_ECR")}
             >
-              {pfecrMut.isPending ? (
-                <Spinner className="h-3.5 w-3.5" />
-              ) : (
-                <FilePlus className="h-3.5 w-3.5" />
-              )}
-              Generate PF ECR
+              <FilePlus className="h-3.5 w-3.5" /> PF ECR
             </button>
             <button
               className="btn-ghost-sm"
-              disabled={form16Mut.isPending}
-              onClick={() => form16Mut.mutate()}
+              disabled={generateMut.isPending}
+              onClick={() => generateMut.mutate("ESI_ECR")}
             >
-              {form16Mut.isPending ? (
-                <Spinner className="h-3.5 w-3.5" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
-              )}
-              Generate Form 16
+              <FilePlus className="h-3.5 w-3.5" /> ESI ECR
+            </button>
+            <button
+              className="btn-ghost-sm"
+              disabled={generateMut.isPending}
+              onClick={() => generateMut.mutate("PT_REPORT")}
+            >
+              <FilePlus className="h-3.5 w-3.5" /> PT Report
+            </button>
+            <button
+              className="btn-ghost-sm"
+              disabled={generateMut.isPending}
+              onClick={() => generateMut.mutate("BANK_ADVICE")}
+            >
+              <FilePlus className="h-3.5 w-3.5" /> Bank Advice
+            </button>
+            <button
+              className="btn-ghost-sm"
+              disabled={generateMut.isPending}
+              onClick={() => generateMut.mutate("FORM_16")}
+            >
+              <Download className="h-3.5 w-3.5" /> Form 16
             </button>
           </div>
 
@@ -160,10 +199,13 @@ export function Reports() {
                       <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 font-mono text-xs text-slate-700 dark:text-slate-300">
                         {r.report_type}
                       </span>
-                      {(r.report_type === "FORM_16" || r.report_type === "PF_ECR") && (
-                        <span className="ml-2 text-[10px] text-amber-600 dark:text-amber-400">
-                          Coming in V2
-                        </span>
+                      {r.file_path && r.status === "COMPLETED" && (
+                        <button 
+                          onClick={() => downloadBlob(r.file_path, r.report_type)}
+                          className="ml-3 text-xs text-blue-600 hover:underline flex items-center gap-1 inline-flex"
+                        >
+                          <Download className="h-3 w-3" /> Download
+                        </button>
                       )}
                     </td>
                     <td className="td">

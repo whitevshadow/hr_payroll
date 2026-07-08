@@ -3,6 +3,7 @@
 ```mermaid
 erDiagram
   attendance_schema_attendance_audit {
+    uuid client_id
     uuid actor_id
     uuid employee_id
     date month
@@ -16,6 +17,7 @@ erDiagram
     timestamp updated_at
   }
   attendance_schema_attendance_months {
+    uuid client_id
     date month
     character status
     integer total_employees
@@ -35,6 +37,7 @@ erDiagram
     timestamp updated_at
   }
   attendance_schema_attendance_records {
+    uuid client_id
     uuid employee_id
     date month
     integer total_days
@@ -57,6 +60,7 @@ erDiagram
     timestamp updated_at
   }
   audit_schema_audit_logs {
+    uuid client_id
     uuid id
     uuid tenant_id
     character event_type
@@ -94,6 +98,7 @@ erDiagram
     timestamp updated_at
   }
   compliance_schema_esi_contributions {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     numeric gross_wages
@@ -106,6 +111,7 @@ erDiagram
     timestamp updated_at
   }
   compliance_schema_pf_contributions {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     numeric pf_wages
@@ -119,6 +125,7 @@ erDiagram
     timestamp updated_at
   }
   compliance_schema_pt_deductions {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     character state
@@ -171,6 +178,7 @@ erDiagram
     timestamp updated_at
   }
   employee_schema_departments {
+    uuid client_id
     character name
     character cost_center
     uuid id
@@ -203,6 +211,7 @@ erDiagram
     timestamp updated_at
   }
   employee_schema_locations {
+    uuid client_id
     character location_name
     character city
     character state
@@ -213,6 +222,7 @@ erDiagram
     timestamp updated_at
   }
   notification_schema_notifications {
+    uuid client_id
     uuid id
     uuid tenant_id
     uuid user_id
@@ -223,6 +233,7 @@ erDiagram
     timestamp created_at
   }
   payout_schema_payout_batches {
+    uuid client_id
     uuid cycle_id
     character batch_type
     numeric total_amount
@@ -233,6 +244,7 @@ erDiagram
     timestamp updated_at
   }
   payout_schema_payout_transactions {
+    uuid client_id
     uuid batch_id
     uuid employee_id
     numeric amount
@@ -245,6 +257,7 @@ erDiagram
     timestamp updated_at
   }
   payroll_schema_payroll_cycles {
+    uuid client_id
     character name
     date period_start
     date period_end
@@ -259,6 +272,7 @@ erDiagram
     timestamp updated_at
   }
   payroll_schema_payroll_results {
+    uuid client_id
     uuid cycle_id
     uuid employee_id
     numeric gross_earnings
@@ -273,6 +287,7 @@ erDiagram
     timestamp updated_at
   }
   public_blob_outbox {
+    uuid client_id
     uuid id
     character event_type
     uuid tenant_id
@@ -286,6 +301,7 @@ erDiagram
     timestamp sent_at
   }
   public_blobs {
+    uuid client_id
     uuid id
     uuid tenant_id
     uuid employee_id
@@ -314,6 +330,7 @@ erDiagram
     timestamp retention_until
   }
   public_document_audit {
+    uuid client_id
     uuid id
     character event_type
     uuid tenant_id
@@ -325,6 +342,7 @@ erDiagram
     timestamp created_at
   }
   public_document_registry {
+    uuid client_id
     uuid id
     uuid tenant_id
     uuid raw_blob_id
@@ -341,6 +359,7 @@ erDiagram
     timestamp updated_at
   }
   public_employee_documents {
+    uuid client_id
     uuid id
     uuid tenant_id
     uuid employee_id
@@ -363,6 +382,7 @@ erDiagram
     uuid superseded_by_id
   }
   reporting_schema_generated_reports {
+    uuid client_id
     uuid cycle_id
     uuid employee_id
     character report_type
@@ -374,6 +394,7 @@ erDiagram
     timestamp updated_at
   }
   salary_schema_salary_components {
+    uuid client_id
     uuid structure_id
     character component_name
     numeric amount
@@ -385,6 +406,7 @@ erDiagram
     timestamp updated_at
   }
   salary_schema_salary_structures {
+    uuid client_id
     uuid employee_id
     numeric ctc
     date effective_from
@@ -397,6 +419,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_declaration_versions {
+    uuid client_id
     uuid declaration_id
     uuid employee_id
     character tax_year
@@ -410,6 +433,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_employee_declarations {
+    uuid client_id
     uuid employee_id
     character tax_year
     integer current_version
@@ -423,6 +447,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_employee_tax_profiles {
+    uuid client_id
     uuid employee_id
     text pan
     text aadhaar
@@ -439,6 +464,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_form122 {
+    uuid client_id
     uuid employee_id
     character tax_year
     jsonb salary_details
@@ -453,6 +479,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_form16 {
+    uuid client_id
     uuid employee_id
     character tax_year
     jsonb part_a_json
@@ -467,6 +494,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_proof_documents {
+    uuid client_id
     uuid declaration_version_id
     uuid employee_id
     character tax_year
@@ -482,6 +510,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tax_audit_log {
+    uuid client_id
     uuid actor_id
     uuid employee_id
     character event_type
@@ -495,6 +524,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tax_computations {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     character tax_year
@@ -509,6 +539,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tax_projections {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     character tax_year
@@ -523,6 +554,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tax_regime_history {
+    uuid client_id
     uuid employee_id
     date effective_date
     character previous_regime
@@ -536,6 +568,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tax_traces {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     character tax_year
@@ -548,6 +581,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tds_calculations {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     numeric taxable_income
@@ -565,6 +599,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tds_declarations {
+    uuid client_id
     uuid employee_id
     character financial_year
     character regime_preference
@@ -580,6 +615,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tds_ledger {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     character tax_year
@@ -593,6 +629,7 @@ erDiagram
     timestamp updated_at
   }
   tds_schema_tds_snapshots {
+    uuid client_id
     uuid employee_id
     uuid cycle_id
     numeric annual_tax

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { employeesApi } from "../api/employees";
 import { salaryApi } from "../api/salary";
@@ -11,18 +11,19 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner } from "../components/Spinner";
 import { EmployeeDocumentsPanel } from "../components/EmployeeDocumentsPanel";
+import { EmptyState } from "../components/EmptyState";
 import { formatINR } from "../lib/money";
-import { formatDate, formatMonth, firstToMonth } from "../lib/format";
+import { formatDate, formatMonth } from "../lib/format";
 import { maskPii, type PiiType } from "../lib/pii";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import clsx from "clsx";
 
-type Tab = "profile" | "salary" | "attendance" | "payslips" | "documents";
+type Tab = "personal" | "employment" | "bank" | "documents" | "compliance" | "salary" | "notes";
 
 export function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useState<Tab>("personal");
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   const empQ = useQuery({
@@ -56,13 +57,13 @@ export function EmployeeDetail() {
       </PageHeader>
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
-        {(["profile", "salary", "attendance", "payslips", "documents"] as Tab[]).map((t) => (
+      <div className="mb-6 flex gap-1 border-b border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar">
+        {(["personal", "employment", "bank", "documents", "compliance", "salary", "notes"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={clsx(
-              "px-4 py-2.5 text-sm font-medium capitalize transition-colors",
+              "px-4 py-2.5 text-sm font-medium capitalize transition-colors whitespace-nowrap",
               tab === t
                 ? "border-b-2 border-accent-600 text-accent-600 dark:text-accent-400"
                 : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -73,79 +74,169 @@ export function EmployeeDetail() {
         ))}
       </div>
 
-      {tab === "profile" && <ProfileTab emp={emp} revealed={revealed} onReveal={reveal} />}
-      {tab === "salary" && <SalaryTab employeeId={id!} />}
-      {tab === "attendance" && <AttendanceTab employeeId={id!} />}
-      {tab === "payslips" && <PayslipsTab employeeId={id!} />}
+      {tab === "personal" && <PersonalTab emp={emp} revealed={revealed} onReveal={reveal} />}
+      {tab === "employment" && <EmploymentTab emp={emp} />}
+      {tab === "bank" && <BankTab emp={emp} revealed={revealed} onReveal={reveal} />}
       {tab === "documents" && <DocumentsTab employeeId={id!} />}
+      {tab === "compliance" && <ComplianceTab emp={emp} revealed={revealed} onReveal={reveal} />}
+      {tab === "salary" && <SalaryTab employeeId={id!} />}
+      {tab === "notes" && <NotesTab />}
     </div>
   );
 }
 
-// ── Profile Tab ───────────────────────────────────────────────────────────
-function ProfileTab({
-  emp,
-  revealed,
-  onReveal,
-}: {
-  emp: any;
-  revealed: Set<string>;
-  onReveal: (field: string, type: PiiType) => void;
-}) {
-  function PiiField({ label, field, value, type }: { label: string; field: string; value: string | null | undefined; type: PiiType }) {
-    const masked = maskPii(value, type);
-    const isRevealed = revealed.has(field);
-    return (
-      <div className="flex items-center justify-between">
-        <span className="text-slate-500 dark:text-slate-400">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm text-slate-700 dark:text-slate-300">{isRevealed ? (value ?? "—") : masked}</span>
-          {value && !isRevealed && (
-            <button
-              className="text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 hover:underline"
-              onClick={() => onReveal(field, type)}
-            >
-              Reveal
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const rows = [
-    { label: "Employee Code", value: emp.emp_code },
-    { label: "Email", value: emp.email },
-    { label: "Status", value: <StatusBadge status={emp.status} /> },
-    { label: "Designation", value: emp.designation },
-    { label: "Work Location", value: emp.work_location ? `${emp.work_location} (${emp.city}, ${emp.state})` : "—" },
-    { label: "Joining Date", value: formatDate(emp.joining_date) },
-  ];
-
+// ── Shared PII Field Component ─────────────────────────────────────────────
+function PiiField({ label, field, value, type, revealed, onReveal }: { label: string; field: string; value: string | null | undefined; type: PiiType; revealed: Set<string>; onReveal: (field: string, type: PiiType) => void; }) {
+  const isRevealed = revealed.has(field);
+  const masked = maskPii(value, type);
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2 last:border-0 last:pb-0">
+      <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">{label}</span>
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-sm text-slate-800 dark:text-slate-200">{isRevealed ? (value ?? "—") : masked}</span>
+        {value && !isRevealed && (
+          <button
+            className="text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
+            onClick={() => onReveal(field, type)}
+          >
+            Reveal
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Personal Tab ─────────────────────────────────────────────────────────
+function PersonalTab({ emp, revealed, onReveal }: any) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="card table-card">
-        <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Basic Information</h3>
-        <div className="space-y-2 text-sm">
-          {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between">
-              <span className="text-slate-500 dark:text-slate-400">{r.label}</span>
-              <span className="text-slate-800 dark:text-slate-200">{r.value ?? "—"}</span>
-            </div>
-          ))}
+        <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">Basic Information</h3>
+        <div className="space-y-3 text-sm px-1">
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Employee Code</span>
+            <span className="text-slate-800 dark:text-slate-200 font-mono font-medium">{emp.emp_code}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Email</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.email ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Mobile</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.mobile ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Gender</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.gender ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Date of Birth</span>
+            <span className="text-slate-800 dark:text-slate-200">{formatDate(emp.date_of_birth)}</span>
+          </div>
         </div>
       </div>
-      <div className="card">
-        <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-          Sensitive Information
-          <span className="ml-2 text-xs font-normal text-amber-600 dark:text-amber-400">🔒 Reveal audits access</span>
+      
+      <div className="card table-card">
+        <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
+          Identity Information
+          <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
         </h3>
-        <div className="space-y-2 text-sm">
-          <PiiField label="PAN" field="pan_number" value={emp.pan_number} type="pan" />
-          <PiiField label="Bank Account" field="bank_account" value={emp.bank_account} type="account" />
-          <PiiField label="IFSC" field="bank_ifsc" value={emp.bank_ifsc} type="ifsc" />
-          <PiiField label="UAN" field="uan_number" value={emp.uan_number} type="generic" />
+        <div className="space-y-3 px-1">
+          <PiiField label="PAN Number" field="pan_number" value={emp.pan_number} type="pan" revealed={revealed} onReveal={onReveal} />
+          <PiiField label="Aadhaar Number" field="aadhaar_number" value={emp.aadhaar_number} type="generic" revealed={revealed} onReveal={onReveal} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Employment Tab ───────────────────────────────────────────────────────
+function EmploymentTab({ emp }: any) {
+  const depts = useQuery({ queryKey: qk.departments, queryFn: () => employeesApi.departments() });
+  const clients = useQuery({ queryKey: qk.clients(), queryFn: () => employeesApi.clients?.() ?? [] }); // optional lookup
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="card table-card">
+        <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">Job Details</h3>
+        <div className="space-y-3 text-sm px-1">
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Status</span>
+            <StatusBadge status={emp.status} />
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Designation</span>
+            <span className="text-slate-800 dark:text-slate-200 font-medium">{emp.designation ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Department</span>
+            <span className="text-slate-800 dark:text-slate-200">{depts.data?.find(d => d.id === emp.department_id)?.name ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Employment Type</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.employment_type ?? "Full Time"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Joining Date</span>
+            <span className="text-slate-800 dark:text-slate-200">{formatDate(emp.joining_date)}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="card table-card">
+        <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">Placement & Hierarchy</h3>
+        <div className="space-y-3 text-sm px-1">
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Client / Project</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.client_id ? "Assigned" : "Internal"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Work Location</span>
+            <span className="text-slate-800 dark:text-slate-200">{emp.work_location ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Reporting Manager</span>
+            <span className="text-slate-800 dark:text-slate-200 font-medium">
+              {emp.reporting_manager_id ? (
+                <Link to={`/employees/${emp.reporting_manager_id}`} className="text-accent-600 hover:underline">
+                  View Manager Profile →
+                </Link>
+              ) : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Bank Tab ─────────────────────────────────────────────────────────────
+function BankTab({ emp, revealed, onReveal }: any) {
+  return (
+    <div className="max-w-2xl card table-card">
+      <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
+        Bank Account Details
+        <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
+      </h3>
+      <div className="space-y-3 px-1">
+        <PiiField label="Bank Account Number" field="bank_account" value={emp.bank_account} type="account" revealed={revealed} onReveal={onReveal} />
+        <PiiField label="Bank IFSC Code" field="bank_ifsc" value={emp.bank_ifsc} type="ifsc" revealed={revealed} onReveal={onReveal} />
+      </div>
+    </div>
+  );
+}
+
+// ── Compliance Tab ───────────────────────────────────────────────────────
+function ComplianceTab({ emp, revealed, onReveal }: any) {
+  return (
+    <div className="max-w-2xl card table-card">
+      <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
+        Statutory & Compliance
+        <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
+      </h3>
+      <div className="space-y-3 px-1">
+        <PiiField label="Universal Account Number (UAN)" field="uan_number" value={emp.uan_number} type="generic" revealed={revealed} onReveal={onReveal} />
       </div>
     </div>
   );
@@ -159,19 +250,14 @@ function SalaryTab({ employeeId }: { employeeId: string }) {
     retry: false,
   });
 
-  const history = useQuery({
-    queryKey: qk.salaryHistory(employeeId),
-    queryFn: () => api.get(`/salary/structures/${employeeId}/history`).then((r) => r.data as any[]),
-  });
-
   if (active.isLoading) return <FullPageSpinner />;
 
   return (
     <div className="space-y-4">
       <div className="card">
-        <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Active Structure</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Active Salary Structure</h3>
         {active.isError ? (
-          <div className="text-sm text-slate-400 dark:text-slate-500">No active salary structure.</div>
+          <EmptyState title="No active salary structure" description="Please assign a salary structure." />
         ) : active.data ? (
           <table className="w-full text-sm">
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -192,116 +278,6 @@ function SalaryTab({ employeeId }: { employeeId: string }) {
           </table>
         ) : null}
       </div>
-
-      <div className="card">
-        <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Revision History</h3>
-        {history.isLoading && <FullPageSpinner />}
-        {!history.isLoading && (history.data?.length ?? 0) === 0 && (
-          <div className="text-sm text-slate-400 dark:text-slate-500">No history</div>
-        )}
-        <div className="relative ml-3 space-y-3 border-l-2 border-slate-100 dark:border-slate-800 pl-4">
-          {history.data?.map((s: any) => (
-            <div key={s.id} className="relative">
-              <div className="absolute -left-[21px] mt-1 h-3 w-3 rounded-full border-2 border-accent-500 bg-white dark:bg-slate-900" />
-              <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 font-numeric">{formatINR(s.ctc)} CTC</div>
-              <div className="text-xs text-slate-400 dark:text-slate-500">
-                {formatDate(s.effective_from)} {s.is_active && <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-semibold">• Active</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Attendance Tab ────────────────────────────────────────────────────────
-function AttendanceTab({ employeeId }: { employeeId: string }) {
-  const months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }).reverse();
-
-  const queries = months.map((m) =>
-    useQuery({
-      queryKey: qk.attendance(employeeId, m),
-      queryFn: () => attendanceApi.get(employeeId, m),
-      retry: false,
-    })
-  );
-
-  return (
-    <div className="card table-card overflow-hidden p-0">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
-            <th className="th">Month</th>
-            <th className="th text-right">Total</th>
-            <th className="th text-right">Present</th>
-            <th className="th text-right">LOP</th>
-            <th className="th text-right">Payable</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-          {months.map((m, i) => {
-            const q = queries[i];
-            const r = q.data;
-            const lop = r?.lop_days;
-            return (
-              <tr key={m} className="tr-hover">
-                <td className="td font-medium text-slate-700 dark:text-slate-300">{formatMonth(m + "-01")}</td>
-                <td className="td text-right font-numeric text-slate-600 dark:text-slate-400">{r?.total_days ?? "—"}</td>
-                <td className="td text-right font-numeric text-slate-600 dark:text-slate-400">{r?.present_days ?? "—"}</td>
-                <td className={clsx("td text-right font-numeric", lop && parseFloat(String(lop)) > 0 ? "text-danger font-semibold" : "text-slate-400")}>{lop ?? "—"}</td>
-                <td className="td text-right font-numeric text-slate-600 dark:text-slate-400">{r?.payable_days ?? "—"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Payslips Tab ──────────────────────────────────────────────────────────
-function PayslipsTab({ employeeId }: { employeeId: string }) {
-  const cycles = useQuery({
-    queryKey: qk.cycles,
-    queryFn: () => payrollApi.listCycles(),
-  });
-
-  const disbursed = cycles.data?.filter((c) => c.status === "DISBURSED") ?? [];
-
-  return (
-    <div className="card table-card overflow-hidden p-0">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
-            <th className="th">Cycle</th>
-            <th className="th">Period</th>
-            <th className="th"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-          {disbursed.length === 0 && (
-            <tr>
-              <td colSpan={3} className="td py-8 text-center text-slate-400">No payslips yet</td>
-            </tr>
-          )}
-          {disbursed.map((c) => (
-            <tr key={c.id} className="tr-hover">
-              <td className="td font-medium text-slate-800 dark:text-slate-200">{c.name}</td>
-              <td className="td text-sm text-slate-500 dark:text-slate-400">{formatDate(c.period_start)} → {formatDate(c.period_end)}</td>
-              <td className="td text-right">
-                <Link to={`/payslips/${c.id}/${employeeId}`} className="text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 hover:underline">
-                  View payslip →
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -313,6 +289,17 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
       employeeId={employeeId}
       title="Employee Documents"
       description="Upload and track identity, banking, and employment documents for this employee."
+    />
+  );
+}
+
+// ── Notes Tab ────────────────────────────────────────────────────────────
+function NotesTab() {
+  return (
+    <EmptyState
+      title="Employee Notes"
+      description="This feature is coming soon. You will be able to add performance notes, warnings, and internal remarks."
+      illustration="folder"
     />
   );
 }

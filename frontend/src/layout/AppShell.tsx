@@ -40,6 +40,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Briefcase,
+  Clock,
+  Umbrella,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
@@ -108,9 +110,10 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Organization",
     hrOnly: true,
     items: [
+      { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
       { to: "/employees",   label: "Employees",   icon: Users,     hrOnly: true },
       { to: "/departments", label: "Departments", icon: Building2,  hrOnly: true },
-      { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
+      { to: "/locations",   label: "Locations",   icon: Building2,  hrOnly: true },
     ],
   },
   {
@@ -118,6 +121,9 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     hrOnly: true,
     items: [
       { to: "/attendance", label: "Attendance", icon: Calendar,   hrOnly: true },
+      { to: "/leave-management", label: "Leave Management", icon: Calendar, hrOnly: true },
+      { to: "/leave", label: "Leave Policies", icon: Umbrella, hrOnly: true },
+      { to: "/leave-balance", label: "Leave Ledger", icon: Clock, hrOnly: true },
       { to: "/salary",     label: "Salary",     icon: DollarSign, hrOnly: true },
     ],
   },
@@ -127,6 +133,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     items: [
       { to: "/cycles",  label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
       { to: "/payouts", label: "Payouts",        icon: CreditCard,       hrOnly: true },
+      { to: "/payslips", label: "Payslips",      icon: FileText,         hrOnly: true },
       { to: "/tds",     label: "TDS",            icon: Receipt,          hrOnly: true },
     ],
   },
@@ -142,7 +149,6 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Admin",
     items: [
       { to: "/audit", label: "Audit Log",   icon: ClipboardList, adminOnly: true },
-      { to: "/me",    label: "My Payslips", icon: FileText },
     ],
   },
 ];
@@ -733,12 +739,16 @@ function TopBar({
     "/attendance":  "Attendance",
     "/cycles":      "Payroll Cycles",
     "/payouts":     "Payouts",
+    "/payslips":    "Payslips",
     "/compliance":  "Compliance",
     "/tds":         "TDS",
     "/reports":     "Reports",
     "/audit":       "Audit Log",
-    "/me":          "My Payslips",
     "/clients":     "Clients",
+    "/locations":   "Locations",
+    "/leave":       "Leave Policies",
+    "/leave-management": "Leave Management",
+    "/leave-balance": "Leave Ledger",
   };
 
   const title =

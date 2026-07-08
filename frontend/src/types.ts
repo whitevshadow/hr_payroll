@@ -36,6 +36,7 @@ export interface Employee {
   state: string | null;
   branch: string | null;
   client_id: string | null;
+  reporting_manager_id: string | null;
 }
 export interface Location {
   id: string;
@@ -52,6 +53,62 @@ export interface EmployeePage {
 }
 export type EmployeeCreate = Omit<Employee, "id">;
 export type EmployeeUpdate = Partial<Omit<Employee, "id" | "emp_code">>;
+
+// ---- Leaves -----------------------------------------------------------------
+export interface LeavePolicy {
+  id: string;
+  name: string;
+  description: string | null;
+  leave_type: "CASUAL" | "SICK" | "EARNED" | "UNPAID" | "MATERNITY" | "PATERNITY" | "COMPENSATORY";
+  annual_allowance: number;
+  max_consecutive_days: number | null;
+  requires_document_after_days: number | null;
+  is_active: boolean;
+}
+
+export interface LeaveBalance {
+  id: string;
+  employee_id: string;
+  policy_id: string;
+  financial_year: string;
+  total_accrued: number;
+  total_used: number;
+  balance: number;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employee_id: string;
+  policy_id: string;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  workflow_instance_id: string | null;
+  document_id: string | null;
+  reviewer_id: string | null;
+  rejection_reason: string | null;
+}
+
+// ---- Documents --------------------------------------------------------------
+export interface EmployeeDocument {
+  id: string;
+  tenant_id: string;
+  employee_id: string;
+  filename: string;
+  mime_type: string;
+  file_size: number;
+  doc_category: string;
+  doc_label: string;
+  description: string | null;
+  verification_status: "PENDING" | "VERIFIED" | "REJECTED";
+  rejection_reason: string | null;
+  uploaded_by: string;
+  uploaded_at: string;
+  verified_by: string | null;
+  verified_at: string | null;
+}
 
 // ---- Clients ----------------------------------------------------------------
 export interface Client {
@@ -107,6 +164,23 @@ export interface CredentialReveal {
   password: string | null;
 }
 
+export interface ClientDocument {
+  id: string;
+  client_id: string;
+  blob_id: string;
+  doc_category: string;
+  doc_label: string;
+  description?: string;
+  expiry_date?: string;
+  version: number;
+  verification_status: "PENDING" | "APPROVED" | "REJECTED";
+  verified_by?: string;
+  verified_at?: string;
+  verification_comment?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- Salary -------------------------------------------------------------
 export interface SalaryBreakdown {
   monthly_gross: string;
@@ -131,6 +205,15 @@ export interface SalaryStructure {
   work_location: string | null;
   components: SalaryComponent[];
   breakdown: SalaryBreakdown;
+  template_id?: string;
+}
+export interface SalaryTemplate {
+  id: string;
+  client_id?: string | null;
+  template_name: string;
+  description: string;
+  is_active: boolean;
+  template_components: SalaryComponent[];
 }
 
 // ---- Attendance ---------------------------------------------------------
@@ -144,6 +227,7 @@ export interface AttendanceRecord {
   payable_days: string;
   is_finalized: boolean;
   daily_status?: string;
+  leave_breakdown?: Record<string, number>;
 }
 
 // ---- Payroll ------------------------------------------------------------
@@ -159,6 +243,8 @@ export type CycleStatus =
 export interface PayrollCycle {
   id: string;
   name: string;
+  client_id?: string | null;
+  financial_year?: string | null;
   period_start: string;
   period_end: string;
   status: CycleStatus;

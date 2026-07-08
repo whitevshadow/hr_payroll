@@ -51,9 +51,9 @@ class ServiceRuntime:
                         )
                 await conn.run_sync(metadata.create_all)
 
-    def require_roles(self, *allowed: str) -> Callable:
+    def require_roles(self, *allowed: str, get_ctx: Callable | None = None) -> Callable:
         """Return a FastAPI dependency that enforces at least one of ``allowed`` roles."""
-        get_ctx = self.get_context
+        get_ctx = get_ctx or self.get_context
 
         async def _guard(ctx: RequestContext = Depends(get_ctx)) -> RequestContext:
             if not any(r in allowed for r in ctx.roles):

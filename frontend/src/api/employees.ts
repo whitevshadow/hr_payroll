@@ -47,8 +47,24 @@ export const employeesApi = {
       .then((r) => r.data),
 
   /** List all locations in the current tenant. */
-  locations: () =>
-    api.get<import("../types").Location[]>("/locations").then((r) => r.data),
+  locations: (active_only: boolean = true) =>
+    api.get<import("../types").Location[]>("/locations", { params: { active_only } }).then((r) => r.data),
+
+  createLocation: (data: { location_code: string; location_name: string; city: string; state: string; country: string }) =>
+    api.post<import("../types").Location>("/locations", data).then((r) => r.data),
+
+  updateLocation: (id: string, data: { is_active: boolean }) =>
+    api.put<import("../types").Location>(`/locations/${id}`, data).then((r) => r.data),
+
+  /** Financial Years */
+  financialYears: () =>
+    api.get<any[]>("/financial-years").then(r => r.data),
+  
+  createFinancialYear: (data: { year_label: string; start_date: string; end_date: string; is_active: boolean }) =>
+    api.post<any>("/financial-years", data).then(r => r.data),
+    
+  activateFinancialYear: (id: string) =>
+    api.patch<any>(`/financial-years/${id}/activate`).then(r => r.data),
 
   /** Bulk-import employees from an array of parsed rows. */
   bulkImport: (rows: BulkImportRow[]) =>

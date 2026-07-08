@@ -9,7 +9,7 @@ from hr_shared import RequestContext
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_session, runtime
+from .deps import get_context, get_client_context, get_session, runtime
 from .models import AttendanceAudit, AttendanceMonth, AttendanceRecord
 from .schemas import (
     AttendanceBulkUpsert,
@@ -20,16 +20,17 @@ from .schemas import (
     MonthlyListOut,
     UnlockRequest,
 )
+from . import leave_routes as _leave  # noqa: F401 - imported for side-effects on startup
 
 router = APIRouter(prefix="/api/v1/attendance", tags=["attendance"])
 
 _HR_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN")
 _ADMIN_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN")
 
-# Route-level guards — replacing bare Depends(get_context) on all write endpoints.
+# Route-level guards — replacing bare Depends(get_client_context) on all write endpoints.
 # EMPLOYEE role must never reach any attendance write path.
 _require_hr = runtime.require_roles(*_HR_ROLES)      # manual, bulk, validate, lock
-_require_admin = runtime.require_roles(*_ADMIN_ROLES)  # unlock (higher privilege)
+_require_admin = runtime.require_roles(*_ADMIN_ROLES, get_ctx=get_client_context)  # unlock (higher privilege)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -123,7 +124,7 @@ async def upsert_manual(
     # Block writes on locked month
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == month,
         )
     )
@@ -140,7 +141,7 @@ async def upsert_manual(
 
     record = await session.scalar(
         select(AttendanceRecord).where(
-            AttendanceRecord.tenant_id == ctx.tenant_id,
+            AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
             AttendanceRecord.employee_id == body.employee_id,
             AttendanceRecord.month == month,
         )
@@ -160,6 +161,10 @@ async def upsert_manual(
         record.overtime_hours = Decimal(str(body.overtime_hours))
         record.attendance_pct = pct
         record.daily_status = body.daily_status
+        # V2: dual-write structured leave_breakdown JSONB
+        record.leave_breakdown = record.build_leave_breakdown()
+        if body.client_id:
+            record.client_id = body.client_id
         if ctrl and ctrl.status == "VALIDATED":
             ctrl.status = "DRAFT"  # edit resets validation
     else:
@@ -208,7 +213,7 @@ async def bulk_upsert(
 
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == month,
         )
     )
@@ -227,7 +232,7 @@ async def bulk_upsert(
         )
         record = await session.scalar(
             select(AttendanceRecord).where(
-                AttendanceRecord.tenant_id == ctx.tenant_id,
+                AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
                 AttendanceRecord.employee_id == item.employee_id,
                 AttendanceRecord.month == month,
             )
@@ -287,19 +292,19 @@ async def bulk_upsert(
 @router.get("/monthly/{month}", response_model=MonthlyListOut)
 async def get_monthly(
     month: str,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == m,
         )
     )
     records = (await session.scalars(
         select(AttendanceRecord).where(
-            AttendanceRecord.tenant_id == ctx.tenant_id,
+            AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
             AttendanceRecord.month == m,
         )
     )).all()
@@ -311,7 +316,7 @@ async def get_monthly(
 @router.get("/monthly/{month}/status", response_model=AttendanceMonthOut)
 async def get_month_status(
     month: str,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
@@ -359,7 +364,7 @@ async def lock_month(
     # Mark all records as finalized
     records = (await session.scalars(
         select(AttendanceRecord).where(
-            AttendanceRecord.tenant_id == ctx.tenant_id,
+            AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
             AttendanceRecord.month == m,
         )
     )).all()
@@ -392,7 +397,7 @@ async def unlock_month(
     m = _parse_month(month)
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == m,
         )
     )
@@ -402,7 +407,7 @@ async def unlock_month(
     # Revert finalized flag on records
     records = (await session.scalars(
         select(AttendanceRecord).where(
-            AttendanceRecord.tenant_id == ctx.tenant_id,
+            AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
             AttendanceRecord.month == m,
         )
     )).all()
@@ -429,13 +434,13 @@ async def unlock_month(
 async def get_attendance(
     employee_id: uuid.UUID,
     month: str,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
     record = await session.scalar(
         select(AttendanceRecord).where(
-            AttendanceRecord.tenant_id == ctx.tenant_id,
+            AttendanceRecord.tenant_id == ctx.tenant_id, AttendanceRecord.client_id == ctx.client_id,
             AttendanceRecord.employee_id == employee_id,
             AttendanceRecord.month == m,
         )

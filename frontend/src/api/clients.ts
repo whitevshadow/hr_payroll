@@ -6,6 +6,7 @@ import type {
   ClientPage,
   ClientCredential,
   CredentialReveal,
+  ClientDocument,
 } from "../types";
 
 export interface ClientListParams {
@@ -60,4 +61,14 @@ export const clientsApi = {
     api
       .post<ClientCredential>(`/clients/${clientId}/credentials/${credId}/rotate`, body)
       .then((r) => r.data),
+
+  // Documents
+  listDocuments: (clientId: string, category?: string) =>
+    api.get<ClientDocument[]>(`/clients/${clientId}/documents`, { params: { doc_category: category } }).then((r) => r.data),
+
+  createDocument: (clientId: string, body: { blob_id: string; doc_category: string; doc_label: string; description?: string; expiry_date?: string }) =>
+    api.post<ClientDocument>(`/clients/${clientId}/documents`, body).then((r) => r.data),
+
+  verifyDocument: (clientId: string, docId: string, status: "APPROVED" | "REJECTED", comment?: string) =>
+    api.patch<ClientDocument>(`/clients/${clientId}/documents/${docId}/verify`, { status, comment }).then((r) => r.data),
 };

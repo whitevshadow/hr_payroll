@@ -14,7 +14,7 @@ from decimal import Decimal
 import httpx
 import logging
 
-from .deps import get_context, get_session, runtime
+from .deps import get_context, get_client_context, get_session, runtime
 from .logic import REGISTRY, compute_annual_tds, compute_overview
 from .models import (
     DeclarationVersion,
@@ -43,7 +43,7 @@ from .schemas import (
 
 router = APIRouter(prefix="/api/v1/tds", tags=["tds"])
 
-_admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN", "EMPLOYEE")
+_admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN", "EMPLOYEE", get_ctx=get_client_context)
 
 
 def tax_year_for_payment(payment_date: date) -> str:
@@ -78,7 +78,7 @@ async def write_tax_audit(
 @router.post("/compute", response_model=TDSComputeResponse)
 async def compute(
     body: TDSComputeRequest,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     payment_date = body.salary_payment_date or date.today()
@@ -228,7 +228,7 @@ async def compute(
 async def get_calculation(
     cycle_id: uuid.UUID,
     employee_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     row = await session.scalar(
@@ -263,10 +263,10 @@ async def list_laws():
 @router.post("/profiles", status_code=201)
 async def upsert_tax_profile(
     body: TaxProfileIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
-    row = EmployeeTaxProfile(tenant_id=ctx.tenant_id, **body.model_dump())
+    row = EmployeeTaxProfile(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
     session.add(row)
     await write_tax_audit(
         session,
@@ -283,12 +283,12 @@ async def upsert_tax_profile(
 @router.post("/declarations/v2", status_code=201)
 async def submit_versioned_declaration(
     body: DeclarationSubmitIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     current = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
             EmployeeDeclaration.employee_id == body.employee_id,
             EmployeeDeclaration.tax_year == body.tax_year,
         )
@@ -342,10 +342,10 @@ async def submit_versioned_declaration(
 @router.post("/proofs", status_code=201)
 async def upload_proof_reference(
     body: ProofDocumentIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
-    row = ProofDocument(tenant_id=ctx.tenant_id, **body.model_dump())
+    row = ProofDocument(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
     session.add(row)
     await write_tax_audit(
         session,
@@ -363,11 +363,11 @@ async def upload_proof_reference(
 async def decide_proof(
     proof_id: uuid.UUID,
     body: ProofDecisionIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     row = await session.scalar(
-        select(ProofDocument).where(ProofDocument.tenant_id == ctx.tenant_id, ProofDocument.id == proof_id)
+        select(ProofDocument).where(ProofDocument.tenant_id == ctx.tenant_id, ProofDocument.client_id == ctx.client_id, ProofDocument.id == proof_id)
     )
     if not row:
         raise HTTPException(status_code=404, detail="Proof not found")
@@ -392,7 +392,7 @@ async def decide_proof(
 @router.post("/form122", status_code=201)
 async def generate_form122(
     body: Form122In,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     row = Form122(
@@ -424,7 +424,7 @@ async def generate_form122(
 async def get_employee_overview(
     employee_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Compute live TDS overview for an employee using their salary data.
@@ -473,7 +473,7 @@ async def get_employee_overview(
 
     existing_decl = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
             EmployeeDeclaration.employee_id == employee_id,
             EmployeeDeclaration.tax_year == tax_year,
         )
@@ -541,7 +541,7 @@ async def get_employee_overview(
 @router.get("/declarations/{employee_id}")
 async def get_declarations(
     employee_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Retrieve the latest declaration for an employee in the current FY."""
@@ -551,7 +551,7 @@ async def get_declarations(
 
     decl = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
             EmployeeDeclaration.employee_id == employee_id,
             EmployeeDeclaration.tax_year == tax_year,
         )
@@ -591,7 +591,7 @@ class AutoComputeIn(BaseModel):
 @router.post("/auto-compute", status_code=200)
 async def auto_compute_tds(
     body: AutoComputeIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Trigger TDS recalculation when salary is created/revised.
@@ -614,7 +614,7 @@ async def auto_compute_tds(
     # Ensure a tax profile exists
     existing_profile = await session.scalar(
         select(EmployeeTaxProfile).where(
-            EmployeeTaxProfile.tenant_id == ctx.tenant_id,
+            EmployeeTaxProfile.tenant_id == ctx.tenant_id, EmployeeTaxProfile.client_id == ctx.client_id,
             EmployeeTaxProfile.employee_id == body.employee_id,
             EmployeeTaxProfile.status == "ACTIVE",
         )
@@ -672,7 +672,7 @@ class DeclarationIn(BaseModel):
 @router.post("/declarations", status_code=201)
 async def submit_declaration(
     body: DeclarationIn,
-    ctx: RequestContext = Depends(get_context),
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Record investment declarations.

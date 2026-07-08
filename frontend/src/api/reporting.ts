@@ -38,4 +38,7 @@ export const reportingApi = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
+
+  generateReport: (body: { report_type: string; cycle_id?: string; employee_ids?: string[]; client_id?: string; financial_year?: string }) => 
+    api.post("/reports/generate", body).then((r) => r.data),
 };

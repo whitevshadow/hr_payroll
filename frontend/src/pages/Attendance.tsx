@@ -761,68 +761,78 @@ export function Attendance() {
     reader.readAsArrayBuffer(file);
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
       <PageHeader
         title="Attendance Management"
         subtitle="Monthly attendance entry, validation, and payroll locking"
       >
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Month picker */}
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => { setMonth(e.target.value); setGridLoaded(false); }}
-              className="input pl-8 text-sm py-2 w-40"
-            />
+        {/* Toolbar — only shown when a client is selected */}
+        {selectedClientId && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Month picker */}
+            <div className="relative">
+              <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+              <input
+                type="month"
+                value={month}
+                onChange={(e) => { setMonth(e.target.value); setGridLoaded(false); }}
+                className="input pl-8 text-sm py-2 w-40"
+              />
+            </div>
+
+            {/* Status badge */}
+            <StatusBadge status={status} />
+
+            {canEdit && (
+              <>
+                <button onClick={downloadTemplate} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl">
+                  <Download className="h-3.5 w-3.5" /> Template
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl">
+                  <Upload className="h-3.5 w-3.5" /> Import Excel
+                </button>
+                <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
+              </>
+            )}
+
+            {canEdit && status === "DRAFT" && (
+              <button onClick={() => setShowValidate(true)} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl text-blue-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Validate
+              </button>
+            )}
+
+            {canEdit && (
+              <button
+                onClick={() => setShowLock(true)}
+                className="flex items-center gap-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-semibold transition-colors"
+              >
+                <Lock className="h-3.5 w-3.5" /> Lock Attendance
+              </button>
+            )}
+
+            {isLocked && isAdmin && (
+              <button
+                onClick={() => setShowUnlock(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 text-sm font-semibold transition-colors"
+              >
+                <Unlock className="h-3.5 w-3.5" /> Unlock
+              </button>
+            )}
           </div>
-
-          {/* Status badge */}
-          <StatusBadge status={status} />
-
-          {canEdit && (
-            <>
-              <button onClick={downloadTemplate} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl">
-                <Download className="h-3.5 w-3.5" /> Template
-              </button>
-              <button onClick={() => fileInputRef.current?.click()} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl">
-                <Upload className="h-3.5 w-3.5" /> Import Excel
-              </button>
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
-            </>
-          )}
-
-          {canEdit && status === "DRAFT" && (
-            <button onClick={() => setShowValidate(true)} className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3 rounded-xl text-blue-600">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Validate
-            </button>
-          )}
-
-          {canEdit && (
-            <button
-              onClick={() => setShowLock(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-semibold transition-colors"
-            >
-              <Lock className="h-3.5 w-3.5" /> Lock Attendance
-            </button>
-          )}
-
-          {isLocked && isAdmin && (
-            <button
-              onClick={() => setShowUnlock(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-3 py-2 text-sm font-semibold transition-colors"
-            >
-              <Unlock className="h-3.5 w-3.5" /> Unlock
-            </button>
-          )}
-        </div>
+        )}
       </PageHeader>
 
-      {/* ── Locked banner ────────────────────────────────────────────────── */}
+      {!selectedClientId ? (
+        <div className="card-glass p-12 flex flex-col items-center justify-center text-center">
+          <Users className="h-12 w-12 text-slate-300 mb-4" />
+          <h2 className="text-lg font-bold text-slate-800">No Client Selected</h2>
+          <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to view or manage attendance.</p>
+        </div>
+      ) : (
+        <>
+          {/* ── Locked banner ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isLocked && (
           <motion.div
@@ -1169,6 +1179,8 @@ export function Attendance() {
           />
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

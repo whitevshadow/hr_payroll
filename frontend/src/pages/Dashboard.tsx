@@ -41,6 +41,7 @@ import { Spinner, Skeleton } from "../components/Spinner";
 import { getNextDeadlines } from "../data/statutory-calendar";
 import { useAuth } from "../lib/auth";
 import { isEmployeeOnly } from "../lib/roles";
+import { useClientContext } from "../lib/ClientContext";
 import type { PayrollCycle, PayrollResult } from "../types";
 import clsx from "clsx";
 
@@ -228,9 +229,10 @@ const EVENT_LABELS: Record<string, string> = {
 export function Dashboard() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const selectedPeriod =
-    params.get("period") || currentMonthFirst().slice(0, 7);
+  const selectedPeriod = params.get("period") || currentMonthFirst().slice(0, 7);
+  const selectedFy = params.get("fy") || "";
   const isEmpOnly = isEmployeeOnly(user);
+  const { selectedClientId } = useClientContext();
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -261,6 +263,11 @@ export function Dashboard() {
   const cyclesQ = useQuery({
     queryKey: qk.cycles,
     queryFn: () => payrollApi.listCycles(),
+  });
+
+  const fysQ = useQuery({
+    queryKey: ["financial-years"],
+    queryFn: employeesApi.financialYears,
   });
 
   const auditQ = useQuery({
@@ -369,6 +376,16 @@ export function Dashboard() {
     [latestCycle, failedResults.length, latestResults.length, openIssues, complianceQ.data]
   );
 
+  if (!selectedClientId) {
+    return (
+      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
+        <Users className="h-12 w-12 text-slate-300 mb-4" />
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
+        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to view the dashboard.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -385,14 +402,29 @@ export function Dashboard() {
           </p>
         </div>
         {!isEmpOnly && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-500">Period</label>
-            <input
-              className="input w-36"
-              type="month"
-              value={selectedPeriod}
-              onChange={(e) => setParams({ period: e.target.value })}
-            />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500">FY</label>
+              <select
+                className="input w-36 h-9 py-1 text-sm"
+                value={selectedFy}
+                onChange={(e) => setParams(prev => { prev.set("fy", e.target.value); return prev; })}
+              >
+                <option value="">Current FY</option>
+                {fysQ.data?.map((f: any) => (
+                  <option key={f.id} value={f.id}>{f.year_label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500">Period</label>
+              <input
+                className="input w-36 h-9 py-1 text-sm"
+                type="month"
+                value={selectedPeriod}
+                onChange={(e) => setParams(prev => { prev.set("period", e.target.value); return prev; })}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -443,7 +475,14 @@ export function Dashboard() {
           value={
             statutoryLiability !== null ? formatINR(statutoryLiability) : undefined
           }
-          sub="PF + ESI + PT"
+          sub={
+            <div className="flex items-center gap-1">
+              <span>PF + ESI + PT</span>
+              {statutoryLiability !== null && statutoryLiability > 0 && (
+                <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded ml-1 font-bold">DUE</span>
+              )}
+            </div>
+          }
           loading={complianceQ.isLoading && !!latestCycle}
           icon={ShieldCheck}
           iconColor="text-blue-600"
