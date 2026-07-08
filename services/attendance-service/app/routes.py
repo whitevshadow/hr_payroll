@@ -170,6 +170,7 @@ async def upsert_manual(
     else:
         record = AttendanceRecord(
             tenant_id=ctx.tenant_id,
+            client_id=ctx.client_id,
             employee_id=body.employee_id,
             month=month,
             total_days=body.total_days,
@@ -255,6 +256,7 @@ async def bulk_upsert(
         else:
             session.add(AttendanceRecord(
                 tenant_id=ctx.tenant_id,
+                client_id=ctx.client_id,
                 employee_id=item.employee_id,
                 month=month,
                 total_days=item.total_days,

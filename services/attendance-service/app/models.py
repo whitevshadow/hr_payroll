@@ -5,9 +5,13 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from hr_shared import TenantAwareBase
-from sqlalchemy import Boolean, Date, DateTime, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
+
+# Postgres uses JSONB in production; SQLite (unit tests) falls back to plain
+# JSON. with_variant leaves the Postgres DDL unchanged.
+_JSONB = JSONB().with_variant(JSON(), "sqlite")
 
 
 class AttendanceRecord(TenantAwareBase):
@@ -42,7 +46,7 @@ class AttendanceRecord(TenantAwareBase):
     daily_status: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # V2: structured leave breakdown JSONB
-    leave_breakdown: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    leave_breakdown: Mapped[dict | None] = mapped_column(_JSONB, nullable=True)
 
     # V2: client filter support
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
@@ -100,7 +104,7 @@ class AttendanceAudit(TenantAwareBase):
     new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
 
@@ -174,5 +178,5 @@ class LeaveTransaction(TenantAwareBase):
     balance_after: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

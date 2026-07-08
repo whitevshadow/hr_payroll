@@ -14,4 +14,7 @@ import os
 # ``jwt_secret`` is now a required setting with no insecure fallback (see
 # shared/hr_shared/config.py). Give the unit tests a throwaway value so the
 # ``Settings()`` instances they build at import time validate successfully.
-os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
+# "test-secret" is the value the service test suites sign their tokens with
+# (see e.g. services/attendance-service/tests and blobstore-service/tests).
+# The context dependency captures the secret at import time, so it must match.
+os.environ.setdefault("JWT_SECRET", "test-secret")

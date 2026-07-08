@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from decimal import Decimal
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
@@ -247,11 +248,17 @@ async def _lock_month(db: AsyncSession) -> None:
     await db.commit()
 
 
+# Unlock requires client context (get_client_context), so x-client-id is
+# required in addition to an admin role.
+_UNLOCK_CLIENT = {"x-client-id": str(uuid.uuid4())}
+
+
 @pytest.mark.asyncio
 async def test_unlock_employee_blocked(client: AsyncClient, db: AsyncSession):
     await _lock_month(db)
     r = await client.post(
-        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=EMPLOYEE_HDR
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY,
+        headers={**EMPLOYEE_HDR, **_UNLOCK_CLIENT},
     )
     assert r.status_code == 403, r.text
 
@@ -261,7 +268,8 @@ async def test_unlock_hr_manager_blocked(client: AsyncClient, db: AsyncSession):
     """HR_MANAGER can lock but NOT unlock — admin-only action."""
     await _lock_month(db)
     r = await client.post(
-        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=HR_MGR_HDR
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY,
+        headers={**HR_MGR_HDR, **_UNLOCK_CLIENT},
     )
     assert r.status_code == 403, r.text
 
@@ -270,7 +278,8 @@ async def test_unlock_hr_manager_blocked(client: AsyncClient, db: AsyncSession):
 async def test_unlock_payroll_admin_allowed(client: AsyncClient, db: AsyncSession):
     await _lock_month(db)
     r = await client.post(
-        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=PAYROLL_HDR
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY,
+        headers={**PAYROLL_HDR, **_UNLOCK_CLIENT},
     )
     assert r.status_code == 200, r.text
 
@@ -279,7 +288,8 @@ async def test_unlock_payroll_admin_allowed(client: AsyncClient, db: AsyncSessio
 async def test_unlock_org_admin_allowed(client: AsyncClient, db: AsyncSession):
     await _lock_month(db)
     r = await client.post(
-        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY, headers=ORG_ADMIN_HDR
+        f"/api/v1/attendance/monthly/{MONTH}/unlock", json=_UNLOCK_BODY,
+        headers={**ORG_ADMIN_HDR, **_UNLOCK_CLIENT},
     )
     assert r.status_code == 200, r.text
 
@@ -288,9 +298,13 @@ async def test_unlock_org_admin_allowed(client: AsyncClient, db: AsyncSession):
 # Read endpoints — accessible to all authenticated roles including EMPLOYEE
 # ---------------------------------------------------------------------------
 
+# Read endpoints are client-scoped, so a valid x-client-id is required.
+_EMP_READ_HDR = {**EMPLOYEE_HDR, "x-client-id": str(uuid.uuid4())}
+
+
 @pytest.mark.asyncio
 async def test_get_monthly_employee_allowed(client: AsyncClient):
-    r = await client.get(f"/api/v1/attendance/monthly/{MONTH}", headers=EMPLOYEE_HDR)
+    r = await client.get(f"/api/v1/attendance/monthly/{MONTH}", headers=_EMP_READ_HDR)
     assert r.status_code == 200, r.text
 
 
@@ -298,7 +312,7 @@ async def test_get_monthly_employee_allowed(client: AsyncClient):
 async def test_get_single_record_employee_allowed(client: AsyncClient, db: AsyncSession):
     """Employee can read their own record (404 if none exists — not 403)."""
     r = await client.get(
-        f"/api/v1/attendance/{EMP_ID}/{MONTH}", headers=EMPLOYEE_HDR
+        f"/api/v1/attendance/{EMP_ID}/{MONTH}", headers=_EMP_READ_HDR
     )
     assert r.status_code in (200, 404), r.text
     assert r.status_code != 403
@@ -326,3 +340,28 @@ async def test_manual_write_scoped_to_jwt_tenant(client: AsyncClient, db: AsyncS
     assert record.tenant_id == TENANT_ID, (
         "AttendanceRecord tenant_id must match the JWT tenant, not be left as default"
     )
+
+
+# ---------------------------------------------------------------------------
+# client_id round-trip (issue H1): a written record must carry client_id so the
+# client-scoped read can find it — otherwise payroll falls back to zero LOP.
+# ---------------------------------------------------------------------------
+
+CLIENT_ID = str(uuid.uuid4())
+CLIENT_HDR = {**HR_MGR_HDR, "x-client-id": CLIENT_ID}
+
+
+@pytest.mark.asyncio
+async def test_written_record_carries_client_id_and_is_readable(client: AsyncClient):
+    # present 25 of 30 with 4 week-offs -> LOP = 30 - 25 - 4 = 1 day.
+    body = {**_MANUAL_BODY, "present_days": 25}
+    w = await client.post("/api/v1/attendance/manual", json=body, headers=CLIENT_HDR)
+    assert w.status_code == 200, w.text
+    assert w.json()["client_id"] == CLIENT_ID
+
+    # Client-scoped read: before the fix client_id was NULL, so this 404'd and
+    # the payroll orchestrator treated the employee as full-attendance.
+    r = await client.get(f"/api/v1/attendance/{EMP_ID}/{MONTH}", headers=CLIENT_HDR)
+    assert r.status_code == 200, r.text
+    assert r.json()["client_id"] == CLIENT_ID
+    assert Decimal(str(r.json()["lop_days"])) == Decimal("1")
