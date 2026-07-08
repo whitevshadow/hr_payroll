@@ -14,6 +14,12 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    # Optional tenant scope. The same email may legitimately exist in several
+    # tenants (uniqueness is per (tenant_id, email)). When supplied, login is
+    # bound to exactly that tenant; when omitted, an email that resolves to more
+    # than one tenant is rejected rather than silently matched to an arbitrary
+    # row.
+    tenant_id: uuid.UUID | None = None
 
 
 class TokenResponse(BaseModel):

@@ -72,16 +72,24 @@ async def register(
 async def login(
     body: LoginRequest, session: AsyncSession = Depends(get_session)
 ) -> TokenResponse:
-    # Login using email only, grabbing the first match if cross-tenant emails exist.
-    user = (
-        await session.scalars(
-            select(User).where(
-                User.email == body.email.lower(),
-            )
+    # Resolve the user within a single tenant. When a tenant_id is supplied the
+    # (tenant_id, email) pair is unique, so at most one row matches. Without a
+    # tenant_id we must not fall back to "first match wins": an email shared
+    # across tenants would otherwise authenticate against an arbitrary tenant.
+    stmt = select(User).where(User.email == body.email.lower())
+    if body.tenant_id is not None:
+        stmt = stmt.where(User.tenant_id == body.tenant_id)
+    matches = (await session.scalars(stmt)).all()
+
+    # Generic message throughout: never reveal whether the email exists, in how
+    # many tenants, or whether the tenant_id/password was the wrong part.
+    if len(matches) != 1:
+        # Zero matches, or an ambiguous email that needs an explicit tenant_id.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
-    ).first()
-    if not user or not verify_password(body.password, user.password_hash):
-        # Generic message: do not reveal whether tenant_id or password was wrong.
+    user = matches[0]
+    if not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
