@@ -27,6 +27,7 @@ class DepartmentOut(BaseModel):
 # ── Location Schemas ──────────────────────────────────────────────────────────
 
 class LocationCreate(BaseModel):
+    location_code: str | None = None
     location_name: str
     city: str
     state: str
@@ -35,6 +36,7 @@ class LocationCreate(BaseModel):
 
 
 class LocationUpdate(BaseModel):
+    location_code: str | None = None
     location_name: str | None = None
     city: str | None = None
     state: str | None = None
@@ -46,6 +48,7 @@ class LocationUpdate(BaseModel):
 class LocationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    location_code: str | None = None
     location_name: str
     city: str
     state: str

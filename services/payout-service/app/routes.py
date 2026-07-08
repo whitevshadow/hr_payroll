@@ -39,7 +39,7 @@ async def create_batch(
     # Reuse an existing batch for this cycle if present (idempotent re-approve).
     batch = await session.scalar(
         select(PayoutBatch).where(
-            PayoutBatch.tenant_id == ctx.tenant_id, PayoutBatch.client_id == ctx.client_id,
+            PayoutBatch.tenant_id == ctx.tenant_id,
             PayoutBatch.cycle_id == body.cycle_id,
         )
     )
@@ -102,7 +102,7 @@ async def get_batches(
 ):
     rows = await session.scalars(
         select(PayoutBatch).where(
-            PayoutBatch.tenant_id == ctx.tenant_id, PayoutBatch.client_id == ctx.client_id,
+            PayoutBatch.tenant_id == ctx.tenant_id,
             PayoutBatch.cycle_id == cycle_id,
         )
     )

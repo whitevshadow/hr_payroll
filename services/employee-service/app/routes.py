@@ -336,7 +336,7 @@ async def create_employee(
     )
     if dup:
         raise HTTPException(status_code=409, detail="emp_code already exists")
-    dump = body.model_dump()
+    dump = body.model_dump(exclude={"client_id"})
     # Denormalise location fields from FK
     if dump.get("location_id"):
         loc = await session.get(Location, dump["location_id"])
@@ -509,7 +509,7 @@ async def list_financial_years(
 ):
     rows = await session.scalars(
         select(FinancialYear)
-        .where(FinancialYear.tenant_id == ctx.tenant_id, FinancialYear.client_id == ctx.client_id)
+        .where(FinancialYear.tenant_id == ctx.tenant_id)
         .order_by(FinancialYear.start_date.desc())
     )
     return list(rows)
@@ -558,7 +558,7 @@ async def list_workflow_definitions(
     entity_type: str | None = None,
 ):
     q = select(WorkflowDefinition).where(
-        WorkflowDefinition.tenant_id == ctx.tenant_id, WorkflowDefinition.client_id == ctx.client_id,
+        WorkflowDefinition.tenant_id == ctx.tenant_id,
         WorkflowDefinition.is_active.is_(True),
     )
     if entity_type:
@@ -616,7 +616,7 @@ async def list_workflow_instances(
     status: str | None = None,
     pending_for_me: bool = Query(False),
 ):
-    q = select(WorkflowInstance).where(WorkflowInstance.tenant_id == ctx.tenant_id, WorkflowInstance.client_id == ctx.client_id)
+    q = select(WorkflowInstance).where(WorkflowInstance.tenant_id == ctx.tenant_id)
     if entity_type:
         q = q.where(WorkflowInstance.entity_type == entity_type)
     if status:

@@ -124,7 +124,7 @@ async def upsert_manual(
     # Block writes on locked month
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id,
             AttendanceMonth.month == month,
         )
     )
@@ -213,7 +213,7 @@ async def bulk_upsert(
 
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id,
             AttendanceMonth.month == month,
         )
     )
@@ -298,7 +298,7 @@ async def get_monthly(
     m = _parse_month(month)
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id,
             AttendanceMonth.month == m,
         )
     )
@@ -397,7 +397,7 @@ async def unlock_month(
     m = _parse_month(month)
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
-            AttendanceMonth.tenant_id == ctx.tenant_id, AttendanceMonth.client_id == ctx.client_id,
+            AttendanceMonth.tenant_id == ctx.tenant_id,
             AttendanceMonth.month == m,
         )
     )

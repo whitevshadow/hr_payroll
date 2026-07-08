@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { employeesApi } from "../api/employees";
 import { salaryApi } from "../api/salary";
@@ -280,8 +281,8 @@ export function Salary() {
                     <div className="text-xs font-semibold text-slate-600 mb-2">Components:</div>
                     {tpl.template_components.map((c: any, i: number) => (
                       <div key={i} className="flex justify-between text-xs">
-                        <span className="text-slate-500">{c.component_name}</span>
-                        <span className="font-medium text-slate-700">{c.calculation_type === "PERCENTAGE_OF_BASIC" ? `${c.value}% Basic` : c.calculation_type === "PERCENTAGE_OF_CTC" ? `${c.value}% CTC` : `₹${c.value}`}</span>
+                        <span className="text-slate-500">{c.name}</span>
+                        <span className="font-medium text-slate-700">{c.value_type === "PERCENTAGE" && c.percentage_of === "BASIC" ? `${c.value}% Basic` : c.value_type === "PERCENTAGE" && c.percentage_of === "CTC" ? `${c.value}% CTC` : `₹${c.value}`}</span>
                       </div>
                     ))}
                   </div>
@@ -339,9 +340,9 @@ function TemplateModal({ clientId, onClose }: { clientId: string | null; onClose
             client_id: clientId || undefined,
             is_active: true,
             template_components: [
-              { component_name: "Basic", calculation_type: "PERCENTAGE_OF_CTC", value: 40 },
-              { component_name: "HRA", calculation_type: "PERCENTAGE_OF_BASIC", value: 50 },
-              { component_name: "Special Allowance", calculation_type: "FLAT_AMOUNT", value: 0 }
+              { name: "Basic", value_type: "PERCENTAGE", percentage_of: "CTC", value: 40 },
+              { name: "HRA", value_type: "PERCENTAGE", percentage_of: "BASIC", value: 50 },
+              { name: "Special Allowance", value_type: "FIXED", percentage_of: null, value: 0 }
             ]
           });
         }}

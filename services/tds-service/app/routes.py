@@ -288,7 +288,7 @@ async def submit_versioned_declaration(
 ):
     current = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id,
             EmployeeDeclaration.employee_id == body.employee_id,
             EmployeeDeclaration.tax_year == body.tax_year,
         )
@@ -367,7 +367,7 @@ async def decide_proof(
     session: AsyncSession = Depends(get_session),
 ):
     row = await session.scalar(
-        select(ProofDocument).where(ProofDocument.tenant_id == ctx.tenant_id, ProofDocument.client_id == ctx.client_id, ProofDocument.id == proof_id)
+        select(ProofDocument).where(ProofDocument.tenant_id == ctx.tenant_id, ProofDocument.id == proof_id)
     )
     if not row:
         raise HTTPException(status_code=404, detail="Proof not found")
@@ -473,7 +473,7 @@ async def get_employee_overview(
 
     existing_decl = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id,
             EmployeeDeclaration.employee_id == employee_id,
             EmployeeDeclaration.tax_year == tax_year,
         )
@@ -551,7 +551,7 @@ async def get_declarations(
 
     decl = await session.scalar(
         select(EmployeeDeclaration).where(
-            EmployeeDeclaration.tenant_id == ctx.tenant_id, EmployeeDeclaration.client_id == ctx.client_id,
+            EmployeeDeclaration.tenant_id == ctx.tenant_id,
             EmployeeDeclaration.employee_id == employee_id,
             EmployeeDeclaration.tax_year == tax_year,
         )
@@ -614,7 +614,7 @@ async def auto_compute_tds(
     # Ensure a tax profile exists
     existing_profile = await session.scalar(
         select(EmployeeTaxProfile).where(
-            EmployeeTaxProfile.tenant_id == ctx.tenant_id, EmployeeTaxProfile.client_id == ctx.client_id,
+            EmployeeTaxProfile.tenant_id == ctx.tenant_id,
             EmployeeTaxProfile.employee_id == body.employee_id,
             EmployeeTaxProfile.status == "ACTIVE",
         )

@@ -50,7 +50,7 @@ async def create_cycle(
     cycle = PayrollCycle(
         tenant_id=ctx.tenant_id,
         name=body.name,
-        client_id=body.client_id,
+        client_id=body.client_id or ctx.client_id,
         financial_year=body.financial_year,
         period_start=body.period_start,
         period_end=body.period_end,
@@ -71,7 +71,7 @@ async def list_cycles(
     client_id: uuid.UUID | None = None,
     financial_year: str | None = None,
 ):
-    q = select(PayrollCycle).where(PayrollCycle.tenant_id == ctx.tenant_id, PayrollCycle.client_id == ctx.client_id)
+    q = select(PayrollCycle).where(PayrollCycle.tenant_id == ctx.tenant_id)
     if client_id:
         q = q.where(PayrollCycle.client_id == client_id)
     if financial_year:
@@ -182,7 +182,7 @@ async def cycle_summary(
     rows = list(
         await session.scalars(
             select(PayrollResult).where(
-                PayrollResult.tenant_id == ctx.tenant_id, PayrollResult.client_id == ctx.client_id,
+                PayrollResult.tenant_id == ctx.tenant_id,
                 PayrollResult.cycle_id == cycle_id,
             )
         )

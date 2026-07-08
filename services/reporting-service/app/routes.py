@@ -29,20 +29,26 @@ def _bearer(request: Request) -> str:
     return auth.split(" ", 1)[1]
 
 
-async def _fetch_result(token: str, cycle_id, employee_id) -> dict:
+async def _fetch_result(token: str, cycle_id, employee_id, client_id: str | None = None) -> dict:
     url = f"{settings.payroll_url}/api/v1/payroll/results/{cycle_id}/{employee_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    if client_id:
+        headers["x-client-id"] = client_id
     async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.get(url, headers={"Authorization": f"Bearer {token}"})
+        resp = await http.get(url, headers=headers)
     if resp.status_code == 404:
         raise HTTPException(status_code=404, detail="Payroll result not found")
     resp.raise_for_status()
     return resp.json()
 
 
-async def _fetch_cycle(token: str, cycle_id) -> dict:
+async def _fetch_cycle(token: str, cycle_id, client_id: str | None = None) -> dict:
     url = f"{settings.payroll_url}/api/v1/payroll/cycles/{cycle_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    if client_id:
+        headers["x-client-id"] = client_id
     async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.get(url, headers={"Authorization": f"Bearer {token}"})
+        resp = await http.get(url, headers=headers)
     resp.raise_for_status()
     return resp.json()
 
@@ -62,14 +68,15 @@ async def generate_payslips(
 ):
     """Generate + persist a payslip per employee for a cycle, uploaded to MinIO."""
     token = _bearer(request)
-    cycle = await _fetch_cycle(token, body.cycle_id)
+    client_id = str(ctx.client_id) if ctx.client_id else None
+    cycle = await _fetch_cycle(token, body.cycle_id, client_id)
     generated = 0
     
     async with httpx.AsyncClient(timeout=30.0) as http:
         for employee_id in body.employee_ids:
             try:
                 # 1. Fetch data and render HTML
-                result = await _fetch_result(token, body.cycle_id, employee_id)
+                result = await _fetch_result(token, body.cycle_id, employee_id, client_id)
                 html = _render(result, cycle)
                 
                 # 2. Generate PDF via weasyprint
@@ -103,7 +110,7 @@ async def generate_payslips(
             # 4. Save to Database
             existing = await session.scalar(
                 select(GeneratedReport).where(
-                    GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
+                    GeneratedReport.tenant_id == ctx.tenant_id,
                     GeneratedReport.cycle_id == body.cycle_id,
                     GeneratedReport.employee_id == uuid.UUID(str(employee_id)),
                 )
@@ -145,7 +152,7 @@ async def get_payslip(
     
     existing = await session.scalar(
         select(GeneratedReport).where(
-            GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
+            GeneratedReport.tenant_id == ctx.tenant_id,
             GeneratedReport.cycle_id == cycle_id,
             GeneratedReport.employee_id == employee_id,
             GeneratedReport.status == "COMPLETED"
@@ -180,7 +187,7 @@ async def bulk_download_payslips(
     token = _bearer(request)
     
     stmt = select(GeneratedReport).where(
-        GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id,
+        GeneratedReport.tenant_id == ctx.tenant_id,
         GeneratedReport.cycle_id == cycle_id,
         GeneratedReport.report_type == "PAYSLIP",
         GeneratedReport.status == "COMPLETED"
@@ -224,7 +231,7 @@ async def list_generated(
     cycle_id: uuid.UUID | None = None,
     report_type: str | None = None,
 ):
-    stmt = select(GeneratedReport).where(GeneratedReport.tenant_id == ctx.tenant_id, GeneratedReport.client_id == ctx.client_id)
+    stmt = select(GeneratedReport).where(GeneratedReport.tenant_id == ctx.tenant_id)
     if cycle_id:
         stmt = stmt.where(GeneratedReport.cycle_id == cycle_id)
     if report_type:

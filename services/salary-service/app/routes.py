@@ -57,7 +57,7 @@ async def create_template(
         template_name=body.template_name,
         description=body.description,
         is_active=body.is_active,
-        template_components=[c.model_dump() for c in body.template_components],
+        template_components=[c.model_dump(mode="json") for c in body.template_components],
     )
     session.add(tpl)
     await session.commit()
@@ -174,7 +174,7 @@ async def get_active_structure(
 ):
     structure = await session.scalar(
         select(SalaryStructure).where(
-            SalaryStructure.tenant_id == ctx.tenant_id, SalaryStructure.client_id == ctx.client_id,
+            SalaryStructure.tenant_id == ctx.tenant_id,
             SalaryStructure.employee_id == employee_id,
             SalaryStructure.is_active.is_(True),
         )
@@ -194,7 +194,7 @@ async def get_structure_history(
     structures = list(await session.scalars(
         select(SalaryStructure)
         .where(
-            SalaryStructure.tenant_id == ctx.tenant_id, SalaryStructure.client_id == ctx.client_id,
+            SalaryStructure.tenant_id == ctx.tenant_id,
             SalaryStructure.employee_id == employee_id,
         )
         .order_by(SalaryStructure.effective_from.desc())
