@@ -49,7 +49,8 @@ def _parse_month(value: str) -> date:
 
 def _calc(total: int, present: Decimal, cl: Decimal, sl: Decimal, pl: Decimal,
           wo: Decimal, holiday: Decimal, wfh: Decimal):
-    lop = Decimal(total) - present - cl - sl - pl - wo - holiday
+    # WFH is a working day, not loss-of-pay — it must be subtracted like present.
+    lop = Decimal(total) - present - cl - sl - pl - wo - holiday - wfh
     lop = max(Decimal("0"), lop)
     payable = Decimal(total) - lop
     pct = (present / Decimal(total) * 100).quantize(Decimal("0.01")) if total else Decimal("0")

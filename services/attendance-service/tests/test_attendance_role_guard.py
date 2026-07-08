@@ -365,3 +365,15 @@ async def test_written_record_carries_client_id_and_is_readable(client: AsyncCli
     assert r.status_code == 200, r.text
     assert r.json()["client_id"] == CLIENT_ID
     assert Decimal(str(r.json()["lop_days"])) == Decimal("1")
+
+
+@pytest.mark.asyncio
+async def test_wfh_days_are_not_counted_as_lop(client: AsyncClient):
+    # 20 present + 4 week-offs + 6 WFH = 30 accounted days -> LOP must be 0.
+    # Before the fix WFH was omitted from the LOP formula, so this employee was
+    # docked 6 days of pay for working from home.
+    body = {**_MANUAL_BODY, "present_days": 20, "wfh_days": 6}
+    w = await client.post("/api/v1/attendance/manual", json=body, headers=CLIENT_HDR)
+    assert w.status_code == 200, w.text
+    assert Decimal(str(w.json()["lop_days"])) == Decimal("0")
+    assert Decimal(str(w.json()["payable_days"])) == Decimal("30")
