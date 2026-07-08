@@ -144,7 +144,11 @@ class TaxLawRegistry:
                         name="NEW",
                         standard_deduction=D("75000"),
                         cess_rate=D("0.04"),
-                        rebate=RebateRule(threshold=D("0"), amount=D("0")),
+                        # s.87A rebate: no tax up to Rs.12,00,000 taxable income
+                        # under the new regime. Tax on Rs.12L = 5%*4L + 10%*4L =
+                        # 60,000, which the rebate cancels exactly.
+                        # VERIFY against current government notification.
+                        rebate=RebateRule(threshold=D("1200000"), amount=D("60000")),
                         slabs=(
                             Slab(D("0"), D("400000"), D("0.00")),
                             Slab(D("400000"), D("800000"), D("0.05")),
