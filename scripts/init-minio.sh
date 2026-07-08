@@ -20,8 +20,8 @@ set -eu
 
 MINIO_INTERNAL_ENDPOINT="${MINIO_INTERNAL_ENDPOINT:-minio:9000}"
 ALIAS="platform"
-POLICY_NAME="blobstore-policy"
-POLICY_FILE="/tmp/blobstore-policy.json"
+POLICY_NAME="blobstore-policy-v2"
+POLICY_FILE="/tmp/blobstore-policy-v2.json"
 
 # ── Wait for MinIO ────────────────────────────────────────────────────────────
 
@@ -51,6 +51,7 @@ cat > "${POLICY_FILE}" << 'EOF'
         "s3:ListAllMyBuckets",
         "s3:CreateBucket",
         "s3:ListBucket",
+        "s3:GetBucketLocation",
         "s3:ListBucketVersions",
         "s3:GetBucketVersioning",
         "s3:PutBucketVersioning",
