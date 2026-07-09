@@ -97,10 +97,24 @@ async def compute(
     )
 
     if not settings_obj:
-        # Default fallback if no settings found
+        # No configured settings for this tenant/client/state. Fall back to the
+        # statutory defaults. These mirror the model column defaults, which are
+        # NOT applied to a transient (un-flushed) object — building a bare
+        # ComplianceSetting left every *_enabled flag None, so PF/ESI/PT were
+        # all silently skipped and everyone got zero statutory deductions.
         settings_obj = ComplianceSetting(
             tenant_id=ctx.tenant_id,
             state="ALL",
+            pf_enabled=True,
+            pf_employer_rate=Decimal("12"),
+            pf_employee_rate=Decimal("12"),
+            pf_wage_limit=Decimal("15000"),
+            esi_enabled=True,
+            esi_employer_rate=Decimal("3.25"),
+            esi_employee_rate=Decimal("0.75"),
+            esi_wage_limit=Decimal("21000"),
+            pt_enabled=True,
+            lwf_enabled=False,
         )
 
     # Clean old data for this cycle
