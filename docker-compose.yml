@@ -58,6 +58,7 @@ services:
     environment:
       <<: *common-env
       DB_SCHEMA: salary_schema
+      TDS_URL: http://tds-service:8007
     depends_on: *depends-on-db
 
   attendance-service:

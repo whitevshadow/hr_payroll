@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from hr_shared import RequestContext
+from hr_shared import RequestContext, create_access_token
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -244,9 +244,23 @@ async def _notify_tds(ctx: RequestContext, structure_out: StructureOut) -> None:
         "hra_monthly": str(bd.hra),
         "is_metro": bd.is_metro,
     }
+    # The auto-compute endpoint requires a JWT bearer + x-client-id (it derives
+    # tenant from the verified token). A bare x-tenant-id/x-user-id header call
+    # was rejected with 401 and silently swallowed, so TDS was never populated.
+    # Mint a short-lived token carrying the caller's identity and forward the
+    # client scope.
+    token = create_access_token(
+        user_id=ctx.user_id,
+        tenant_id=ctx.tenant_id,
+        roles=ctx.roles,
+        secret=settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+        minutes=5,
+        email=ctx.email,
+    )
     headers = {
-        "x-tenant-id": str(ctx.tenant_id),
-        "x-user-id": str(ctx.user_id),
+        "Authorization": f"Bearer {token}",
+        "x-client-id": str(ctx.client_id) if ctx.client_id else "",
     }
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
