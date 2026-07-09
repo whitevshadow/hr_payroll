@@ -180,8 +180,21 @@ async def run_cycle(
     session: AsyncSession, ctx, token: str, cycle: PayrollCycle
 ) -> dict:
     trace_id = uuid.uuid4()
+    # Row-lock the cycle and re-read its status so the guard below is atomic
+    # across concurrent run requests. Without this, two callers could both read
+    # a DRAFT cycle, both pass the transition check, and double-process. On
+    # Postgres this is SELECT ... FOR UPDATE; on SQLite (tests) it is a no-op.
+    locked = await session.scalar(
+        select(PayrollCycle)
+        .where(PayrollCycle.id == cycle.id)
+        .with_for_update()
+    )
+    if locked is not None:
+        cycle = locked
     cycle.trace_id = trace_id
-    # DRAFT/COMPUTED/FAILED -> LOCKED -> COMPUTING
+    # DRAFT/COMPUTED/FAILED -> LOCKED -> COMPUTING. The second concurrent run
+    # observes COMPUTING here and assert_transition raises 409 instead of
+    # re-processing.
     state.assert_transition(cycle.status, state.LOCKED)
     cycle.status = state.LOCKED
     state.assert_transition(cycle.status, state.COMPUTING)

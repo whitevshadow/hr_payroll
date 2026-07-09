@@ -5,9 +5,13 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from hr_shared import TenantAwareBase
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+# Postgres uses JSONB in production; SQLite (unit tests) falls back to plain
+# JSON. with_variant leaves the Postgres DDL unchanged.
+_JSONB = JSONB().with_variant(JSON(), "sqlite")
 
 
 # Separate base for notification_schema so it lands in the right schema.
@@ -65,6 +69,6 @@ class PayrollResult(TenantAwareBase):
     gross_earnings: Mapped[Decimal] = mapped_column(M, default=0)
     total_deductions: Mapped[Decimal] = mapped_column(M, default=0)
     net_pay: Mapped[Decimal] = mapped_column(M, default=0)
-    breakdown_json: Mapped[dict] = mapped_column(JSONB, default=dict)
+    breakdown_json: Mapped[dict] = mapped_column(_JSONB, default=dict)
     status: Mapped[str] = mapped_column(String(20), default="COMPUTED")
     error: Mapped[str | None] = mapped_column(String(500))
