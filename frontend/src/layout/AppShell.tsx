@@ -43,7 +43,7 @@ import {
   Clock,
   Umbrella,
 } from "lucide-react";
-import { useAuth } from "../lib/auth";
+import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
 import { Z } from "../lib/zIndex";
 import { notificationsApi } from "../api/notifications";
@@ -881,7 +881,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   usePayrollSSE({
-    token: user ? localStorage.getItem("token") : null,
+    token: user ? getToken() : null,
     onStatusChange: setSseStatus,
   });
 
