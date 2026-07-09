@@ -460,6 +460,7 @@ def compute_overview(
     hra_monthly: Decimal,
     is_metro: bool = False,
     declarations: dict[str, Decimal] | None = None,
+    approved_proofs: dict[str, bool] | None = None,
     salary_payment_date: date | None = None,
 ) -> dict[str, Any]:
     """Full employee tax overview for the UI dashboard.
@@ -473,11 +474,11 @@ def compute_overview(
     monthly_gross = money(ctc / Decimal("12"))
     decl = declarations or {}
 
-    # If no explicit approved_proofs provided, assume all declared items are self-attested
-    proofs: dict[str, bool] = {}
-    for key in ("80C", "80CCD_1B", "80D", "HRA", "PROFESSIONAL_TAX"):
-        if key in decl and decl[key] > 0:
-            proofs[key] = True
+    # A deduction is granted only where an approved proof exists. Previously
+    # every declared section was auto-approved, so the old-regime projection
+    # counted unverified investments and understated the tax (and thus the
+    # monthly TDS) shown on the dashboard.
+    proofs: dict[str, bool] = dict(approved_proofs) if approved_proofs else {}
 
     comparison = compare_regimes(
         salary_payment_date=payment_date,

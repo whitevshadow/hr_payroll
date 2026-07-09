@@ -511,8 +511,25 @@ async def get_employee_overview(
 
     # Auto-populate EPF from basic (12% of annual basic, capped at 80C limit)
     epf_annual = basic_monthly * 12 * Decimal("0.12")
+    epf_used_for_80c = False
     if "80C" not in decl_declarations or decl_declarations["80C"] == 0:
         decl_declarations["80C"] = min(epf_annual, Decimal("150000"))
+        epf_used_for_80c = True
+
+    # Only deductions backed by an APPROVED proof reduce the projection. EPF is
+    # employer-deducted PF and is inherently verified, so its 80C portion counts.
+    approved_types = set(await session.scalars(
+        select(ProofDocument.proof_type).where(
+            ProofDocument.tenant_id == ctx.tenant_id,
+            ProofDocument.employee_id == employee_id,
+            ProofDocument.tax_year == tax_year,
+            ProofDocument.status == "APPROVED",
+        )
+    ))
+    sections = ("80C", "80CCD_1B", "80D", "HRA", "PROFESSIONAL_TAX")
+    approved_proofs = {s: True for s in sections if s in approved_types}
+    if epf_used_for_80c:
+        approved_proofs["80C"] = True
 
     overview = compute_overview(
         ctc=ctc,
@@ -520,6 +537,7 @@ async def get_employee_overview(
         hra_monthly=hra_monthly,
         is_metro=is_metro,
         declarations=decl_declarations,
+        approved_proofs=approved_proofs,
     )
 
     # Include salary and declaration details for the frontend

@@ -3,7 +3,7 @@
 from decimal import Decimal
 from datetime import date
 
-from app.logic import REGISTRY, compute_annual_tds, compute_tds
+from app.logic import REGISTRY, compute_annual_tds, compute_overview, compute_tds
 
 
 def D(x):
@@ -103,6 +103,24 @@ def test_annual_projection_allocates_remaining_tax_monthly():
     assert r["remaining_tax"] == D("283500.00")
     assert r["monthly_tds"] == D("94500.00")
     assert r["tax_trace"]["monthly_allocation"]["remaining_payroll_months"] == 3
+
+
+def test_overview_only_deducts_approved_proofs():
+    # Old regime, 80C declared at the 150000 cap.
+    common = dict(
+        ctc=D("1200000"),
+        basic_monthly=D("40000"),
+        hra_monthly=D("0"),
+        declarations={"80C": D("150000")},
+        salary_payment_date=date(2026, 4, 30),
+    )
+    # Unapproved: the declared 80C must NOT reduce taxable income.
+    unapproved = compute_overview(**common)
+    assert unapproved["old_regime"]["taxable_income"] == "1150000.00"
+
+    # Approved: the same 80C now reduces taxable income by 150000.
+    approved = compute_overview(**common, approved_proofs={"80C": True})
+    assert approved["old_regime"]["taxable_income"] == "1000000.00"
 
 
 def test_trace_hash_is_deterministic_for_same_inputs():
