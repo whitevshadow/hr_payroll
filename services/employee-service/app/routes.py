@@ -277,6 +277,7 @@ async def bulk_import_employees(
             matched_loc = loc_map.get(loc_key)
             emp = Employee(
                 tenant_id=ctx.tenant_id,
+                client_id=ctx.client_id,
                 emp_code=p["code"],
                 first_name=p["fname"],
                 last_name=p["lname"],
