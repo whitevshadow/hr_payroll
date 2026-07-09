@@ -368,12 +368,24 @@ async def test_written_record_carries_client_id_and_is_readable(client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_wfh_days_are_not_counted_as_lop(client: AsyncClient):
-    # 20 present + 4 week-offs + 6 WFH = 30 accounted days -> LOP must be 0.
-    # Before the fix WFH was omitted from the LOP formula, so this employee was
-    # docked 6 days of pay for working from home.
-    body = {**_MANUAL_BODY, "present_days": 20, "wfh_days": 6}
+async def test_wfh_is_included_in_present_not_lop(client: AsyncClient):
+    # The grid counts a WFH day as present, so present_days already includes the
+    # 6 WFH days: 26 present (20 office + 6 WFH) + 4 week-offs = 30 -> LOP 0.
+    # _calc must NOT subtract wfh again (that would double-count it).
+    body = {**_MANUAL_BODY, "present_days": 26, "wfh_days": 6}
     w = await client.post("/api/v1/attendance/manual", json=body, headers=CLIENT_HDR)
     assert w.status_code == 200, w.text
     assert Decimal(str(w.json()["lop_days"])) == Decimal("0")
     assert Decimal(str(w.json()["payable_days"])) == Decimal("30")
+
+
+@pytest.mark.asyncio
+async def test_absent_days_are_lop_even_with_wfh(client: AsyncClient):
+    # 20 office + 4 WFH (all in present_days=24) + 4 week-offs = 28 accounted;
+    # the remaining 2 days are absent -> LOP 2. The double-subtract regression
+    # would have wrongly reported LOP 0 and paid the absent days.
+    body = {**_MANUAL_BODY, "present_days": 24, "wfh_days": 4, "wo_days": 4}
+    w = await client.post("/api/v1/attendance/manual", json=body, headers=CLIENT_HDR)
+    assert w.status_code == 200, w.text
+    assert Decimal(str(w.json()["lop_days"])) == Decimal("2")
+    assert Decimal(str(w.json()["payable_days"])) == Decimal("28")
