@@ -40,6 +40,32 @@ def test_tds_above_rebate_threshold_is_taxed():
     assert r["regime_applied"] == "NEW"
 
 
+def test_surcharge_applied_above_50L():
+    # monthly_gross 600000 -> annual 7,200,000; taxable 7,125,000 (50L-1cr band
+    # -> 10% surcharge).
+    #   slab tax                              = 1,717,500
+    #   surcharge = 10% * 1,717,500           =   171,750
+    #   cess      = 4% * (1,717,500+171,750)  =    75,570
+    #   annual_tax                            = 1,964,820
+    r = compute_tds(D("600000"))
+    assert r["taxable_income"] == D("7125000.00")
+    assert r["tax_trace"]["surcharge"]["amount"] == "171750.00"
+    assert r["tax_trace"]["surcharge"]["rate"] == "0.10"
+    assert r["annual_tax"] == D("1964820.00")
+
+
+def test_no_surcharge_at_or_below_50L():
+    # taxable exactly 50L -> no surcharge (applies only ABOVE the threshold).
+    r = compute_annual_tds(
+        salary_payment_date=date(2026, 4, 30),
+        monthly_gross=D("0"),
+        fixed_pay=D("5075000"),  # taxable = 5,075,000 - 75,000 = 5,000,000
+        tax_regime="NEW",
+    )
+    assert r["taxable_income"] == D("5000000.00")
+    assert r["tax_trace"]["surcharge"]["amount"] == "0.00"
+
+
 def test_tds_zero_below_threshold():
     # monthly 20000 -> annual 240000, taxable 165000, all in 0% slab.
     r = compute_tds(D("20000"))

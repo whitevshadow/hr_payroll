@@ -231,6 +231,25 @@ def cap(value: Decimal, limit: Decimal) -> Decimal:
     return money(min(max(value, Decimal("0")), limit))
 
 
+# Surcharge on the income tax, keyed by taxable income. Applies above Rs.50L.
+# The new regime caps the top rate at 25% (the 37% band was withdrawn for it).
+# Marginal relief is not modelled. VERIFY against current government notification.
+_SURCHARGE_BANDS: tuple[tuple[Decimal, Decimal], ...] = (
+    (D("5000000"), D("0.00")),
+    (D("10000000"), D("0.10")),
+    (D("20000000"), D("0.15")),
+    (D("50000000"), D("0.25")),
+)
+
+
+def surcharge_rate(taxable_income: Decimal, regime_name: str) -> Decimal:
+    for upper, rate in _SURCHARGE_BANDS:
+        if taxable_income <= upper:
+            return rate
+    # Above Rs.5 crore.
+    return D("0.25") if regime_name == "NEW" else D("0.37")
+
+
 def compute_annual_tds(
     *,
     salary_payment_date: date,
@@ -301,7 +320,8 @@ def compute_annual_tds(
 
     relief = min(tax_after_rebate, money(relief_89))
     tax_after_relief = money(max(Decimal("0"), tax_after_rebate - relief))
-    surcharge = Decimal("0.00")  # Registry hook; no surcharge thresholds configured yet.
+    sc_rate = surcharge_rate(taxable_income, regime_name)
+    surcharge = money(tax_after_relief * sc_rate)
     cess = money((tax_after_relief + surcharge) * regime.cess_rate)
     annual_tax = money(tax_after_relief + surcharge + cess)
 
@@ -332,7 +352,7 @@ def compute_annual_tds(
             "amount": str(money(rebate)),
             "threshold": str(regime.rebate.threshold) if regime.rebate else None,
         },
-        "surcharge": {"amount": str(money(surcharge)), "trace": []},
+        "surcharge": {"amount": str(money(surcharge)), "rate": str(sc_rate), "trace": []},
         "relief": {"section_89": str(money(relief))},
         "cess": {"rate": str(regime.cess_rate), "amount": str(cess)},
         "annual_tax": str(annual_tax),
