@@ -656,7 +656,7 @@ export function Attendance() {
         total_days: totalDays,
         present_days: s.present,
         cl_days: s.cl, sl_days: s.sl, pl_days: s.pl,
-        wo_days: s.wo, holiday_days: s.holiday, wfh_days: s.wfh,
+        lop_days: s.lop, wo_days: s.wo, holiday_days: s.holiday, wfh_days: s.wfh,
         daily_status: r.days.join(","),
       };
     });
