@@ -11,7 +11,7 @@ from .auth import (
 )
 from .money import Money, money, ZERO
 from .audit import AuditBase, AuditLog, audit_log, ensure_audit_schema
-from .crypto import EncryptedString, mask_pan, mask_bank_account
+from .crypto import EncryptedString, mask_pan, mask_bank_account, mask_aadhaar, mask_uan
 
 __all__ = [
     "TenantAwareBase",
@@ -33,4 +33,6 @@ __all__ = [
     "EncryptedString",
     "mask_pan",
     "mask_bank_account",
+    "mask_aadhaar",
+    "mask_uan",
 ]

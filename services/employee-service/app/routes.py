@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from hr_shared import RequestContext, audit_log
+from hr_shared import RequestContext, audit_log, mask_pan, mask_bank_account, mask_aadhaar, mask_uan
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +46,25 @@ router = APIRouter(prefix="/api/v1", tags=["employees"])
 # Role guards
 _admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN", get_ctx=get_client_context)
 _PRIVILEGED = ("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")
+
+# PII fields returned masked in list/detail responses; the raw value is only
+# obtainable through the audited pii-access endpoint. (bank_ifsc is a public
+# branch code, not treated as sensitive PII.)
+_PII_MASKERS = {
+    "pan_number": mask_pan,
+    "bank_account": mask_bank_account,
+    "aadhaar_number": mask_aadhaar,
+    "uan_number": mask_uan,
+}
+
+
+def _masked_employee(emp) -> EmployeeOut:
+    """Serialise an Employee with its sensitive PII fields masked."""
+    data = EmployeeOut.model_validate(emp).model_dump()
+    for field, masker in _PII_MASKERS.items():
+        if data.get(field):
+            data[field] = masker(data[field])
+    return EmployeeOut.model_validate(data)
 
 
 # ── Locations ─────────────────────────────────────────────────────────────────
@@ -386,7 +405,10 @@ async def list_employees(
     rows  = await session.scalars(
         base.order_by(Employee.emp_code).offset((page - 1) * page_size).limit(page_size)
     )
-    return EmployeePage(items=list(rows), total=total or 0, page=page, page_size=page_size)
+    return EmployeePage(
+        items=[_masked_employee(e) for e in rows],
+        total=total or 0, page=page, page_size=page_size,
+    )
 
 
 async def _resolve_my_employee(ctx: RequestContext, session: AsyncSession) -> Employee | None:
@@ -450,7 +472,7 @@ async def get_employee(
         mine = await _resolve_my_employee(ctx, session)
         if not mine or mine.id != employee_id:
             raise HTTPException(status_code=403, detail="Access denied")
-    return emp
+    return _masked_employee(emp)
 
 
 @router.put("/employees/{employee_id}", response_model=EmployeeOut)
@@ -483,7 +505,15 @@ class PIIAccessRequest(BaseModel):
     fields: list[str]
 
 
-@router.post("/employees/{employee_id}/pii-access", status_code=204)
+class PIIAccessResponse(BaseModel):
+    values: dict[str, str | None]
+
+
+# Fields whose unmasked value may be revealed through this audited endpoint.
+_REVEALABLE_FIELDS = {"pan_number", "bank_account", "aadhaar_number", "uan_number", "bank_ifsc"}
+
+
+@router.post("/employees/{employee_id}/pii-access", response_model=PIIAccessResponse)
 async def pii_access(
     employee_id: uuid.UUID,
     body: PIIAccessRequest,
@@ -491,14 +521,27 @@ async def pii_access(
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
+    """Return the unmasked value of specific PII fields, recording an audit event.
+
+    Detail/list responses mask PII; this is the only way to obtain the raw value,
+    so every access is authorised (privileged role or self) and logged.
+    """
     emp = await session.get(Employee, employee_id)
     if not emp or emp.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Employee not found")
+    if not any(r in ctx.roles for r in _PRIVILEGED):
+        mine = await _resolve_my_employee(ctx, session)
+        if not mine or mine.id != employee_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    fields = [f for f in body.fields if f in _REVEALABLE_FIELDS]
+    values = {f: getattr(emp, f) for f in fields}
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="PII_ACCESSED",
                     entity_type="employee", entity_id=str(employee_id),
-                    payload={"fields": body.fields, "ip": request.client.host if request.client else "unknown"},
+                    payload={"fields": fields, "ip": request.client.host if request.client else "unknown"},
                     actor_id=ctx.user_id)
     await session.commit()
+    return PIIAccessResponse(values=values)
 
 
 # ── Financial Years ───────────────────────────────────────────────────────────
