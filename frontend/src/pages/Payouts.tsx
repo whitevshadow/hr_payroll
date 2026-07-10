@@ -54,7 +54,11 @@ export function Payouts() {
   const txns = txnsQ.data ?? [];
   const success = txns.filter((t) => t.status === "SUCCESS").length;
   const failed = txns.filter((t) => t.status === "FAILED" || t.status === "MANUAL_REVIEW").length;
-  const total = txns.reduce((s, t) => s + parseFloat(t.amount || "0"), 0);
+  // "Total Disbursed" is the amount actually paid out — only SUCCESS txns.
+  // Failed / manual-review transactions were not disbursed.
+  const total = txns
+    .filter((t) => t.status === "SUCCESS")
+    .reduce((s, t) => s + parseFloat(t.amount || "0"), 0);
 
   
   if (!selectedClientId) {
@@ -218,7 +222,7 @@ export function Payouts() {
                   {(t.status === "FAILED" || t.status === "MANUAL_REVIEW") && (
                     <button
                       className="flex items-center gap-1 text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 disabled:opacity-50"
-                      disabled={retryMut.isPending}
+                      disabled={retryMut.isPending && retryMut.variables === t.id}
                       onClick={() => retryMut.mutate(t.id)}
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
