@@ -55,6 +55,11 @@ _HOP_BY_HOP = {
     "content-length",
 }
 
+# Identity headers the gateway derives itself. They are stripped from every
+# inbound request so a client can never spoof them (even on public paths where
+# no JWT is validated); the gateway re-adds the trusted values downstream.
+_IDENTITY_HEADERS = {"x-tenant-id", "x-user-id", "x-client-id"}
+
 
 @app.on_event("startup")
 async def _startup() -> None:
@@ -130,7 +135,7 @@ async def proxy(full_path: str, request: Request) -> Response:
 
     headers = {
         k: v for k, v in request.headers.items()
-        if k.lower() not in _HOP_BY_HOP
+        if k.lower() not in _HOP_BY_HOP and k.lower() not in _IDENTITY_HEADERS
     }
 
     # Validate JWT and inject x-tenant-id for protected paths.
@@ -149,22 +154,28 @@ async def proxy(full_path: str, request: Request) -> Response:
         headers["x-tenant-id"] = tenant_id
         headers["x-user-id"] = str(claims.get("sub", ""))
 
-        # A client-scoped request carries x-client-id. It is attacker-controlled,
-        # so verify the client actually belongs to the caller's tenant before
-        # forwarding it — otherwise a user could reference another tenant's
-        # client company. client-service itself is exempt (validating a lookup
-        # against itself would recurse), and its own tenant scoping still applies.
+        # A client-scoped request carries x-client-id. It was stripped above (it
+        # is attacker-controlled), so verify the client belongs to the caller's
+        # tenant and only then re-add it downstream — otherwise a user could
+        # reference another tenant's client company. client-service itself is
+        # exempt from the check (validating a lookup against itself would
+        # recurse); its own tenant scoping still applies, so its selector is
+        # forwarded as-is.
         client_id = request.headers.get("x-client-id")
-        if client_id and base != settings.client_url:
-            try:
-                uuid.UUID(client_id)
-            except ValueError:
-                return Response(content='{"detail":"Invalid x-client-id"}',
-                                status_code=400, media_type=_JSON)
-            if not await _client_belongs_to_tenant(tenant_id, client_id, auth):
-                return Response(
-                    content='{"detail":"Client not found for tenant"}',
-                    status_code=403, media_type=_JSON)
+        if client_id:
+            if base == settings.client_url:
+                headers["x-client-id"] = client_id
+            else:
+                try:
+                    uuid.UUID(client_id)
+                except ValueError:
+                    return Response(content='{"detail":"Invalid x-client-id"}',
+                                    status_code=400, media_type=_JSON)
+                if not await _client_belongs_to_tenant(tenant_id, client_id, auth):
+                    return Response(
+                        content='{"detail":"Client not found for tenant"}',
+                        status_code=403, media_type=_JSON)
+                headers["x-client-id"] = client_id
 
     body = await request.body()
     url = base + path
