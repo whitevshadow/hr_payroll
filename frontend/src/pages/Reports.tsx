@@ -49,6 +49,16 @@ export function Reports() {
         .then((r) => r.data as any[]),
   });
 
+  // The reporting backend has no financial-year filter, so scope by FY on the
+  // client via each report's cycle. activeFy is an FY id; cycles carry the FY
+  // name, so resolve id -> name first.
+  const activeFyName = fys.data?.find((f: any) => f.id === activeFy)?.name;
+  const cycleFy = new Map((cycles.data ?? []).map((c) => [c.id, c.financial_year]));
+  const fyCycles = (cycles.data ?? []).filter((c) => !activeFyName || c.financial_year === activeFyName);
+  const visibleReports = (reports.data ?? []).filter(
+    (r: any) => !activeFyName || cycleFy.get(r.cycle_id) === activeFyName,
+  );
+
   const generateMut = useMutation({
     mutationFn: (type: string) => api.post("/reports/generate", { report_type: type, cycle_id: activeCycle || undefined }).then(r => r.data),
     onSuccess: (data) => {
@@ -103,7 +113,7 @@ export function Reports() {
               <label className="label">Financial Year</label>
               <select className="input min-w-[120px]" value={activeFy} onChange={e => setFyId(e.target.value)}>
                 <option value="">All FYs</option>
-                {fys.data?.map((f: any) => <option key={f.id} value={f.id}>{f.year_label}</option>)}
+                {fys.data?.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
             <div>
@@ -114,7 +124,7 @@ export function Reports() {
                 onChange={(e) => setCycleId(e.target.value)}
               >
                 <option value="">All cycles</option>
-                {cycles.data?.map((c) => (
+                {fyCycles.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
@@ -185,10 +195,10 @@ export function Reports() {
                 {reports.isLoading && (
                   <tr><td colSpan={3}><FullPageSpinner /></td></tr>
                 )}
-                {!reports.isLoading && (reports.data?.length ?? 0) === 0 && (
+                {!reports.isLoading && visibleReports.length === 0 && (
                   <tr><td colSpan={3}><EmptyState title="No reports yet" description="Generate a report to get started." /></td></tr>
                 )}
-                {reports.data?.map((r: any) => (
+                {visibleReports.map((r: any) => (
                   <motion.tr
                     key={r.id}
                     initial={{ opacity: 0 }}

@@ -276,9 +276,17 @@ export function Dashboard() {
   });
 
   const cycles = cyclesQ.data ?? [];
-  const latestCycle = cycles.find((c) => c.status !== "DRAFT") as
-    | PayrollCycle
-    | undefined;
+  // The cycle the dashboard reports on, driven by the FY + Period selectors:
+  // within the selected FY (if any), prefer the cycle for the selected month,
+  // otherwise the most recent one. Falls back to the latest non-draft cycle.
+  const latestCycle = useMemo(() => {
+    const pool = cycles.filter(
+      (c) => c.status !== "DRAFT" && (!selectedFy || c.financial_year === selectedFy),
+    );
+    return (pool.find((c) => (c.period_start ?? "").slice(0, 7) === selectedPeriod)
+      ?? pool[0]
+      ?? cycles.find((c) => c.status !== "DRAFT")) as PayrollCycle | undefined;
+  }, [cycles, selectedFy, selectedPeriod]);
   const recentCycles = cycles.slice(0, 6).reverse();
 
   const summaryQ = useQuery({
@@ -410,9 +418,9 @@ export function Dashboard() {
                 value={selectedFy}
                 onChange={(e) => setParams(prev => { prev.set("fy", e.target.value); return prev; })}
               >
-                <option value="">Current FY</option>
+                <option value="">All / Current FY</option>
                 {fysQ.data?.map((f: any) => (
-                  <option key={f.id} value={f.id}>{f.year_label}</option>
+                  <option key={f.id} value={f.name}>{f.name}</option>
                 ))}
               </select>
             </div>
