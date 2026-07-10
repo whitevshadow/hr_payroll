@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Dev: proxy same-origin /api (the app's default base) to the local
+    // gateway, mirroring the nginx proxy used in the container image.
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
   },
 });

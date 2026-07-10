@@ -7,8 +7,11 @@ COPY package.json ./
 RUN cat package.json
 RUN npm install --legacy-peer-deps
 
-# Bake VITE_API_BASE at build time. Override with --build-arg if needed.
-ARG VITE_API_BASE=http://localhost:8000/api/v1
+# VITE_API_BASE is intentionally NOT baked to a fixed host: the app defaults to
+# a same-origin relative /api/v1 and nginx proxies it to the gateway, so the
+# image works on any host. Pass --build-arg VITE_API_BASE=... only for an
+# absolute-URL deployment.
+ARG VITE_API_BASE=""
 ENV VITE_API_BASE=$VITE_API_BASE
 
 COPY . .

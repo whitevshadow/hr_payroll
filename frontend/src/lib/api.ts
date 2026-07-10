@@ -1,8 +1,11 @@
 import axios from "axios";
 import { getToken, clearToken } from "./auth";
 
-const BASE =
-  (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8000/api/v1";
+// Default to a same-origin relative path: nginx proxies /api/ to the gateway,
+// so the built bundle works on any host. Override with VITE_API_BASE for local
+// dev against a gateway on a different origin. An empty value counts as unset.
+const _configuredBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+export const BASE = _configuredBase && _configuredBase.length > 0 ? _configuredBase : "/api/v1";
 
 export const api = axios.create({
   baseURL: BASE,

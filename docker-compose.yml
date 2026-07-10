@@ -238,8 +238,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_BASE: http://localhost:8000/api/v1
+      # No VITE_API_BASE: the app uses a same-origin /api/v1 and nginx proxies
+      # it to the gateway, so the image is not tied to localhost.
     ports:
       - "5173:80"    # nginx serves on :80 inside; exposed as 5173 outside
     depends_on:

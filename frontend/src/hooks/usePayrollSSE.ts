@@ -2,8 +2,9 @@ import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import { SSEPayrollEventSchema } from "../lib/schemas";
+import { BASE } from "../lib/api";
 
-const SSE_URL = `${import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api/v1"}/events/stream`;
+const SSE_URL = `${BASE}/events/stream`;
 
 // After this many consecutive failures stop auto-retrying; show a permanent
 // "disconnected" state so we don't spam a 404 endpoint every 3 seconds.
