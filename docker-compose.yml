@@ -22,8 +22,9 @@ services:
       POSTGRES_USER: hr
       POSTGRES_PASSWORD: hr
       POSTGRES_DB: hr_payroll
-    ports:
-      - "5432:5432"
+    # Not published to the host: services reach it over the compose network at
+    # postgres:5432, and the (hr/hr) credentials must not be exposed. For local
+    # DB access use `docker compose exec postgres psql -U hr hr_payroll`.
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -140,8 +141,9 @@ services:
       # Root credentials are intentionally absent here.
       MINIO_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
       MINIO_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
-    ports:
-      - "8011:8011"
+    # Not published to the host: all blob traffic goes through the gateway
+    # (/api/v1/blobs -> blobstore-service:8011 on the compose network), which is
+    # the auth chokepoint. Direct host access would bypass that.
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,8 +161,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
       MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
+      # 9000 (S3 API) stays published: the browser fetches presigned URLs
+      # (MINIO_PUBLIC_ENDPOINT=localhost:9000) directly, e.g. report downloads.
       - "9000:9000"
-      - "9001:9001"
+      # 9001 (admin console) is not published — reach it via `docker compose
+      # exec` or a temporary port-forward when debugging.
     volumes:
       - minio-data:/data
     healthcheck:
