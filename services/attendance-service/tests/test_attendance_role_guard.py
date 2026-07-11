@@ -139,10 +139,15 @@ _UNLOCK_BODY = {"reason": "Correction required"}
 # Role tokens
 # ---------------------------------------------------------------------------
 
-EMPLOYEE_HDR = {"Authorization": f"Bearer {_token(['EMPLOYEE'])}"}
-HR_MGR_HDR = {"Authorization": f"Bearer {_token(['HR_MANAGER'])}"}
-PAYROLL_HDR = {"Authorization": f"Bearer {_token(['PAYROLL_ADMIN'])}"}
-ORG_ADMIN_HDR = {"Authorization": f"Bearer {_token(['ORG_ADMIN'])}"}
+# Attendance is client-scoped: every endpoint (read and write) requires a client
+# context, so x-client-id rides along with the role token.
+DEFAULT_CLIENT = str(uuid.uuid4())
+_C = {"x-client-id": DEFAULT_CLIENT}
+
+EMPLOYEE_HDR = {"Authorization": f"Bearer {_token(['EMPLOYEE'])}", **_C}
+HR_MGR_HDR = {"Authorization": f"Bearer {_token(['HR_MANAGER'])}", **_C}
+PAYROLL_HDR = {"Authorization": f"Bearer {_token(['PAYROLL_ADMIN'])}", **_C}
+ORG_ADMIN_HDR = {"Authorization": f"Bearer {_token(['ORG_ADMIN'])}", **_C}
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +245,7 @@ async def _lock_month(db: AsyncSession) -> None:
     m = date(2026, 4, 1)
     ctrl = AttendanceMonth(
         tenant_id=TENANT_ID,
+        client_id=uuid.UUID(DEFAULT_CLIENT),
         month=m,
         status="LOCKED",
         locked_by=uuid.uuid4(),
@@ -248,9 +254,8 @@ async def _lock_month(db: AsyncSession) -> None:
     await db.commit()
 
 
-# Unlock requires client context (get_client_context), so x-client-id is
-# required in addition to an admin role.
-_UNLOCK_CLIENT = {"x-client-id": str(uuid.uuid4())}
+# The role headers already carry x-client-id (attendance is client-scoped).
+_UNLOCK_CLIENT: dict = {}
 
 
 @pytest.mark.asyncio
@@ -377,6 +382,40 @@ async def test_wfh_is_included_in_present_not_lop(client: AsyncClient):
     assert w.status_code == 200, w.text
     assert Decimal(str(w.json()["lop_days"])) == Decimal("0")
     assert Decimal(str(w.json()["payable_days"])) == Decimal("30")
+
+
+# ---------------------------------------------------------------------------
+# The monthly lock is per client company, not per tenant.
+# ---------------------------------------------------------------------------
+
+CLIENT_A = str(uuid.uuid4())
+CLIENT_B = str(uuid.uuid4())
+_A_HDR = {"Authorization": f"Bearer {_token(['PAYROLL_ADMIN'])}", "x-client-id": CLIENT_A}
+_B_HDR = {"Authorization": f"Bearer {_token(['PAYROLL_ADMIN'])}", "x-client-id": CLIENT_B}
+
+
+@pytest.mark.asyncio
+async def test_lock_is_scoped_to_one_client(client: AsyncClient):
+    """Locking April for client A must not freeze client B's April.
+
+    The control row used to be keyed by (tenant, month) only, so one client's
+    lock blocked attendance entry for every other client under the tenant.
+    """
+    emp_a = {**_MANUAL_BODY, "employee_id": str(uuid.uuid4())}
+    emp_b = {**_MANUAL_BODY, "employee_id": str(uuid.uuid4())}
+
+    assert (await client.post("/api/v1/attendance/manual", json=emp_a, headers=_A_HDR)).status_code == 200
+    lock = await client.post(f"/api/v1/attendance/monthly/{MONTH}/lock", json=_LOCK_BODY, headers=_A_HDR)
+    assert lock.status_code == 200, lock.text
+
+    # A is locked...
+    blocked = await client.post("/api/v1/attendance/manual", json=emp_a, headers=_A_HDR)
+    assert blocked.status_code == 409
+
+    # ...but B is untouched and can still record attendance for the same month.
+    ok = await client.post("/api/v1/attendance/manual", json=emp_b, headers=_B_HDR)
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["client_id"] == CLIENT_B
 
 
 @pytest.mark.asyncio

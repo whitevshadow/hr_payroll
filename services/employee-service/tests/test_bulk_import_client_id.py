@@ -78,6 +78,36 @@ def _hdr() -> dict:
 
 
 @pytest.mark.asyncio
+async def test_emp_code_is_unique_per_client_not_per_tenant(client: AsyncClient, db: AsyncSession):
+    """Two client companies under one tenant may each have an employee "E001".
+
+    The unique key used to be (tenant_id, emp_code), so the second client's E001
+    was rejected as a duplicate — unusable for a bureau where every client runs
+    its own code sequence.
+    """
+    other_client = uuid.uuid4()
+
+    def _hdr_for(cid: uuid.UUID) -> dict:
+        h = _hdr()
+        h["x-client-id"] = str(cid)
+        return h
+
+    body = {"emp_code": "E001", "first_name": "Asha", "last_name": "Rao"}
+
+    a = await client.post("/api/v1/employees", json=body, headers=_hdr_for(CLIENT_ID))
+    assert a.status_code == 201, a.text
+    b = await client.post("/api/v1/employees", json=body, headers=_hdr_for(other_client))
+    assert b.status_code == 201, b.text
+
+    rows = (await db.scalars(select(Employee).where(Employee.emp_code == "E001"))).all()
+    assert {e.client_id for e in rows} == {CLIENT_ID, other_client}
+
+    # ...but a duplicate within the SAME client is still rejected.
+    dup = await client.post("/api/v1/employees", json=body, headers=_hdr_for(CLIENT_ID))
+    assert dup.status_code == 409, dup.text
+
+
+@pytest.mark.asyncio
 async def test_bulk_import_persists_client_id(client: AsyncClient, db: AsyncSession):
     body = {
         "rows": [

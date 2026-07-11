@@ -42,7 +42,11 @@ class Location(TenantAwareBase):
 class Employee(TenantAwareBase):
     __tablename__ = "employees"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "emp_code", name="uq_emp_code"),
+        # Employee codes are unique per client company, not per tenant: a bureau
+        # serving several clients lets each run its own E001.. sequence. The
+        # previous (tenant_id, emp_code) key made the second client's E001 a
+        # duplicate.
+        UniqueConstraint("tenant_id", "client_id", "emp_code", name="uq_emp_code"),
     )
 
     emp_code: Mapped[str] = mapped_column(String(50), nullable=False)

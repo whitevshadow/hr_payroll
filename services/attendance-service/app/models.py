@@ -64,13 +64,19 @@ class AttendanceRecord(TenantAwareBase):
         }
 
 
+# The monthly control/lock record is per client company, not per tenant. Without
+# client_id, locking a month for one client locked it for every client under the
+# tenant, and the roll-up counts were computed across all clients' employees.
 class AttendanceMonth(TenantAwareBase):
     """Month-level control record — tracks DRAFT/VALIDATED/LOCKED state."""
     __tablename__ = "attendance_months"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "month", name="uq_att_control_month"),
+        UniqueConstraint("tenant_id", "client_id", "month", name="uq_att_control_month"),
     )
 
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
     month: Mapped[date] = mapped_column(Date, nullable=False)   # always 1st of month
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")
     total_employees: Mapped[int] = mapped_column(Integer, default=0)
