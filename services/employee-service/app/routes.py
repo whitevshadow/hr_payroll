@@ -566,7 +566,10 @@ async def create_financial_year(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
-    fy = FinancialYear(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
+    # A financial year is tenant-level: the statutory FY (1 Apr - 31 Mar) is the
+    # same for every client company under the tenant, so FinancialYear carries no
+    # client_id. Passing one raised TypeError and 500'd every call.
+    fy = FinancialYear(tenant_id=ctx.tenant_id, **body.model_dump())
     session.add(fy)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="FINANCIAL_YEAR_CREATED",
                     entity_type="financial_year", entity_id=body.name,
