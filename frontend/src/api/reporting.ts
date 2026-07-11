@@ -1,19 +1,34 @@
 import api from "../lib/api";
 
 export const reportingApi = {
-  getPayslipUrl: (cycleId: string, employeeId: string, inline: boolean = false) =>
+  /** Fetch the payslip PDF bytes through the gateway (same origin, bearer token).
+   *  We no longer ask for a presigned MinIO URL: the object store publishes no
+   *  host port, so the browser cannot reach one. */
+  getPayslipBlob: (cycleId: string, employeeId: string, inline: boolean = true) =>
     api
-      .get<{ url: string }>(`/reports/payslip/${cycleId}/${employeeId}`, {
+      .get(`/reports/payslip/${cycleId}/${employeeId}/pdf`, {
         params: { inline },
+        responseType: "blob",
       })
-      .then((r) => r.data),
+      .then((r) => r.data as Blob),
+
+  /** Open the payslip in a new tab (optionally triggering print).
+   *  Uses an object URL built from the authenticated fetch — window.open on a
+   *  presigned MinIO URL no longer works. */
+  openPayslip: async (cycleId: string, employeeId: string, print: boolean = false) => {
+    const blob = await reportingApi.getPayslipBlob(cycleId, employeeId, true);
+    const objectUrl = URL.createObjectURL(blob);
+    const win = window.open(objectUrl, "_blank");
+    if (print && win) {
+      win.addEventListener("load", () => win.print());
+    }
+    // Revoke late: the new tab still needs to load from this URL.
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  },
 
   // Use this for single payslip download
   downloadPayslipPdf: async (cycleId: string, employeeId: string) => {
-    const { url } = await reportingApi.getPayslipUrl(cycleId, employeeId, false);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to download PDF from storage");
-    const blob = await response.blob();
+    const blob = await reportingApi.getPayslipBlob(cycleId, employeeId, false);
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = objectUrl;

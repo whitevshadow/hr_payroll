@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Download, Printer, Filter, Eye, RefreshCw } from "lucide-react";
+import { Download, Printer, Eye, RefreshCw } from "lucide-react";
 import { useClientContext } from "../lib/ClientContext";
 import { clientsApi } from "../api/clients";
 import { payrollApi } from "../api/payroll";
@@ -25,7 +25,7 @@ export function AdminPayslips() {
 
   const employees = useQuery({
     queryKey: ["employees", selectedClientId],
-    queryFn: () => employeesApi.list({ client_id: selectedClientId || undefined, limit: 1000 }),
+    queryFn: () => employeesApi.list({ client_id: selectedClientId || undefined, page_size: 200 }),
     enabled: !!selectedClientId,
   });
 
@@ -54,7 +54,7 @@ export function AdminPayslips() {
 
   const displayResults = useMemo(() => {
     if (!summary.data) return [];
-    let results = summary.data.payroll_results;
+    let results = summary.data.results || [];
     if (selectedEmployeeId) {
       results = results.filter(r => r.employee_id === selectedEmployeeId);
     }
@@ -98,7 +98,7 @@ export function AdminPayslips() {
             }}
           >
             <option value="">All Clients</option>
-            {clients.data?.items.map((c) => (
+            {clients.data?.items?.map((c) => (
               <option key={c.id} value={c.id}>{c.client_name}</option>
             ))}
           </select>
@@ -142,7 +142,7 @@ export function AdminPayslips() {
             disabled={!selectedClientId}
           >
             <option value="">All Employees</option>
-            {employees.data?.items.map((emp) => (
+            {employees.data?.items?.map((emp) => (
               <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
             ))}
           </select>
@@ -153,7 +153,6 @@ export function AdminPayslips() {
         <EmptyState
           title="No cycle selected"
           description="Please select a payroll cycle to view payslips."
-          icon={Filter}
         />
       ) : summary.isLoading ? (
         <div className="card h-40 animate-pulse bg-slate-50 dark:bg-slate-800/50" />
@@ -161,7 +160,6 @@ export function AdminPayslips() {
         <EmptyState
           title="No payslips found"
           description="No payslips match your current filters."
-          icon={FileText}
         />
       ) : (
         <div className="card overflow-hidden">
@@ -176,15 +174,17 @@ export function AdminPayslips() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {displayResults.map((res) => {
-                  const emp = summary.data.employees?.find(e => e.id === res.employee_id);
+                  const apiEmp = employees.data?.items?.find(e => e.id === res.employee_id);
+                  const empName = apiEmp ? `${apiEmp.first_name} ${apiEmp.last_name}` : (res.breakdown_json?.employee?.name || res.employee_id);
+                  const empCode = apiEmp?.emp_code || res.breakdown_json?.employee?.emp_code || "";
                   const isFailed = res.status === "FAILED";
                   return (
                     <tr key={res.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                       <td className="p-4">
                         <div className="font-medium text-slate-900 dark:text-slate-100">
-                          {emp ? `${emp.first_name} ${emp.last_name}` : res.employee_id}
+                          {empName}
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">{emp?.employee_code}</div>
+                        {empCode && <div className="text-xs text-slate-500 mt-1">{empCode}</div>}
                       </td>
                       <td className="p-4">
                         <span className={clsx("font-numeric font-medium", isFailed ? "text-red-500" : "text-slate-900 dark:text-slate-100")}>
@@ -197,8 +197,7 @@ export function AdminPayslips() {
                             disabled={isFailed}
                             onClick={async () => {
                               try {
-                                const { url } = await reportingApi.getPayslipUrl(activeCycleId, res.employee_id, true);
-                                window.open(url, "_blank");
+                                await reportingApi.openPayslip(activeCycleId, res.employee_id);
                               } catch (e) {
                                 toastService.error("Failed to load payslip");
                               }
@@ -226,11 +225,7 @@ export function AdminPayslips() {
                             disabled={isFailed}
                             onClick={async () => {
                                try {
-                                const { url } = await reportingApi.getPayslipUrl(activeCycleId, res.employee_id, true);
-                                const printWindow = window.open(url, "_blank");
-                                printWindow?.addEventListener('load', () => {
-                                    printWindow.print();
-                                });
+                                await reportingApi.openPayslip(activeCycleId, res.employee_id, true);
                               } catch (e) {
                                 toastService.error("Failed to print payslip");
                               }

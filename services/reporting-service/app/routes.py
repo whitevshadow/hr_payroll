@@ -176,6 +176,53 @@ async def get_payslip(
         return {"url": data["url"]}
 
 
+@router.get("/payslip/{cycle_id}/{employee_id}/pdf")
+async def download_payslip_pdf(
+    cycle_id: uuid.UUID,
+    employee_id: uuid.UUID,
+    request: Request,
+    inline: bool = False,
+    ctx: RequestContext = Depends(get_client_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Stream the payslip PDF itself, rather than a presigned object-store URL.
+
+    The browser cannot reach MinIO (it publishes no host port), and an <iframe>
+    or <img> cannot carry an Authorization header — which is why the presigned
+    URL existed. Serving the bytes through the gateway keeps everything on one
+    origin: the client fetches this with its bearer token and renders the blob.
+    """
+    token = _bearer(request)
+
+    existing = await session.scalar(
+        select(GeneratedReport).where(
+            GeneratedReport.tenant_id == ctx.tenant_id,
+            GeneratedReport.cycle_id == cycle_id,
+            GeneratedReport.employee_id == employee_id,
+            GeneratedReport.status == "COMPLETED",
+        )
+    )
+    if not existing or not existing.file_path:
+        raise HTTPException(status_code=404, detail="Payslip not found or not generated")
+
+    async with httpx.AsyncClient(timeout=30.0) as http:
+        resp = await http.get(
+            f"{settings.blobstore_url}/api/v1/blobs/{existing.file_path}",
+            headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(ctx.tenant_id)},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="Failed to fetch payslip from storage")
+
+    disposition = "inline" if inline else "attachment"
+    return Response(
+        content=resp.content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'{disposition}; filename="payslip_{employee_id}.pdf"'
+        },
+    )
+
+
 @router.get("/payslips/bulk/{cycle_id}")
 async def bulk_download_payslips(
     cycle_id: uuid.UUID,
