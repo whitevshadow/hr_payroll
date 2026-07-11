@@ -103,6 +103,37 @@ persisted value.
 
 ---
 
+## Project layout
+
+```
+.
+├── services/               # one directory per microservice
+│   └── <name>-service/
+│       ├── app/            # main.py, routes.py, models.py, schemas.py,
+│       │                   # deps.py, settings.py  (+ logic.py where there
+│       │                   # is real domain maths)
+│       ├── tests/
+│       └── .env.example
+├── shared/hr_shared/       # cross-service library: auth, db, crypto,
+│                           # money, audit, config, service runtime
+├── frontend/               # React + TypeScript SPA (Vite, nginx in prod)
+├── scripts/                # operational scripts only (see below)
+├── tests/                  # cross-service end-to-end tests
+├── docs/                   # all documentation — start at docs/README.md
+├── docker-compose.yml      # the whole stack
+├── Dockerfile.service      # one image recipe, parameterised per service
+├── conftest.py             # shared pytest defaults
+└── pytest.ini
+```
+
+Every service follows the same internal shape, so once you can read one you can
+read them all. `scripts/` holds only what the stack or a human actually runs:
+`init-db.sql` / `init-minio.sh` (compose), `setup_env.py` (generate `.env`),
+`seed.py` (demo data), `generate_graph.py`, and the `trigger_*` dev helpers.
+
+**Documentation lives in [`docs/`](docs/README.md)** — including the codebase
+audit ([docs/ISSUES.md](docs/ISSUES.md)) and the manual test walkthrough.
+
 ## Architecture
 
 | Service | Port | Schema |
