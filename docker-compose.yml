@@ -126,6 +126,7 @@ services:
       <<: *common-env
       DB_SCHEMA: reporting_schema
       PAYROLL_URL: http://payroll-service:8006
+      BLOBSTORE_URL: http://blobstore-service:8011
       REPORTS_DIR: /app/reports
     depends_on: *depends-on-db
 

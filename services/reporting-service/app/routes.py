@@ -118,7 +118,7 @@ async def generate_payslips(
             if existing:
                 existing.status = status
                 existing.file_path = path
-                existing.blob_id = path
+                existing.blob_id = uuid.UUID(path) if path else None
             else:
                 session.add(
                     GeneratedReport(
@@ -144,7 +144,7 @@ async def get_payslip(
     employee_id: uuid.UUID,
     request: Request,
     inline: bool = False,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(get_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Fetch the MinIO presigned URL for the payslip blob."""
@@ -182,7 +182,7 @@ async def download_payslip_pdf(
     employee_id: uuid.UUID,
     request: Request,
     inline: bool = False,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(get_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Stream the payslip PDF itself, rather than a presigned object-store URL.
@@ -227,7 +227,7 @@ async def download_payslip_pdf(
 async def bulk_download_payslips(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(get_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Zip all generated payslips for a cycle and download."""
