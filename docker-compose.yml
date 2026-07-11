@@ -163,12 +163,10 @@ services:
       # origin must be the frontend's — not a wildcard, which would let any
       # site issue browser calls against the object store.
       MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-http://localhost:5173}
-    ports:
-      # 9000 (S3 API) stays published: the browser fetches presigned URLs
-      # (MINIO_PUBLIC_ENDPOINT=localhost:9000) directly, e.g. report downloads.
-      - "9000:9000"
-      # 9001 (admin console) is not published — reach it via `docker compose
-      # exec` or a temporary port-forward when debugging.
+    # Not published. The browser never talks to MinIO directly any more: blob
+    # downloads stream through the gateway (/api/v1/blobs/{id}), so no presigned
+    # URL — and therefore no object-store port — is exposed to the host.
+    # Debug with `docker compose exec` or a temporary port-forward.
     volumes:
       - minio-data:/data
     healthcheck:

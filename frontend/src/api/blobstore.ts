@@ -15,9 +15,11 @@ export const blobstoreApi = {
   },
 
   downloadUrl: (blobId: string) => `/api/v1/blobs/${blobId}`,
-  
-  getPresignedUrl: (blobId: string, inline: boolean = false) =>
-    api.get<{url: string}>(`/blobs/${blobId}/url`, { params: { inline } }).then(r => r.data),
-  
+
+  // NOTE: no getPresignedUrl here on purpose. Presigned URLs point straight at
+  // MinIO, which publishes no host port — the browser would not be able to
+  // reach them. Download blobs through the gateway instead (downloadUrl above,
+  // or api.get(`/blobs/${id}`, { responseType: "blob" })).
+
   delete: (blobId: string) => api.delete(`/blobs/${blobId}`).then((r) => r.data),
 };

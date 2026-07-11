@@ -23,7 +23,6 @@ import {
   RefreshCw,
   Users,
 } from "lucide-react";
-import { blobstoreApi } from "../api/blobstore";
 import { employeesApi } from "../api/employees";
 import clsx from "clsx";
 
@@ -68,10 +67,20 @@ export function Reports() {
     onError: (err) => toastService.error(extractErrorMessage(err)),
   });
 
+  // Stream the file through the gateway (same origin) rather than opening a
+  // presigned URL straight at MinIO: the browser then only ever talks to the
+  // frontend's own origin, and the object store needs no published port.
   const downloadBlob = async (blobId: string, type: string) => {
     try {
-      const res = await blobstoreApi.getPresignedUrl(blobId);
-      window.open(res.url, '_blank');
+      const res = await api.get(`/blobs/${blobId}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(res.data as Blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (e) {
       toastService.error("Could not download report file.");
     }

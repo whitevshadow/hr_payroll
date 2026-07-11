@@ -41,6 +41,29 @@ gateway (`http://localhost:8000`), and the frontend (`http://localhost:5173`).
 Each service creates its own tables on startup (V1 uses SQLAlchemy
 `create_all`; see the Alembic note under V2 roadmap).
 
+### How the browser reaches the backend
+
+**Everything the app needs is served from the frontend's own origin
+(`http://localhost:5173`).** The bundle calls a relative `/api/v1/...`, and nginx
+proxies `/api/` to the gateway on the compose network:
+
+```
+browser ──▶ localhost:5173  ──nginx /api/──▶  gateway:8000 ──▶ services
+   (SPA + API + SSE + file upload/download, all one origin — no CORS)
+```
+
+Consequences worth knowing:
+
+- **Nothing is hard-coded to `localhost`** in the built image, so it works on any
+  host. (Override with `VITE_API_BASE` only if you want an absolute API URL.)
+- **Blob uploads/downloads stream through the gateway** (`/api/v1/blobs/{id}`).
+  The browser never talks to MinIO, so the object store publishes **no host
+  port** — there are no presigned URLs pointing at it.
+- Only **three ports** are published: frontend `5173`, gateway `8000`, and
+  Postgres/MinIO/blobstore are internal-only. The gateway port stays open because
+  `scripts/seed.py`, the e2e test, and curl/Postman talk to it directly — the
+  browser does not need it.
+
 Then seed demo data (in another terminal):
 
 ```bash
