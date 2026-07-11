@@ -21,7 +21,7 @@ def _is_port_available(port: int) -> bool:
 
 @pytest.fixture(scope="session")
 def standalone_stack():
-    required_ports = [8010, 5433, 9000, 9001]
+    required_ports = [4010, 5433, 9000, 9001]
     busy_ports = [port for port in required_ports if not _is_port_available(port)]
     if busy_ports:
         pytest.skip(
@@ -108,7 +108,7 @@ services:
                     "blobstore",
                     "curl",
                     "-sf",
-                    "http://localhost:8010/health",
+                    "http://localhost:4010/health",
                 ],
                 cwd=ROOT_DIR,
                 capture_output=True,
@@ -151,7 +151,7 @@ services:
 def test_standalone_health_endpoint(standalone_stack):
     compose_cmd = standalone_stack
     result = subprocess.run(
-        [*compose_cmd, "exec", "-T", "blobstore", "curl", "-sf", "http://localhost:8010/health"],
+        [*compose_cmd, "exec", "-T", "blobstore", "curl", "-sf", "http://localhost:4010/health"],
         cwd=ROOT_DIR,
         capture_output=True,
         text=False,

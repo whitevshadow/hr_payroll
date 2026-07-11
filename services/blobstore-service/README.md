@@ -8,7 +8,7 @@ MinIO access from other services is forbidden.
 - Object storage: MinIO (S3-compatible; one bucket per tenant)
 - Metadata store: PostgreSQL
 - Event streaming: Kafka via a transactional outbox (durable, replayable)
-- Default API port: **8011**
+- Default API port: **4010**
 - API base path: **`/api/v1`** (e.g. `POST /api/v1/blobs/upload`)
 
 ## Authentication & tenant isolation
@@ -32,8 +32,8 @@ docker compose -f docker-compose.standalone.yml up --build
 
 Endpoints:
 
-- API docs: http://localhost:8010/docs
-- Health: http://localhost:8010/health
+- API docs: http://localhost:4010/docs
+- Health: http://localhost:4010/health
 - MinIO console: http://localhost:9001
 - Postgres: localhost:5433
 

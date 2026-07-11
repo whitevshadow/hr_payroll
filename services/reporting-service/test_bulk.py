@@ -11,7 +11,7 @@ async def main():
         secret='super-secret-shared-key-change-me',
     )
     async with httpx.AsyncClient() as client:
-        resp = await client.get('http://127.0.0.1:8010/api/v1/reports/payslips/bulk/8cdaea8a-6efa-4c52-9e70-52705763a0e8', headers={'Authorization': f'Bearer {token}'})
+        resp = await client.get('http://127.0.0.1:4009/api/v1/reports/payslips/bulk/8cdaea8a-6efa-4c52-9e70-52705763a0e8', headers={'Authorization': f'Bearer {token}'})
         print('Status:', resp.status_code)
         print('Headers:', dict(resp.headers))
         content = resp.content

@@ -3,12 +3,12 @@ import httpx, json, asyncio
 async def test():
     async with httpx.AsyncClient(timeout=10) as c:
         # Login to get token
-        r = await c.post('http://auth-service:8001/api/v1/auth/login', json={'email': 'admin@demo.com', 'password': 'Admin@123'})
+        r = await c.post('http://auth-service:4001/api/v1/auth/login', json={'email': 'admin@demo.com', 'password': 'Admin@123'})
         token = r.json()['access_token']
         
         # Test overview for Asha (CTC 12L)
         r2 = await c.get(
-            'http://localhost:8007/api/v1/tds/overview/ed7841ae-07b4-41c0-9fb6-05b9504d03d1',
+            'http://localhost:4006/api/v1/tds/overview/ed7841ae-07b4-41c0-9fb6-05b9504d03d1',
             headers={'Authorization': f'Bearer {token}'}
         )
         print('STATUS:', r2.status_code)
@@ -32,7 +32,7 @@ async def test():
 
         # Test declarations endpoint
         r3 = await c.get(
-            'http://localhost:8007/api/v1/tds/declarations/ed7841ae-07b4-41c0-9fb6-05b9504d03d1',
+            'http://localhost:4006/api/v1/tds/declarations/ed7841ae-07b4-41c0-9fb6-05b9504d03d1',
             headers={'Authorization': f'Bearer {token}'}
         )
         print(f'\nDeclarations STATUS: {r3.status_code}')

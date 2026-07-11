@@ -37,7 +37,7 @@ services:
   auth-service:
     build:
       <<: *service-build
-      args: { SERVICE: auth-service, PORT: "8001" }
+      args: { SERVICE: auth-service, PORT: "4001" }
     environment:
       <<: *common-env
       DB_SCHEMA: auth_schema
@@ -46,7 +46,7 @@ services:
   employee-service:
     build:
       <<: *service-build
-      args: { SERVICE: employee-service, PORT: "8003" }
+      args: { SERVICE: employee-service, PORT: "4002" }
     environment:
       <<: *common-env
       DB_SCHEMA: employee_schema
@@ -55,17 +55,17 @@ services:
   salary-service:
     build:
       <<: *service-build
-      args: { SERVICE: salary-service, PORT: "8004" }
+      args: { SERVICE: salary-service, PORT: "4003" }
     environment:
       <<: *common-env
       DB_SCHEMA: salary_schema
-      TDS_URL: http://tds-service:8007
+      TDS_URL: http://tds-service:4006
     depends_on: *depends-on-db
 
   attendance-service:
     build:
       <<: *service-build
-      args: { SERVICE: attendance-service, PORT: "8005" }
+      args: { SERVICE: attendance-service, PORT: "4004" }
     environment:
       <<: *common-env
       DB_SCHEMA: attendance_schema
@@ -74,7 +74,7 @@ services:
   compliance-service:
     build:
       <<: *service-build
-      args: { SERVICE: compliance-service, PORT: "8008" }
+      args: { SERVICE: compliance-service, PORT: "4007" }
     environment:
       <<: *common-env
       DB_SCHEMA: compliance_schema
@@ -83,7 +83,7 @@ services:
   tds-service:
     build:
       <<: *service-build
-      args: { SERVICE: tds-service, PORT: "8007" }
+      args: { SERVICE: tds-service, PORT: "4006" }
     environment:
       <<: *common-env
       DB_SCHEMA: tds_schema
@@ -92,19 +92,19 @@ services:
   payroll-service:
     build:
       <<: *service-build
-      args: { SERVICE: payroll-service, PORT: "8006" }
+      args: { SERVICE: payroll-service, PORT: "4005" }
     environment:
       <<: *common-env
       DB_SCHEMA: payroll_schema
       PT_DEFAULT_STATE: Maharashtra
       PF_CEILING_ENABLED: "true"
-      EMPLOYEE_URL: http://employee-service:8003
-      SALARY_URL: http://salary-service:8004
-      ATTENDANCE_URL: http://attendance-service:8005
-      TDS_URL: http://tds-service:8007
-      COMPLIANCE_URL: http://compliance-service:8008
-      PAYOUT_URL: http://payout-service:8009
-      REPORTING_URL: http://reporting-service:8010
+      EMPLOYEE_URL: http://employee-service:4002
+      SALARY_URL: http://salary-service:4003
+      ATTENDANCE_URL: http://attendance-service:4004
+      TDS_URL: http://tds-service:4006
+      COMPLIANCE_URL: http://compliance-service:4007
+      PAYOUT_URL: http://payout-service:4008
+      REPORTING_URL: http://reporting-service:4009
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,7 +112,7 @@ services:
   payout-service:
     build:
       <<: *service-build
-      args: { SERVICE: payout-service, PORT: "8009" }
+      args: { SERVICE: payout-service, PORT: "4008" }
     environment:
       <<: *common-env
       DB_SCHEMA: payout_schema
@@ -121,19 +121,19 @@ services:
   reporting-service:
     build:
       <<: *service-build
-      args: { SERVICE: reporting-service, PORT: "8010" }
+      args: { SERVICE: reporting-service, PORT: "4009" }
     environment:
       <<: *common-env
       DB_SCHEMA: reporting_schema
-      PAYROLL_URL: http://payroll-service:8006
-      BLOBSTORE_URL: http://blobstore-service:8011
+      PAYROLL_URL: http://payroll-service:4005
+      BLOBSTORE_URL: http://blobstore-service:4010
       REPORTS_DIR: /app/reports
     depends_on: *depends-on-db
 
   blobstore-service:
     build:
       <<: *service-build
-      args: { SERVICE: blobstore-service, PORT: "8011" }
+      args: { SERVICE: blobstore-service, PORT: "4010" }
     environment:
       <<: *common-env
       # Must be host:port WITHOUT scheme — _build_boto_client prepends http:// itself.
@@ -143,7 +143,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
       MINIO_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
     # Not published to the host: all blob traffic goes through the gateway
-    # (/api/v1/blobs -> blobstore-service:8011 on the compose network), which is
+    # (/api/v1/blobs -> blobstore-service:4010 on the compose network), which is
     # the auth chokepoint. Direct host access would bypass that.
     depends_on:
       postgres:
@@ -163,7 +163,7 @@ services:
       # The browser fetches presigned URLs directly from MinIO, so its CORS
       # origin must be the frontend's — not a wildcard, which would let any
       # site issue browser calls against the object store.
-      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-http://localhost:5173}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-http://localhost:4050}
     # Not published. The browser never talks to MinIO directly any more: blob
     # downloads stream through the gateway (/api/v1/blobs/{id}), so no presigned
     # URL — and therefore no object-store port — is exposed to the host.
@@ -272,7 +272,7 @@ services:
   client-service:
     build:
       <<: *service-build
-      args: { SERVICE: client-service, PORT: "8012" }
+      args: { SERVICE: client-service, PORT: "4011" }
     environment:
       <<: *common-env
       # Shares employee_schema so that client_id FK from employees resolves.
@@ -282,22 +282,22 @@ services:
   gateway:
     build:
       <<: *service-build
-      args: { SERVICE: gateway, PORT: "8000" }
+      args: { SERVICE: gateway, PORT: "4000" }
     environment:
       <<: *common-env
-      AUTH_URL: http://auth-service:8001
-      EMPLOYEE_URL: http://employee-service:8003
-      SALARY_URL: http://salary-service:8004
-      ATTENDANCE_URL: http://attendance-service:8005
-      PAYROLL_URL: http://payroll-service:8006
-      TDS_URL: http://tds-service:8007
-      COMPLIANCE_URL: http://compliance-service:8008
-      PAYOUT_URL: http://payout-service:8009
-      REPORTING_URL: http://reporting-service:8010
-      BLOBSTORE_URL: http://blobstore-service:8011
-      CLIENT_URL: http://client-service:8012
+      AUTH_URL: http://auth-service:4001
+      EMPLOYEE_URL: http://employee-service:4002
+      SALARY_URL: http://salary-service:4003
+      ATTENDANCE_URL: http://attendance-service:4004
+      PAYROLL_URL: http://payroll-service:4005
+      TDS_URL: http://tds-service:4006
+      COMPLIANCE_URL: http://compliance-service:4007
+      PAYOUT_URL: http://payout-service:4008
+      REPORTING_URL: http://reporting-service:4009
+      BLOBSTORE_URL: http://blobstore-service:4010
+      CLIENT_URL: http://client-service:4011
     ports:
-      - "8000:8000"
+      - "4000:4000"
     depends_on:
       - auth-service
       - employee-service
@@ -318,7 +318,7 @@ services:
       # No VITE_API_BASE: the app uses a same-origin /api/v1 and nginx proxies
       # it to the gateway, so the image is not tied to localhost.
     ports:
-      - "5173:80"    # nginx serves on :80 inside; exposed as 5173 outside
+      - "4050:80"    # nginx serves on :80 inside; exposed as 4050 outside
     depends_on:
       - gateway
 

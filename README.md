@@ -37,18 +37,18 @@ docker compose up --build
 ```
 
 This starts PostgreSQL (with all schemas created), all 9 backend services, the
-gateway (`http://localhost:8000`), and the frontend (`http://localhost:5173`).
+gateway (`http://localhost:4000`), and the frontend (`http://localhost:4050`).
 Each service creates its own tables on startup (V1 uses SQLAlchemy
 `create_all`; see the Alembic note under V2 roadmap).
 
 ### How the browser reaches the backend
 
 **Everything the app needs is served from the frontend's own origin
-(`http://localhost:5173`).** The bundle calls a relative `/api/v1/...`, and nginx
+(`http://localhost:4050`).** The bundle calls a relative `/api/v1/...`, and nginx
 proxies `/api/` to the gateway on the compose network:
 
 ```
-browser ──▶ localhost:5173  ──nginx /api/──▶  gateway:8000 ──▶ services
+browser ──▶ localhost:4050  ──nginx /api/──▶  gateway:4000 ──▶ services
    (SPA + API + SSE + file upload/download, all one origin — no CORS)
 ```
 
@@ -59,7 +59,7 @@ Consequences worth knowing:
 - **Blob uploads/downloads stream through the gateway** (`/api/v1/blobs/{id}`).
   The browser never talks to MinIO, so the object store publishes **no host
   port** — there are no presigned URLs pointing at it.
-- Only **three ports** are published: frontend `5173`, gateway `8000`, and
+- Only **three ports** are published: frontend `4050`, gateway `4000`, and
   Postgres/MinIO/blobstore are internal-only. The gateway port stays open because
   `scripts/seed.py`, the e2e test, and curl/Postman talk to it directly — the
   browser does not need it.
@@ -70,7 +70,7 @@ Then seed demo data (in another terminal):
 python scripts/seed.py
 ```
 
-Open **http://localhost:5173** and log in.
+Open **http://localhost:4050** and log in.
 
 ### Demo credentials
 
@@ -161,19 +161,19 @@ audit ([docs/ISSUES.md](docs/ISSUES.md)) and the manual test walkthrough.
 
 | Service | Port | Schema |
 | --- | --- | --- |
-| gateway | 8000 | — |
-| auth-service | 8001 | auth_schema |
-| employee-service | 8003 | employee_schema |
-| salary-service | 8004 | salary_schema |
-| attendance-service | 8005 | attendance_schema |
-| payroll-service | 8006 | payroll_schema (+ audit_schema, notification_schema) |
-| tds-service | 8007 | tds_schema |
-| compliance-service | 8008 | compliance_schema |
-| payout-service | 8009 | payout_schema |
-| reporting-service | 8010 | reporting_schema |
+| gateway | 4000 | — |
+| auth-service | 4001 | auth_schema |
+| employee-service | 4002 | employee_schema |
+| salary-service | 4003 | salary_schema |
+| attendance-service | 4004 | attendance_schema |
+| payroll-service | 4005 | payroll_schema (+ audit_schema, notification_schema) |
+| tds-service | 4006 | tds_schema |
+| compliance-service | 4007 | compliance_schema |
+| payout-service | 4008 | payout_schema |
+| reporting-service | 4009 | reporting_schema |
 
 - **Gateway** validates the JWT, injects `x-tenant-id`, and reverse-proxies to
-  the right service. Only the gateway (8000) and frontend (5173) are exposed to
+  the right service. Only the gateway (4000) and frontend (4050) are exposed to
   the host; services talk to each other by container name.
 - **payroll-service** is the orchestrator: on `run` it calls salary →
   attendance → compliance → tds over HTTP (`httpx`), sequentially per employee,

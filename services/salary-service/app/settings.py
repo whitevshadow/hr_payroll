@@ -7,7 +7,7 @@ class Settings(BaseServiceSettings):
 
     # TDS service base URL for the fire-and-forget auto-compute call.
     # Overridable via TDS_URL; defaults to the compose container address.
-    tds_url: str = "http://tds-service:8007"
+    tds_url: str = "http://tds-service:4006"
 
 
 settings = Settings()

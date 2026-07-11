@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # Explicit allowed origins. A wildcard "*" combined with credentials is
     # invalid per the CORS spec, so credentials are only enabled when the
     # origin list is not the wildcard.
-    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:4050"]
 
     # ── Database ──────────────────────────────────────────────────
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/blobstore"
@@ -171,7 +171,7 @@ class Settings(BaseSettings):
     OUTBOX_BATCH_SIZE: int = 100
 
     # ── Blobstore Service ────────────────────────────────────────
-    BLOB_STORE_URL: str = "http://blobstore:8010"
+    BLOB_STORE_URL: str = "http://blobstore-service:4010"
 
     # ── Runtime ──────────────────────────────────────────────────
     APP_ENV: str = "development"

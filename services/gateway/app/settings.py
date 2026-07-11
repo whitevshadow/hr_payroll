@@ -5,17 +5,17 @@ class Settings(BaseServiceSettings):
     service_name: str = "gateway"
 
     # Downstream service base URLs (container-name addressing in compose).
-    auth_url: str = "http://auth-service:8001"
-    employee_url: str = "http://employee-service:8003"
-    salary_url: str = "http://salary-service:8004"
-    attendance_url: str = "http://attendance-service:8005"
-    payroll_url: str = "http://payroll-service:8006"
-    tds_url: str = "http://tds-service:8007"
-    compliance_url: str = "http://compliance-service:8008"
-    payout_url: str = "http://payout-service:8009"
-    reporting_url: str = "http://reporting-service:8010"
-    blobstore_url: str = "http://blobstore-service:8011"
-    client_url: str = "http://client-service:8012"
+    auth_url: str = "http://auth-service:4001"
+    employee_url: str = "http://employee-service:4002"
+    salary_url: str = "http://salary-service:4003"
+    attendance_url: str = "http://attendance-service:4004"
+    payroll_url: str = "http://payroll-service:4005"
+    tds_url: str = "http://tds-service:4006"
+    compliance_url: str = "http://compliance-service:4007"
+    payout_url: str = "http://payout-service:4008"
+    reporting_url: str = "http://reporting-service:4009"
+    blobstore_url: str = "http://blobstore-service:4010"
+    client_url: str = "http://client-service:4011"
 
 
 settings = Settings()
