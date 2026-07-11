@@ -14,7 +14,7 @@ from decimal import Decimal
 import httpx
 import logging
 
-from .deps import get_context, get_client_context, get_session, runtime
+from .deps import get_context, get_client_context, get_session
 from .logic import REGISTRY, compute_annual_tds, compute_overview
 from .models import (
     DeclarationVersion,
@@ -43,7 +43,10 @@ from .schemas import (
 
 router = APIRouter(prefix="/api/v1/tds", tags=["tds"])
 
-_admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN", "EMPLOYEE", get_ctx=get_client_context)
+# NOTE: a module-level `_admin` guard used to be defined here but was never
+# applied to any route, and it listed EMPLOYEE alongside the admin roles — so it
+# would not have restricted anything anyway. Removed rather than left in place
+# implying a protection that does not exist. Routes use get_client_context.
 
 
 def tax_year_for_payment(payment_date: date) -> str:

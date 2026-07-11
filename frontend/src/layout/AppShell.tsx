@@ -806,7 +806,7 @@ function TopBar({
               onChange={(e) => setSelectedClientId(e.target.value || null)}
             >
               <option value="">All Clients</option>
-              {clientsQuery.data?.items.map(c => (
+              {clientsQuery.data?.items?.map(c => (
                 <option key={c.id} value={c.id}>{c.client_name}</option>
               ))}
             </select>
@@ -879,6 +879,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sseStatus,   setSseStatus]   = useState<"connecting" | "open" | "closed" | "error">("closed");
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const { user } = useAuth();
+  // Router location — without this, the page-transition key below silently fell
+  // back to the global window.location.
+  const location = useLocation();
 
   usePayrollSSE({
     token: user ? getToken() : null,

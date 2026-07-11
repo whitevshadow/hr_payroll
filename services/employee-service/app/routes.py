@@ -6,7 +6,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from hr_shared import RequestContext, audit_log, mask_pan, mask_bank_account, mask_aadhaar, mask_uan
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .deps import get_context, get_client_context, get_session, runtime
@@ -586,6 +586,17 @@ async def activate_financial_year(
     fy = await session.get(FinancialYear, fy_id)
     if not fy or fy.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Financial year not found")
+    # Exactly one FY may be active per tenant: deactivate the others, otherwise
+    # "the active FY" is ambiguous for every downstream consumer.
+    await session.execute(
+        update(FinancialYear)
+        .where(
+            FinancialYear.tenant_id == ctx.tenant_id,
+            FinancialYear.id != fy_id,
+            FinancialYear.is_active.is_(True),
+        )
+        .values(is_active=False)
+    )
     fy.is_active = True
     await session.commit()
     await session.refresh(fy)

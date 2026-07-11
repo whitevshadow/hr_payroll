@@ -552,14 +552,10 @@ function EmployeeModal({
           <input id="f-join" className="input" type="date" value={value.joining_date ?? ""}
             onChange={(e) => set("joining_date", e.target.value || null)} />
         </div>
-        <div>
-          <label className="label" htmlFor="f-client">Client Company</label>
-          <select id="f-client" className="input" value={value.client_id ?? ""}
-            onChange={(e) => set("client_id", e.target.value || null)}>
-            <option value="">— No Client —</option>
-            {clients.map((c) => <option key={c.id} value={c.id}>{c.client_name} ({c.client_code})</option>)}
-          </select>
-        </div>
+        {/* The client is chosen by the required "Client *" field at the top of
+            this form. A second control bound to the same client_id (with the
+            same #f-client id) was removed: duplicate DOM ids break label
+            association and the two behaved differently on edit. */}
         <div className="col-span-2">
           <label className="label" htmlFor="f-manager">Reporting Manager</label>
           <select id="f-manager" className="input" value={value.reporting_manager_id ?? ""}
