@@ -179,31 +179,27 @@ services:
   # Runs once: creates the blobstore-svc IAM user with a least-privilege policy.
   # Application containers never receive MINIO_ROOT_USER / MINIO_ROOT_PASSWORD.
   minio-init:
-  image: minio/mc:latest
-  entrypoint:
-    - sh
-    - -c
-    - |
-        ls -l /scripts
-        file /scripts/init-minio.sh || true
-        cat /scripts/init-minio.sh | head
-        sh -x /scripts/init-minio.sh
-
-  volumes:
-    - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
-
-  environment:
-    MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
-    MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
-    MINIO_SERVICE_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
-    MINIO_SERVICE_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
-    MINIO_INTERNAL_ENDPOINT: minio:9000
-
-  depends_on:
-    minio:
-      condition: service_healthy
-
-  restart: "no"
+    image: minio/mc:latest
+    entrypoint:
+      - sh
+      - -c
+      - |
+          ls -l /scripts
+          file /scripts/init-minio.sh || true
+          cat /scripts/init-minio.sh | head
+          sh -x /scripts/init-minio.sh
+    volumes:
+      - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
+      MINIO_SERVICE_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
+      MINIO_SERVICE_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY must be set in .env}
+      MINIO_INTERNAL_ENDPOINT: minio:9000
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
 
   client-service:
     build:
