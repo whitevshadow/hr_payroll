@@ -184,12 +184,80 @@ services:
       - sh
       - -c
       - |
-          ls -l /scripts
-          file /scripts/init-minio.sh || true
-          cat /scripts/init-minio.sh | head
-          sh -x /scripts/init-minio.sh
-    volumes:
-      - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
+          set -eu
+
+          MINIO_INTERNAL_ENDPOINT="$${MINIO_INTERNAL_ENDPOINT:-minio:9000}"
+          ALIAS="platform"
+          POLICY_NAME="blobstore-policy-v2"
+          POLICY_FILE="/tmp/blobstore-policy-v2.json"
+
+          echo "[init-minio] Waiting for MinIO at $${MINIO_INTERNAL_ENDPOINT}..."
+          until mc alias set "$${ALIAS}" \
+                  "http://$${MINIO_INTERNAL_ENDPOINT}" \
+                  "$${MINIO_ROOT_USER}" \
+                  "$${MINIO_ROOT_PASSWORD}" > /dev/null 2>&1; do
+            echo "[init-minio] MinIO not ready; retrying in 3s..."
+            sleep 3
+          done
+          echo "[init-minio] Connected to MinIO."
+
+          cat > "$${POLICY_FILE}" <<'EOF'
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "BucketLevelOps",
+                "Effect": "Allow",
+                "Action": [
+                  "s3:ListAllMyBuckets",
+                  "s3:CreateBucket",
+                  "s3:ListBucket",
+                  "s3:GetBucketLocation",
+                  "s3:ListBucketVersions",
+                  "s3:GetBucketVersioning",
+                  "s3:PutBucketVersioning",
+                  "s3:GetEncryptionConfiguration",
+                  "s3:PutEncryptionConfiguration",
+                  "s3:GetLifecycleConfiguration",
+                  "s3:PutLifecycleConfiguration",
+                  "s3:GetBucketTagging",
+                  "s3:PutBucketTagging"
+                ],
+                "Resource": ["arn:aws:s3:::*"]
+              },
+              {
+                "Sid": "ObjectLevelOps",
+                "Effect": "Allow",
+                "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject",
+                  "s3:DeleteObject",
+                  "s3:GetObjectVersion",
+                  "s3:DeleteObjectVersion"
+                ],
+                "Resource": ["arn:aws:s3:::*/*"]
+              }
+            ]
+          }
+          EOF
+
+          mc admin policy create "$${ALIAS}" "$${POLICY_NAME}" "$${POLICY_FILE}" 2>/dev/null \
+            || mc admin policy info "$${ALIAS}" "$${POLICY_NAME}" > /dev/null 2>&1
+
+          if mc admin user info "$${ALIAS}" "$${MINIO_SERVICE_ACCESS_KEY}" > /dev/null 2>&1; then
+            echo "[init-minio] User '$${MINIO_SERVICE_ACCESS_KEY}' already exists; skipping creation."
+          else
+            mc admin user add "$${ALIAS}" \
+              "$${MINIO_SERVICE_ACCESS_KEY}" \
+              "$${MINIO_SERVICE_SECRET_KEY}"
+            echo "[init-minio] Created MinIO user '$${MINIO_SERVICE_ACCESS_KEY}'."
+          fi
+
+          mc admin policy attach "$${ALIAS}" "$${POLICY_NAME}" \
+            --user "$${MINIO_SERVICE_ACCESS_KEY}" 2>/dev/null || true
+
+          echo "[init-minio] Policy '$${POLICY_NAME}' attached to '$${MINIO_SERVICE_ACCESS_KEY}'."
+          echo "[init-minio] Provisioning complete."
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
