@@ -171,8 +171,15 @@ services:
   # Runs once: creates the blobstore-svc IAM user with a least-privilege policy.
   # Application containers never receive MINIO_ROOT_USER / MINIO_ROOT_PASSWORD.
   minio-init:
-    image: minio/mc:latest
-    entrypoint: ["/bin/sh", "/scripts/init-minio.sh"]
+  image: minio/mc:latest
+  entrypoint:
+    - sh
+    - -c
+    - |
+      ls -l /scripts
+      file /scripts/init-minio.sh || true
+      cat /scripts/init-minio.sh | head
+      sh -x /scripts/init-minio.sh
     volumes:
       - ./scripts/init-minio.sh:/scripts/init-minio.sh:ro
     environment:
