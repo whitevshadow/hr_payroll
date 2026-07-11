@@ -1,6 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
 import { ClientProvider } from "./lib/ClientContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { canViewAudit } from "./lib/roles";
@@ -31,10 +32,15 @@ import { LeaveManagement } from "./pages/LeaveManagement";
 import { AdminPayslips } from "./pages/AdminPayslips";
 
 function Shell({ children }: { children: React.ReactElement }) {
+  const location = useLocation();
   return (
     <ProtectedRoute>
       <ClientProvider>
-        <AppShell>{children}</AppShell>
+        <AppShell>
+          {/* A page that throws must not take the whole app down to a blank
+              screen. Keyed on the path so navigating away clears the error. */}
+          <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>
+        </AppShell>
       </ClientProvider>
     </ProtectedRoute>
   );
