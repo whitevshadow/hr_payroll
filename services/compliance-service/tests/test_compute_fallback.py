@@ -16,10 +16,13 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.deps import get_session
 from app.main import app as compliance_app
+from app.models import ESIContribution, PFContribution, PTDeduction
 from app.settings import settings
 from hr_shared import TenantAwareBase
 
@@ -92,3 +95,48 @@ async def test_compute_without_settings_applies_statutory_defaults(client: Async
     assert Decimal(data["employee_esi"]) == Decimal("150.00")   # 0.75% of 20000
     assert data["is_esi_eligible"] is True
     assert Decimal(data["pt_amount"]) == Decimal("200.00")      # Maharashtra, regular month
+
+
+# ── One contribution row per (tenant, employee, cycle) ──────────────────────
+
+def _compute_body(emp: uuid.UUID, cycle: uuid.UUID) -> dict:
+    return {
+        "employee_id": str(emp), "cycle_id": str(cycle),
+        "basic": "20000", "monthly_gross": "20000",
+        "state": "Maharashtra", "month": 5, "ceiling_on": True,
+        "client_id": str(CLIENT_ID),
+    }
+
+
+@pytest.mark.asyncio
+async def test_recompute_does_not_duplicate_rows(client: AsyncClient, db: AsyncSession):
+    """Re-running a cycle must leave one row per employee, not two.
+
+    Duplicate contribution rows would double-count the statutory totals the
+    summary endpoint reports (and that get filed).
+    """
+    emp, cycle = uuid.uuid4(), uuid.uuid4()
+    for _ in range(2):
+        r = await client.post(
+            "/api/v1/compliance/compute", json=_compute_body(emp, cycle), headers=_hdr()
+        )
+        assert r.status_code == 200, r.text
+
+    for model in (PFContribution, ESIContribution, PTDeduction):
+        rows = (await db.scalars(
+            select(model).where(model.tenant_id == TENANT_ID, model.cycle_id == cycle)
+        )).all()
+        assert len(rows) == 1, f"{model.__tablename__} duplicated on recompute"
+
+
+@pytest.mark.asyncio
+async def test_duplicate_contribution_row_is_rejected(db: AsyncSession):
+    """The DB itself enforces one row per (tenant, employee, cycle)."""
+    emp, cycle = uuid.uuid4(), uuid.uuid4()
+    db.add(PFContribution(tenant_id=TENANT_ID, employee_id=emp, cycle_id=cycle))
+    await db.commit()
+
+    db.add(PFContribution(tenant_id=TENANT_ID, employee_id=emp, cycle_id=cycle))
+    with pytest.raises(IntegrityError):
+        await db.commit()
+    await db.rollback()
