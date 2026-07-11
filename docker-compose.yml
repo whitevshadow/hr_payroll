@@ -159,7 +159,10 @@ services:
       # Values must be set in .env (git-ignored). See .env.example.
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
-      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+      # The browser fetches presigned URLs directly from MinIO, so its CORS
+      # origin must be the frontend's — not a wildcard, which would let any
+      # site issue browser calls against the object store.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:-http://localhost:5173}
     ports:
       # 9000 (S3 API) stays published: the browser fetches presigned URLs
       # (MINIO_PUBLIC_ENDPOINT=localhost:9000) directly, e.g. report downloads.

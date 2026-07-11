@@ -8,7 +8,9 @@ from pydantic import BaseModel, EmailStr, Field
 class RegisterRequest(BaseModel):
     tenant_name: str = Field(min_length=2)
     email: EmailStr
-    password: str = Field(min_length=6)
+    # 8 is the practical floor. A longer minimum is preferable for a payroll
+    # system but would invalidate the documented demo credentials.
+    password: str = Field(min_length=8)
 
 
 class LoginRequest(BaseModel):

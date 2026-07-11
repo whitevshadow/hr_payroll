@@ -16,8 +16,10 @@ from .schemas import BatchCreate, BatchCreateResponse, BatchOut, TxnOut
 router = APIRouter(prefix="/api/v1/payouts", tags=["payouts"])
 
 
-def _idempotency_key(cycle_id, employee_id, net_pay, bank_account) -> str:
-    raw = f"{cycle_id}|{employee_id}|{net_pay}|{bank_account}"
+def _idempotency_key(tenant_id, cycle_id, employee_id, net_pay, bank_account) -> str:
+    # tenant_id is part of the key so a transaction can never collide across
+    # tenants on this money-movement path.
+    raw = f"{tenant_id}|{cycle_id}|{employee_id}|{net_pay}|{bank_account}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -57,11 +59,12 @@ async def create_batch(
     total = Decimal("0")
     for txn in body.transactions:
         key = _idempotency_key(
-            body.cycle_id, txn.employee_id, txn.amount, txn.bank_account
+            ctx.tenant_id, body.cycle_id, txn.employee_id, txn.amount, txn.bank_account
         )
         existing = await session.scalar(
             select(PayoutTransaction).where(
-                PayoutTransaction.idempotency_key == key
+                PayoutTransaction.tenant_id == ctx.tenant_id,
+                PayoutTransaction.idempotency_key == key,
             )
         )
         if existing:
