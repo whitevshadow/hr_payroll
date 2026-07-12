@@ -5,9 +5,11 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from hr_shared import AuditLog, RequestContext
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 
 from . import orchestrator
 from .client import ServiceCallError
@@ -277,6 +279,34 @@ async def get_notifications(
             for n in items
         ],
     }
+
+
+# ---- Events (SSE) --------------------------------------------------------
+
+@router.get("/events/stream")
+async def stream_events(
+    request: Request,
+    ctx: RequestContext = Depends(get_context),
+) -> StreamingResponse:
+    """Server-Sent Events stream for payroll events (stubbed for v1)."""
+    async def _generator():
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                yield "event: ping\ndata: {}\n\n"
+                await asyncio.sleep(15)
+        except asyncio.CancelledError:
+            pass
+
+    return StreamingResponse(
+        _generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/notifications/{notification_id}/read", status_code=204)

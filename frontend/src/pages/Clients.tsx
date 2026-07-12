@@ -25,14 +25,16 @@ import {
   Users,
 } from "lucide-react";
 import { clientsApi } from "../api/clients";
+import { employeesApi } from "../api/employees";
 import { qk, STALE_STABLE, STALE_OPERATIONAL } from "../lib/queryClient";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
 import { ClientDocumentsPanel } from "../components/ClientDocumentsPanel";
 import { Skeleton } from "../components/Spinner";
 import { extractErrorMessage } from "../lib/toast";
+import { toastService } from "../lib/toast";
 import clsx from "clsx";
-import type { Client, ClientCredential } from "../types";
+import type { Client, ClientCredential, Location } from "../types";
 
 // ── Animation variants ───────────────────────────────────────────────────────
 const ROW_ANIM = {
@@ -517,6 +519,217 @@ function ClientCredentialsPanel({ client }: { client: Client }) {
   );
 }
 
+// ── Client Locations Tab ──────────────────────────────────────────────────────
+function ClientLocationsTab({ client }: { client: Client }) {
+  const qc = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+
+  // Location state for the add form
+  const [locName, setLocName] = useState("");
+  const [locCode, setLocCode] = useState("");
+  const [locCity, setLocCity] = useState("");
+  const [locState, setLocState] = useState("");
+  const [locCountry, setLocCountry] = useState("India");
+
+  const locsQ = useQuery({
+    queryKey: ["locations", client.id, !showInactive],
+    queryFn: () => employeesApi.locations(!showInactive),
+    staleTime: STALE_OPERATIONAL,
+  });
+
+  const addMut = useMutation({
+    mutationFn: () =>
+      employeesApi.createLocation({
+        location_name: locName,
+        location_code: locCode || undefined,
+        city: locCity,
+        state: locState,
+        country: locCountry,
+      } as any),
+    onSuccess: () => {
+      toastService.success("Location added");
+      qc.invalidateQueries({ queryKey: ["locations"] });
+      setShowAdd(false);
+      setLocName(""); setLocCode(""); setLocCity(""); setLocState(""); setLocCountry("India");
+    },
+    onError: (err) => toastService.error(extractErrorMessage(err)),
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: (args: { id: string; active: boolean }) =>
+      employeesApi.updateLocation(args.id, { is_active: args.active }),
+    onSuccess: () => {
+      toastService.success("Location updated");
+      qc.invalidateQueries({ queryKey: ["locations"] });
+    },
+    onError: (err) => toastService.error(extractErrorMessage(err)),
+  });
+
+  const locs = locsQ.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 cursor-pointer">
+          <input
+            type="checkbox"
+            className="rounded border-slate-300"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+          />
+          Show inactive
+        </label>
+        <button
+          className="btn btn-sm"
+          onClick={() => setShowAdd((v) => !v)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {showAdd ? "Cancel" : "Add Location"}
+        </button>
+      </div>
+
+      {/* Inline add form */}
+      {showAdd && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-[#5A52E5]/30 bg-violet-50/40 dark:bg-violet-900/10 p-4 space-y-3"
+        >
+          <div className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">
+            New Work Location
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="col-span-2">
+              <label className="label text-[10.5px]">Location Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. Bangalore HQ"
+                value={locName}
+                onChange={(e) => setLocName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-[10.5px]">Location Code</label>
+              <input
+                className="input"
+                placeholder="e.g. BLR-HQ"
+                value={locCode}
+                onChange={(e) => setLocCode(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-[10.5px]">City *</label>
+              <input
+                className="input"
+                placeholder="Bangalore"
+                value={locCity}
+                onChange={(e) => setLocCity(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-[10.5px]">State *</label>
+              <input
+                className="input"
+                placeholder="Karnataka"
+                value={locState}
+                onChange={(e) => setLocState(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-[10.5px]">Country</label>
+              <input
+                className="input"
+                placeholder="India"
+                value={locCountry}
+                onChange={(e) => setLocCountry(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="btn-outline px-3 py-1.5 text-[12px] rounded-xl"
+              onClick={() => setShowAdd(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn"
+              disabled={addMut.isPending}
+              onClick={() => {
+                if (!locName || !locCity || !locState)
+                  return toastService.error("Name, City and State are required");
+                addMut.mutate();
+              }}
+            >
+              {addMut.isPending ? "Saving…" : "Save Location"}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Loading */}
+      {locsQ.isLoading && (
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!locsQ.isLoading && locs.length === 0 && (
+        <div className="text-center py-8 text-[12px] text-slate-400">
+          <MapPin className="h-8 w-8 mx-auto mb-2 text-slate-200 dark:text-slate-700" />
+          No locations yet. Add the first one above.
+        </div>
+      )}
+
+      {/* Location cards */}
+      <div className="space-y-2">
+        {locs.map((l: Location) => (
+          <div
+            key={l.id}
+            className={clsx(
+              "flex items-center gap-3 rounded-xl border border-slate-100 dark:border-slate-800 px-3 py-2.5 transition-opacity",
+              !l.is_active && "opacity-50 grayscale"
+            )}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shrink-0">
+              <MapPin className="h-3.5 w-3.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[12.5px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {l.location_name}
+                </span>
+                {l.location_code && (
+                  <span className="text-[9.5px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                    {l.location_code}
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {[l.city, l.state, l.country].filter(Boolean).join(", ")}
+              </div>
+            </div>
+            <button
+              onClick={() => toggleMut.mutate({ id: l.id, active: !l.is_active })}
+              className={clsx(
+                "text-[10.5px] font-semibold shrink-0",
+                l.is_active ? "text-amber-500 hover:text-amber-600" : "text-emerald-500 hover:text-emerald-600"
+              )}
+            >
+              {l.is_active ? "Deactivate" : "Activate"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -540,7 +753,7 @@ export function Clients() {
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [confirmArchive, setConfirmArchive] = useState<Client | null>(null);
-  const [activeTab, setActiveTab] = useState<"details" | "credentials" | "documents">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "credentials" | "documents" | "locations">("details");
 
   // Debounce search
   useEffect(() => {
@@ -801,7 +1014,7 @@ export function Clients() {
 
               {/* Tabs */}
               <div className="flex items-center gap-6 px-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                {(["details", "credentials", "documents"] as const).map((tab) => (
+                {(["details", "credentials", "documents", "locations"] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -916,6 +1129,13 @@ export function Clients() {
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Documents</div>
                     <ClientDocumentsPanel client={detailClient} />
+                  </div>
+                )}
+
+                {activeTab === "locations" && (
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">Work Locations</div>
+                    <ClientLocationsTab client={detailClient} />
                   </div>
                 )}
               </div>

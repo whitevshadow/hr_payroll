@@ -43,6 +43,7 @@ ROUTES: list[tuple[str, str]] = [
     ("/api/v1/clients", settings.client_url),
     ("/api/v1/locations", settings.employee_url),
     ("/api/v1/employee-docs", settings.blobstore_url),
+    ("/api/v1/financial-years", settings.employee_url),
 ]
 
 # Public paths that bypass JWT validation at the gateway.

@@ -25,7 +25,6 @@ import { AuditLog } from "./pages/AuditLog";
 import { Clients } from "./pages/Clients";
 import { Leave } from "./pages/Leave";
 import { LeaveBalance } from "./pages/LeaveBalance";
-import { Locations } from "./pages/Locations";
 import { FinancialYears } from "./pages/FinancialYears";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { LeaveManagement } from "./pages/LeaveManagement";
@@ -88,7 +87,6 @@ export default function App() {
       <Route path="/departments" element={<Shell><HrRoute><Departments /></HrRoute></Shell>} />
       <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
       <Route path="/clients/:id" element={<Shell><HrRoute><ClientDashboard /></HrRoute></Shell>} />
-      <Route path="/locations" element={<Shell><HrRoute><Locations /></HrRoute></Shell>} />
       <Route path="/financial-years" element={<Shell><HrRoute><FinancialYears /></HrRoute></Shell>} />
       <Route path="/leave" element={<Shell><HrRoute><Leave /></HrRoute></Shell>} />
       <Route path="/leave-management" element={<Shell><HrRoute><LeaveManagement /></HrRoute></Shell>} />

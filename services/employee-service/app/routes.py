@@ -386,7 +386,7 @@ async def list_employees(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
+    page_size: int = Query(50, ge=1, le=1000),
     search: str | None = None,
     status: str | None = None,
     client_id: uuid.UUID | None = None,

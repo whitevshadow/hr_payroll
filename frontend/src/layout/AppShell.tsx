@@ -113,7 +113,6 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
       { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
       { to: "/employees",   label: "Employees",   icon: Users,     hrOnly: true },
       { to: "/departments", label: "Departments", icon: Building2,  hrOnly: true },
-      { to: "/locations",   label: "Locations",   icon: Building2,  hrOnly: true },
     ],
   },
   {
@@ -745,7 +744,6 @@ function TopBar({
     "/reports":     "Reports",
     "/audit":       "Audit Log",
     "/clients":     "Clients",
-    "/locations":   "Locations",
     "/leave":       "Leave Policies",
     "/leave-management": "Leave Management",
     "/leave-balance": "Leave Ledger",

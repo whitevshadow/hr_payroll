@@ -141,10 +141,14 @@ async def proxy(full_path: str, request: Request) -> Response:
     # Validate JWT and inject x-tenant-id for protected paths.
     if path not in PUBLIC_PATHS:
         auth = request.headers.get("authorization", "")
-        if not auth.lower().startswith("bearer "):
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1]
+        elif "token" in request.query_params:
+            token = request.query_params["token"]
+            headers["authorization"] = f"Bearer {token}"
+        else:
             return Response(content='{"detail":"Missing bearer token"}',
                             status_code=401, media_type="application/json")
-        token = auth.split(" ", 1)[1]
         try:
             claims = decode_token(token, settings.jwt_secret, settings.jwt_algorithm)
         except Exception:
