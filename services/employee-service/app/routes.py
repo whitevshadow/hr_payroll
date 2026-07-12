@@ -89,6 +89,9 @@ async def create_location(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
+    if not body.location_code:
+        import uuid
+        body.location_code = f"LOC-{uuid.uuid4().hex[:6].upper()}"
     loc = Location(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
     session.add(loc)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="LOCATION_CREATED",
@@ -351,6 +354,10 @@ async def create_employee(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
+    if not body.emp_code:
+        import uuid
+        body.emp_code = f"EMP-{uuid.uuid4().hex[:6].upper()}"
+
     dup = await session.scalar(
         select(Employee).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id, Employee.emp_code == body.emp_code)
     )

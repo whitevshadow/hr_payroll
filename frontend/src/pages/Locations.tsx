@@ -121,11 +121,7 @@ function LocationModal({ onClose }: { onClose: () => void }) {
     <Modal open onClose={onClose} title="Add Location">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label">Location Code</label>
-            <input className="input uppercase" value={code} onChange={e => setCode(e.target.value)} placeholder="e.g. BLR-01" />
-          </div>
-          <div>
+          <div className="col-span-2">
             <label className="label">Location Name</label>
             <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Bangalore HQ" />
           </div>
@@ -149,8 +145,8 @@ function LocationModal({ onClose }: { onClose: () => void }) {
         onClose={onClose}
         saving={mut.isPending}
         onSave={() => {
-          if (!code || !name || !city || !state || !country) return toastService.error("All fields required");
-          mut.mutate({ location_code: code.toUpperCase(), location_name: name, city, state, country });
+          if (!name || !city || !state || !country) return toastService.error("All fields required");
+          mut.mutate({ location_name: name, city, state, country });
         }}
       />
     </Modal>

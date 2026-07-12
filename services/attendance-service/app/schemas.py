@@ -118,13 +118,20 @@ class MonthlyListOut(BaseModel):
 class LeavePolicyCreate(BaseModel):
     client_id: uuid.UUID | None = None
     name: str
-    leave_type: str                   # CL|SL|PL|LOP|COMP_OFF|WFH|OPTIONAL
-    annual_quota: Decimal = Decimal("0")
+    description: str | None = None
+    leave_type: str                   # CASUAL|SICK|EARNED|MATERNITY|PATERNITY|UNPAID|CL|SL|PL etc.
+    annual_allowance: Decimal = Decimal("0")   # frontend name (was annual_quota)
     carry_forward: bool = False
     max_carry_forward: Decimal = Decimal("0")
     encashable: bool = False
     max_consecutive_days: int = 0
+    requires_document_after_days: int | None = None
     accrual_type: str = "ANNUAL"      # ANNUAL|MONTHLY|QUARTERLY
+
+    # Keep annual_quota as a read alias so old integrations still work
+    @property
+    def annual_quota(self) -> Decimal:
+        return self.annual_allowance
 
 
 class LeavePolicyOut(BaseModel):
@@ -132,12 +139,15 @@ class LeavePolicyOut(BaseModel):
     id: uuid.UUID
     client_id: uuid.UUID | None
     name: str
+    description: str | None = None
     leave_type: str
-    annual_quota: Decimal
+    annual_allowance: Decimal          # frontend-facing name
+    annual_quota: Decimal              # backward-compat alias (same value)
     carry_forward: bool
     max_carry_forward: Decimal
     encashable: bool
     max_consecutive_days: int
+    requires_document_after_days: int | None = None
     accrual_type: str
     is_active: bool
 

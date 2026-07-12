@@ -25,7 +25,6 @@ const EMPTY_EMP: Partial<Employee> = {
 
 function validate(f: Partial<Employee>): string | null {
   if (!f.client_id) return "Client is required";
-  if (!f.emp_code?.trim()) return "Employee code is required";
   if (!f.first_name?.trim()) return "First name is required";
   if (!f.last_name?.trim()) return "Last name is required";
   if (f.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
@@ -478,12 +477,6 @@ function EmployeeModal({
               <option key={c.id} value={c.id}>{c.client_name}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="f-code">Employee Code *</label>
-          <input id="f-code" className="input" disabled={isEdit}
-            value={value.emp_code ?? ""}
-            onChange={(e) => set("emp_code", e.target.value)} />
         </div>
         <div>
           <label className="label" htmlFor="f-status">Status</label>

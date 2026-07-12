@@ -64,7 +64,7 @@ def _normalize_email(v: str | None) -> str | None:
 
 
 class EmployeeBase(BaseModel):
-    emp_code: str
+    emp_code: str | None = None
     first_name: str
     last_name: str
     email: str | None = None

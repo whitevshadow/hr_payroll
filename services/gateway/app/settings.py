@@ -28,6 +28,7 @@ ROUTES: list[tuple[str, str]] = [
     ("/api/v1/departments", settings.employee_url),
     ("/api/v1/salary", settings.salary_url),
     ("/api/v1/attendance", settings.attendance_url),
+    ("/api/v1/leave", settings.attendance_url),          # leave management lives in attendance-service
     ("/api/v1/compliance", settings.compliance_url),
     ("/api/v1/tds", settings.tds_url),
     ("/api/v1/payroll", settings.payroll_url),

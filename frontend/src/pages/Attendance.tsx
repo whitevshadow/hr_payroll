@@ -534,7 +534,10 @@ export function Attendance() {
 
     const rows: AttRow[] = employees.map((emp) => {
       const rec = recByEmp[emp.id];
-      const defaultDays = Array<AttCode>(totalDays).fill("P");
+      const defaultDays = Array.from({ length: totalDays }, (_, i) => {
+        const d = new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]) - 1, i + 1);
+        return (d.getDay() === 0 ? "WO" : "P") as AttCode;
+      });
       if (rec) {
         // Reconstruct days array from daily_status or fallback to summary
         let days: AttCode[] = [];
@@ -542,20 +545,26 @@ export function Attendance() {
           const splitDays = rec.daily_status.split(",");
           // ensure valid codes and right length
           for (let i = 0; i < totalDays; i++) {
-             const code = (splitDays[i] as AttCode) || "P";
-             days.push(ATT_CODES.includes(code) ? code : "P");
+             const code = (splitDays[i] as AttCode) || defaultDays[i];
+             days.push(ATT_CODES.includes(code) ? code : defaultDays[i]);
           }
         } else {
           const presentN = Math.round(parseFloat(rec.present_days));
           const lopN = Math.round(parseFloat(rec.lop_days));
           const woN = Math.round(parseFloat(rec.wo_days));
           const holN = Math.round(parseFloat(rec.holiday_days));
-          // Fill days: P...P, then WO, H, LOP
-          let remaining = totalDays;
-          while (remaining > woN + holN + lopN) { days.push("P"); remaining--; }
-          for (let i = 0; i < woN && remaining > 0; i++) { days.push("WO"); remaining--; }
-          for (let i = 0; i < holN && remaining > 0; i++) { days.push("H"); remaining--; }
-          for (let i = 0; i < lopN && remaining > 0; i++) { days.push("LOP"); remaining--; }
+          // Start with default days (which sets WO on Sundays)
+          days = [...defaultDays];
+          
+          let remainingH = holN;
+          let remainingLop = lopN;
+          // Overlay Holidays and LOPs on non-WO days from the end of the month
+          for (let i = totalDays - 1; i >= 0; i--) {
+            if (days[i] === "P") {
+              if (remainingH > 0) { days[i] = "H"; remainingH--; }
+              else if (remainingLop > 0) { days[i] = "LOP"; remainingLop--; }
+            }
+          }
         }
         return {
           employee_id: emp.id,
@@ -583,7 +592,7 @@ export function Attendance() {
     setGridRows(rows);
     setGridLoading(false);
     setGridLoaded(true);
-  }, [employees, monthlyRecords, totalDays]);
+  }, [employees, monthlyRecords, totalDays, month]);
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = useCallback(() => {
@@ -671,13 +680,19 @@ export function Attendance() {
     // Sheet 1: Attendance Register
     const dayHeaders = Array.from({ length: days }, (_, i) => `${i + 1}`);
     const headers = ["Employee Code", "Employee Name", "Department", "Designation", ...dayHeaders];
-    const dataRows: string[][] = employees.map((emp) => [
-      emp.emp_code,
-      `${emp.first_name} ${emp.last_name}`,
-      "",
-      emp.designation ?? "",
-      ...Array(days).fill("P"),
-    ]);
+    const dataRows: string[][] = employees.map((emp) => {
+      const dayCells = Array.from({ length: days }, (_, i) => {
+        const d = new Date(y, m - 1, i + 1);
+        return d.getDay() === 0 ? "WO" : "P";
+      });
+      return [
+        emp.emp_code,
+        `${emp.first_name} ${emp.last_name}`,
+        "",
+        emp.designation ?? "",
+        ...dayCells,
+      ];
+    });
 
     const ws1 = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
     // Style headers (set column widths)
@@ -692,7 +707,7 @@ export function Attendance() {
       [""],
       ["1. Do not change the employee code or name columns."],
       ["2. Enter attendance codes in the day columns."],
-      ["3. Leave blank cells will be treated as Present (P)."],
+      ["3. Blank cells will default to Present (P) on weekdays and Weekly Off (WO) on Sundays."],
       [""],
       ["Attendance Codes:"],
       ["P   = Present"],
@@ -745,8 +760,11 @@ export function Attendance() {
           if (!empCode) continue;
           const days: AttCode[] = [];
           for (let d = dayStart; d < dayStart + totalDays; d++) {
-            const raw = String(row[d] ?? "P").trim().toUpperCase();
-            const code = ATT_CODES.includes(raw as AttCode) ? (raw as AttCode) : "P";
+            const dt = new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]) - 1, d - dayStart + 1);
+            const defaultCode = dt.getDay() === 0 ? "WO" : "P";
+            const rawStr = row[d] === undefined || row[d] === "" ? defaultCode : String(row[d]);
+            const raw = String(rawStr).trim().toUpperCase();
+            const code = ATT_CODES.includes(raw as AttCode) ? (raw as AttCode) : defaultCode;
             days.push(code);
           }
           parsed.push({ emp_code: empCode, name: String(row[1] ?? "").trim(), days });

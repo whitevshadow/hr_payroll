@@ -65,7 +65,20 @@ async def create_leave_policy(
     ctx: RequestContext = Depends(_HR),
     session: AsyncSession = Depends(get_session),
 ):
-    policy = LeavePolicy(tenant_id=ctx.tenant_id, **body.model_dump())
+    policy = LeavePolicy(
+        tenant_id=ctx.tenant_id,
+        client_id=body.client_id,
+        name=body.name,
+        description=body.description,
+        leave_type=body.leave_type,
+        annual_allowance=body.annual_allowance,
+        carry_forward=body.carry_forward,
+        max_carry_forward=body.max_carry_forward,
+        encashable=body.encashable,
+        max_consecutive_days=body.max_consecutive_days,
+        requires_document_after_days=body.requires_document_after_days,
+        accrual_type=body.accrual_type,
+    )
     session.add(policy)
     await session.commit()
     await session.refresh(policy)

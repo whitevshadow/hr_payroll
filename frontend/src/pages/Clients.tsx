@@ -232,11 +232,10 @@ function ClientModal({ client, onClose }: {
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      if (!form.client_code?.trim()) throw new Error("Client Code is required");
       if (!form.client_name?.trim()) throw new Error("Client Name is required");
 
       const payload = {
-        client_code: form.client_code!,
+        client_code: form.client_code || undefined,
         client_name: form.client_name!,
         legal_name: form.legal_name || undefined,
         address_line1: form.address_line1 || undefined,
@@ -304,13 +303,10 @@ function ClientModal({ client, onClose }: {
             <FormRow label="Client Name" required>
               <input className="input" placeholder="e.g. Nibe Limited" {...F("client_name")} />
             </FormRow>
-            <FormRow label="Client Code" required>
-              <input className="input" placeholder="e.g. NBL001" {...F("client_code")} />
+            <FormRow label="Legal Company Name">
+              <input className="input" placeholder="e.g. Nibe Ltd." {...F("legal_name")} />
             </FormRow>
           </div>
-          <FormRow label="Legal Company Name">
-            <input className="input" placeholder="e.g. Nibe Ltd." {...F("legal_name")} />
-          </FormRow>
         </Section>
 
         {/* Address */}
