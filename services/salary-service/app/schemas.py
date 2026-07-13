@@ -46,6 +46,10 @@ class StructureCreate(BaseModel):
     template_id: uuid.UUID | None = None
 
 
+class StructureBulkCreate(BaseModel):
+    structures: list[StructureCreate]
+
+
 class StructureRevise(BaseModel):
     ctc: Decimal
     effective_from: date
@@ -82,3 +86,9 @@ class StructureOut(BaseModel):
     template_id: uuid.UUID | None = None
     components: list[ComponentOut]
     breakdown: Breakdown
+
+
+class StructureBulkCreateOut(BaseModel):
+    total: int
+    created: int
+    structures: list[StructureOut]

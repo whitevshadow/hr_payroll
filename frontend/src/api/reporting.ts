@@ -39,6 +39,12 @@ export const reportingApi = {
     URL.revokeObjectURL(objectUrl);
   },
 
+  /** Re-render a payslip from the current payroll result and company details. */
+  regeneratePayslip: (cycleId: string, employeeId: string) =>
+    api
+      .post(`/reports/payslip/${cycleId}/${employeeId}/regenerate`)
+      .then((r) => r.data),
+
   // Use this for bulk downloading a cycle's payslips
   downloadBulkPayslips: async (cycleId: string) => {
     const response = await api.get(`/reports/payslips/bulk/${cycleId}`, {

@@ -194,17 +194,39 @@ async def bulk_import_employees(
     EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     PAN_RE   = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
     IFSC_RE  = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+    AADHAAR_RE = re.compile(r"^\d{12}$")
 
-    # 1. Pre-load existing codes + emails
     existing_rows = await session.execute(
-        select(Employee.emp_code, Employee.email).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id)
+        select(
+            Employee.emp_code,
+            Employee.email,
+            Employee.id,
+            Employee.mobile,
+            Employee.aadhaar_number,
+            Employee.first_name,
+            Employee.last_name,
+        ).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id)
     )
-    existing_codes: set[str] = set()
-    existing_emails: set[str] = set()
-    for code, email in existing_rows:
-        existing_codes.add(code.lower())
+    existing_codes: dict[str, str] = {}
+    existing_emails: dict[str, str] = {}
+    existing_aadhaars: dict[str, str] = {}
+    existing_mobile_names: dict[tuple[str, str, str], str] = {}
+    for code, email, emp_id, mobile, aadhaar, first_name, last_name in existing_rows:
+        existing_codes[code.lower()] = str(emp_id)
         if email:
-            existing_emails.add(email.lower())
+            existing_emails[email.lower()] = str(emp_id)
+        if aadhaar:
+            existing_aadhaars[str(aadhaar).replace(" ", "").replace("-", "")] = str(emp_id)
+        mobile_clean = re.sub(r"[^0-9]", "", str(mobile or ""))
+        if mobile_clean:
+            existing_mobile_names.setdefault(
+                (
+                    mobile_clean,
+                    (first_name or "").strip().lower(),
+                    (last_name or "").strip().lower(),
+                ),
+                str(emp_id),
+            )
 
     # 2. Pre-load departments
     dept_rows = await session.scalars(select(Department).where(Department.tenant_id == ctx.tenant_id, Department.client_id == ctx.client_id))
@@ -229,12 +251,13 @@ async def bulk_import_employees(
 
     for idx, row in enumerate(body.rows):
         code  = (row.emp_code or "").strip()
+        if not code:
+            code = f"EMP-{uuid.uuid4().hex[:6].upper()}"
+            row.emp_code = code
+
         fname = (row.first_name or "").strip()
         lname = (row.last_name or "").strip()
         email = (row.email or "").strip().lower() or None
-
-        if not code:
-            results.append(_err(idx, row, "Employee Code is required")); continue
         if not fname:
             results.append(_err(idx, row, "First Name is required")); continue
         if not lname:
@@ -255,17 +278,38 @@ async def bulk_import_employees(
             if not IFSC_RE.match(ifsc):
                 results.append(_err(idx, row, f"Invalid IFSC format: {ifsc}")); continue
             row = row.model_copy(update={"bank_ifsc": ifsc})
+        if not row.aadhaar_number:
+            results.append(_err(idx, row, "Aadhaar Number is required")); continue
+        aadhaar_clean = row.aadhaar_number.replace(" ", "").replace("-", "")
+        if not AADHAAR_RE.match(aadhaar_clean):
+            results.append(_err(idx, row, "Aadhaar must be 12 digits")); continue
+        row = row.model_copy(update={"aadhaar_number": aadhaar_clean})
         if row.basic_salary is not None and row.basic_salary <= 0:
             results.append(_err(idx, row, "Basic Salary must be positive")); continue
-        if code.lower() in existing_codes:
+        if code and code.lower() in existing_codes:
+            emp_id = existing_codes[code.lower()]
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
-                                     status="duplicate", error="Employee Code already exists")); continue
+                                     status="duplicate", error="Employee Code already exists", employee_id=emp_id)); continue
+        if aadhaar_clean in existing_aadhaars:
+            emp_id = existing_aadhaars[aadhaar_clean]
+            results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
+                                     status="duplicate", error="Aadhaar already exists", employee_id=emp_id)); continue
+        mobile_key = (
+            re.sub(r"[^0-9]", "", str(row.mobile or "")),
+            fname.lower(),
+            lname.lower(),
+        )
+        if mobile_key in existing_mobile_names:
+            emp_id = existing_mobile_names[mobile_key]
+            results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
+                                     status="duplicate", error="Mobile and name already exist", employee_id=emp_id)); continue
         if code.lower() in seen_codes:
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
                                      status="duplicate", error="Duplicate Employee Code in file")); continue
         if email and email in existing_emails:
+            emp_id = existing_emails[email]
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
-                                     status="duplicate", error="Email already exists")); continue
+                                     status="duplicate", error="Email already exists", employee_id=emp_id)); continue
         if email and email in seen_emails:
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
                                      status="duplicate", error="Duplicate email in file")); continue

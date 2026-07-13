@@ -21,12 +21,15 @@ const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
   status: "ACTIVE", work_location: "", designation: "",
   pan_number: "", bank_account: "", bank_ifsc: "", joining_date: "",
+  aadhaar_number: "",
 };
 
 function validate(f: Partial<Employee>): string | null {
   if (!f.client_id) return "Client is required";
   if (!f.first_name?.trim()) return "First name is required";
   if (!f.last_name?.trim()) return "Last name is required";
+  if (!f.aadhaar_number?.trim()) return "Aadhaar Number is required";
+  if (!/^\d{12}$/.test(f.aadhaar_number.trim())) return "Aadhaar Number must be 12 digits";
   if (f.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
     return "PAN must be in the format ABCDE1234F";
   if (f.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank_ifsc.toUpperCase()))
@@ -529,6 +532,11 @@ function EmployeeModal({
           <label className="label" htmlFor="f-pan">PAN</label>
           <input id="f-pan" className="input" placeholder="ABCDE1234F" value={value.pan_number ?? ""}
             onChange={(e) => set("pan_number", e.target.value.toUpperCase())} />
+        </div>
+        <div>
+          <label className="label" htmlFor="f-aadhaar">Aadhaar Number *</label>
+          <input id="f-aadhaar" className="input" placeholder="123456789012" value={value.aadhaar_number ?? ""}
+            onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, ""))} />
         </div>
         <div>
           <label className="label" htmlFor="f-bank">Bank Account</label>

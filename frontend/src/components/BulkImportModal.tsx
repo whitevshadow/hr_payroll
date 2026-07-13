@@ -28,12 +28,12 @@ import clsx from "clsx";
 const STEPS = ["Download Template", "Upload File", "Preview & Validate", "Import Results"];
 
 const MANDATORY_HEADERS = [
-  "Employee Code", "First Name", "Last Name", "Email", "Mobile",
-  "Department", "Designation", "Work Location", "Date of Joining",
+  "First Name", "Last Name", "Mobile", "Aadhaar Number",
+  "Department", "Work Location", "Date of Joining",
   "Employment Type", "Basic Salary (Annual CTC)",
 ];
 const OPTIONAL_HEADERS = [
-  "PAN Number", "UAN Number", "Bank Account", "IFSC Code",
+  "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "Bank Account", "IFSC Code",
   "Gender", "Date of Birth", "State", "City", "Branch",
 ];
 const ALL_HEADERS = [...MANDATORY_HEADERS, ...OPTIONAL_HEADERS];
@@ -59,14 +59,14 @@ interface ParsedRow extends BulkImportRow {
 function downloadTemplate() {
   const sampleRows = [
     [
-      "E010", "Rahul", "Sharma", "rahul@company.com", "9876543210",
-      "Engineering", "Developer", "Pune", "2026-06-01", "Full Time", "540000",
-      "ABCDE1234F", "", "HDFC Bank", "12345678901", "HDFC0001234", "", "", "Mumbai", "Maharashtra", "",
+      "Rahul", "Sharma", "9876543210", "123456789012",
+      "Engineering", "Pune", "2026-06-01", "Full Time", "540000",
+      "E010", "rahul@company.com", "Developer", "ABCDE1234F", "", "12345678901", "HDFC0001234", "", "", "Maharashtra", "Mumbai", "",
     ],
     [
-      "E011", "Priya", "Patil", "priya@company.com", "9876543211",
-      "HR", "Executive", "Mumbai", "2026-06-01", "Full Time", "420000",
-      "", "", "", "", "", "", "Female", "Mumbai", "Maharashtra", "",
+      "Priya", "Patil", "9876543211", "987654321098",
+      "HR", "Mumbai", "2026-06-01", "Full Time", "420000",
+      "", "priya@company.com", "Executive", "", "", "", "", "Female", "", "Maharashtra", "Mumbai", "",
     ],
   ];
 
@@ -96,9 +96,10 @@ function downloadTemplate() {
     ...OPTIONAL_HEADERS.map((h, i) => [`  ${i + 1}. ${h}`]),
     [""],
     ["FORMAT RULES"],
-    ["  Employee Code   : Unique, non-empty (e.g. E010)"],
+    ["  Employee Code   : Optional. If left blank, it will be auto-generated (e.g. EMP-1A2B3C)"],
     ["  Email           : Valid email format (e.g. name@company.com)"],
     ["  Mobile          : Exactly 10 digits"],
+    ["  Aadhaar Number  : Exactly 12 digits"],
     ["  Date of Joining : YYYY-MM-DD (e.g. 2026-06-01) or DD-MM-YYYY"],
     ["  Employment Type : Full Time / Part Time / Contract"],
     ["  Basic Salary    : Annual CTC in INR, numbers only (e.g. 540000)"],
@@ -172,11 +173,12 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           work_location:  colIdx("work location"),
           joining_date:   colIdx("date of joining"),
           employment_type:colIdx("employment type"),
-          basic_salary:   colIdx("basic salary"),
+          basic_salary:   Math.max(colIdx("basic salary"), colIdx("ctc"), colIdx("salary")),
           pan_number:     colIdx("pan"),
           uan_number:     colIdx("uan"),
           bank_account:   colIdx("account number"),
           bank_ifsc:      colIdx("ifsc"),
+          aadhaar_number: Math.max(colIdx("aadhaar"), colIdx("aadhar")),
           gender:         colIdx("gender"),
           date_of_birth:  colIdx("date of birth"),
           state:          colIdx("state"),
@@ -206,16 +208,17 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           const joiningDate = parseDate(joiningRaw);
           const pan      = get(r, "pan_number").toUpperCase();
           const ifsc     = get(r, "bank_ifsc").toUpperCase();
+          const aadhaar  = get(r, "aadhaar_number").replace(/\D/g, "");
 
           const errors: string[] = [];
 
           // Validation
-          if (!empCode)    errors.push("Employee Code is required");
           if (!firstName)  errors.push("First Name is required");
           if (!lastName)   errors.push("Last Name is required");
-          if (!email)      errors.push("Email is required");
-          else if (!EMAIL_RE.test(email)) errors.push(`Invalid email: ${email}`);
+          if (email && !EMAIL_RE.test(email)) errors.push(`Invalid email: ${email}`);
           if (mobile && mobile.length !== 10) errors.push("Mobile must be 10 digits");
+          if (!aadhaar) errors.push("Aadhaar Number is required");
+          else if (aadhaar.length !== 12) errors.push("Aadhaar must be 12 digits");
           if (!joiningDate && joiningRaw)  errors.push(`Cannot parse Joining Date: "${joiningRaw}"`);
           if (salary !== undefined && salary <= 0) errors.push("Basic Salary must be positive number");
           if (pan && !PAN_RE.test(pan))  errors.push(`Invalid PAN: ${pan}`);
@@ -250,6 +253,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             basic_salary: salary,
             pan_number: pan || undefined,
             uan_number: get(r, "uan_number") || undefined,
+            aadhaar_number: aadhaar,
             bank_account: get(r, "bank_account") || undefined,
             bank_ifsc: ifsc || undefined,
             gender: get(r, "gender") || undefined,
@@ -338,6 +342,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [result, setResult] = useState<BulkImportResult | null>(null);
   const [salaryProgress, setSalaryProgress] = useState({ done: 0, total: 0 });
+  const [salaryError, setSalaryError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Parse file whenever a new file is selected ──────────────────────────
@@ -368,34 +373,39 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   // ── Import mutation ───────────────────────────────────────────────────────
   const importMut = useMutation({
     mutationFn: async () => {
+      setSalaryError("");
+      setSalaryProgress({ done: 0, total: 0 });
       const validRows = rows.filter((r) => r._isValid);
       const payload: BulkImportRow[] = validRows.map(({ _rowNum, _errors, _isValid, ...rest }) => rest);
       const res = await employeesApi.bulkImport(payload);
 
       // Auto-create salary structures for created employees that have basic_salary
       const salaryRows = res.rows.filter(
-        (r) => r.status === "created" && r.employee_id
+        (r) => (r.status === "created" || r.status === "duplicate") && r.employee_id
       );
       const salaryNeeded = salaryRows.filter((r) => {
-        const src = rows.find((pr) => pr.emp_code === r.emp_code);
+        const src = validRows[r.row_index];
         return src && src.basic_salary && src.basic_salary > 0;
       });
 
       if (salaryNeeded.length > 0) {
         setSalaryProgress({ done: 0, total: salaryNeeded.length });
-        for (let i = 0; i < salaryNeeded.length; i++) {
-          const sr = salaryNeeded[i];
-          const src = rows.find((pr) => pr.emp_code === sr.emp_code);
-          if (!src || !src.basic_salary || !sr.employee_id) continue;
-          try {
-            await salaryApi.create({
-              employee_id: sr.employee_id,
-              ctc: src.basic_salary,
-              effective_from: src.joining_date ?? new Date().toISOString().slice(0, 10),
-              work_location: sr.work_location ?? null,
-            });
-          } catch { /* non-blocking: salary can be set manually later */ }
-          setSalaryProgress({ done: i + 1, total: salaryNeeded.length });
+        const structures = salaryNeeded.flatMap((sr) => {
+          const src = validRows[sr.row_index];
+          if (!src || !src.basic_salary || !sr.employee_id) return [];
+          return [{
+            employee_id: sr.employee_id,
+            ctc: src.basic_salary,
+            effective_from: src.joining_date ?? new Date().toISOString().slice(0, 10),
+            work_location: sr.work_location ?? src.work_location ?? null,
+          }];
+        });
+        try {
+          const salaryRes = await salaryApi.bulkCreate(structures);
+          setSalaryProgress({ done: salaryRes.created, total: structures.length });
+        } catch (err) {
+          setSalaryProgress({ done: 0, total: structures.length });
+          setSalaryError(extractErrorMessage(err));
         }
       }
 
@@ -725,16 +735,24 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                   <div className="rounded-xl border border-[var(--glass-border)] p-3 space-y-1.5">
                     <div className="flex items-center justify-between text-[11.5px]">
                       <span className="font-semibold text-[var(--text-secondary)]">Salary Structures</span>
-                      <span className="text-[var(--text-muted)]">{salaryProgress.done}/{salaryProgress.total} created</span>
+                      <span className={clsx(salaryError ? "text-red-500" : "text-[var(--text-muted)]")}>
+                        {salaryProgress.done}/{salaryProgress.total} created
+                      </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                       <motion.div
-                        className="h-full rounded-full bg-accent-500"
+                        className={clsx("h-full rounded-full", salaryError ? "bg-red-500" : "bg-accent-500")}
                         initial={{ width: 0 }}
                         animate={{ width: `${(salaryProgress.done / salaryProgress.total) * 100}%` }}
                         transition={{ duration: 0.4 }}
                       />
                     </div>
+                    {salaryError && (
+                      <div className="flex items-start gap-1.5 text-[11px] text-red-600 dark:text-red-400">
+                        <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        Salary setup failed: {salaryError}
+                      </div>
+                    )}
                   </div>
                 )}
 

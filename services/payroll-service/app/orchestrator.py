@@ -333,26 +333,45 @@ async def approve_cycle(
             trace_id=cycle.trace_id,
         )
 
-        # 2. Payslips
-        report = await client.generate_payslips(
-            http,
-            token,
-            {
-                "cycle_id": str(cycle.id),
-                "employee_ids": [str(r.employee_id) for r in results],
-            },
-            str(cycle.client_id) if cycle.client_id else None,
-        )
-        await audit_log(
-            session,
-            tenant_id=ctx.tenant_id,
-            event_type="PAYSLIPS_GENERATED",
-            entity_type="report",
-            entity_id=str(cycle.id),
-            payload={"cycle_id": str(cycle.id), "generated": report.get("generated", 0)},
-            actor_id=ctx.user_id,
-            trace_id=cycle.trace_id,
-        )
+        # 2. Payslips. The payout above has already moved the money, so a
+        # reporting failure must not abort the disbursement — retrying would
+        # submit the payout batch a second time. Payslips are rendered on
+        # demand when they are first viewed, so pre-generation is an
+        # optimisation, not a prerequisite; a failure here is recorded and the
+        # cycle still completes.
+        try:
+            report = await client.generate_payslips(
+                http,
+                token,
+                {
+                    "cycle_id": str(cycle.id),
+                    "employee_ids": [str(r.employee_id) for r in results],
+                },
+                str(cycle.client_id) if cycle.client_id else None,
+            )
+        except ServiceCallError as exc:
+            logging.error("Payslip generation failed for cycle %s: %s", cycle.id, exc)
+            await audit_log(
+                session,
+                tenant_id=ctx.tenant_id,
+                event_type="PAYSLIPS_GENERATION_FAILED",
+                entity_type="report",
+                entity_id=str(cycle.id),
+                payload={"cycle_id": str(cycle.id), "error": str(exc)},
+                actor_id=ctx.user_id,
+                trace_id=cycle.trace_id,
+            )
+        else:
+            await audit_log(
+                session,
+                tenant_id=ctx.tenant_id,
+                event_type="PAYSLIPS_GENERATED",
+                entity_type="report",
+                entity_id=str(cycle.id),
+                payload={"cycle_id": str(cycle.id), "generated": report.get("generated", 0)},
+                actor_id=ctx.user_id,
+                trace_id=cycle.trace_id,
+            )
 
     # Mark results PAID, then cycle DISBURSED.
     for r in results:

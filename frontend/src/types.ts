@@ -26,6 +26,7 @@ export interface Employee {
   bank_account: string | null;
   bank_ifsc: string | null;
   uan_number: string | null;
+  aadhaar_number: string;
   status: "ACTIVE" | "INACTIVE" | "SEPARATED";
   joining_date: string | null;
   department_id: string | null;

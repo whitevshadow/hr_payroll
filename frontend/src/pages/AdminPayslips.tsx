@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Printer, Eye, RefreshCw } from "lucide-react";
 import { useClientContext } from "../lib/ClientContext";
 import { clientsApi } from "../api/clients";
@@ -8,12 +8,13 @@ import { reportingApi } from "../api/reporting";
 import { employeesApi } from "../api/employees";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState } from "../components/EmptyState";
-import { toastService } from "../lib/toast";
+import { toastService, extractErrorMessage } from "../lib/toast";
 import clsx from "clsx";
 
 export function AdminPayslips() {
   const { selectedClientId, setSelectedClientId } = useClientContext();
-  
+  const queryClient = useQueryClient();
+
   const [selectedCycleId, setSelectedCycleId] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>(""); // e.g. "2023-01"
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -71,8 +72,15 @@ export function AdminPayslips() {
     }
   };
 
-  const handleRegenerate = () => {
-    toastService.success("Payslip regeneration triggered");
+  const handleRegenerate = async (employeeId: string) => {
+    if (!activeCycleId) return;
+    try {
+      await reportingApi.regeneratePayslip(activeCycleId, employeeId);
+      queryClient.invalidateQueries({ queryKey: ["payslip", activeCycleId, employeeId] });
+      toastService.success("Payslip regenerated");
+    } catch (err) {
+      toastService.error(extractErrorMessage(err));
+    }
   };
 
   return (
@@ -236,7 +244,7 @@ export function AdminPayslips() {
                             <Printer className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={handleRegenerate}
+                            onClick={() => handleRegenerate(res.employee_id)}
                             className="btn btn-sm btn-ghost text-slate-600 hover:text-amber-600"
                             title="Regenerate"
                           >

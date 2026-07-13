@@ -15,6 +15,9 @@ class Settings(BaseServiceSettings):
     reporting_url: str = "http://reporting-service:4009"
 
     http_timeout_seconds: float = 15.0
+    # Payslip generation renders a PDF per employee, so it is measured in
+    # minutes for a large cycle — not comparable to the lookups above.
+    report_timeout_seconds: float = 300.0
 
 
 settings = Settings()

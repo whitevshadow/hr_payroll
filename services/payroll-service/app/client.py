@@ -39,13 +39,28 @@ async def _get(client: httpx.AsyncClient, service: str, url: str, token: str, cl
         raise ServiceCallError(service, f"unreachable: {exc}")
 
 
-async def _post(client: httpx.AsyncClient, service: str, url: str, token: str, json: dict, client_id: str | None = None):
+async def _post(
+    client: httpx.AsyncClient,
+    service: str,
+    url: str,
+    token: str,
+    json: dict,
+    client_id: str | None = None,
+    timeout: float | None = None,
+):
     try:
-        resp = await client.post(url, headers=_headers(token, client_id), json=json)
+        resp = await client.post(
+            url,
+            headers=_headers(token, client_id),
+            json=json,
+            **({"timeout": timeout} if timeout else {}),
+        )
         resp.raise_for_status()
         return resp.json()
     except httpx.HTTPStatusError as exc:
         raise ServiceCallError(service, f"{exc.response.status_code} {exc.response.text}")
+    except httpx.TimeoutException:
+        raise ServiceCallError(service, "timed out")
     except httpx.RequestError as exc:
         raise ServiceCallError(service, f"unreachable: {exc}")
 
@@ -142,4 +157,5 @@ async def generate_payslips(client, token: str, payload: dict, client_id: str | 
         token,
         payload,
         client_id,
+        timeout=settings.report_timeout_seconds,
     )

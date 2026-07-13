@@ -3,17 +3,80 @@
 from __future__ import annotations
 
 import datetime
+from html import escape
 
 from hr_shared import mask_bank_account as _mask_bank_account
 
 def _rows(items: dict, is_bold: bool = False) -> str:
     style = "font-weight: bold;" if is_bold else ""
     return "".join(
-        f"<tr><td style='{style}'>{label}</td><td class='amt' style='{style}'>{value}</td></tr>"
+        f"<tr><td style='{style}'>{escape(str(label))}</td>"
+        f"<td class='amt' style='{style}'>{escape(str(value))}</td></tr>"
         for label, value in items.items()
     )
 
-def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
+
+def _txt(value, default: str = "-") -> str:
+    """Escape a value for HTML, collapsing None/blank to *default*."""
+    if value is None:
+        return default
+    text = str(value).strip()
+    return escape(text) if text else default
+
+
+def _bank_account(value) -> str:
+    """Payroll already masks the account in breakdown_json; masking the masked
+    value again turns a missing account ("-") into a meaningless "X"."""
+    text = (str(value).strip() if value else "")
+    if not text or text == "-":
+        return "-"
+    if "X" in text.upper():
+        return escape(text)
+    return escape(_mask_bank_account(text))
+
+
+def _company(client_info: dict | None) -> dict:
+    """Pull the employing company's identity out of a client-service record.
+
+    Every field is optional in client-service, so each line is emitted only
+    when it actually has a value — a payslip must never print a placeholder
+    address or statutory number as if it were real.
+    """
+    info = client_info or {}
+    name = (info.get("client_name") or info.get("legal_name") or "").strip()
+    legal_name = (info.get("legal_name") or "").strip()
+
+    address = info.get("address") or {}
+    parts = [
+        address.get("line1"),
+        address.get("line2"),
+        address.get("area"),
+        address.get("city"),
+        address.get("state"),
+        address.get("pincode"),
+    ]
+    address_line = ", ".join(escape(str(p).strip()) for p in parts if p and str(p).strip())
+
+    ids = info.get("statutory_ids") or {}
+    gstin = ids.get("gst") or ids.get("gstin") or info.get("gst_number")
+    pan = ids.get("pan") or info.get("pan_number")
+    id_bits = []
+    if gstin:
+        id_bits.append(f"GSTIN: {escape(str(gstin))}")
+    if pan:
+        id_bits.append(f"PAN: {escape(str(pan))}")
+
+    return {
+        "name": escape(name) if name else "Company",
+        # The legal entity is only worth a second line when it differs from the
+        # trading name the company is listed under.
+        "legal_name": escape(legal_name) if legal_name and legal_name != name else "",
+        "address": address_line,
+        "ids": " &nbsp;•&nbsp; ".join(id_bits),
+    }
+
+
+def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info: dict | None = None) -> str:
     emp = breakdown.get("employee", {})
     earnings = breakdown.get("earnings", {})
     deductions = breakdown.get("deductions", {})
@@ -40,11 +103,17 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
         "Other": deductions.get("other", "0"),
     }
 
-    # Remove zero value deductions to make it cleaner
     deduction_rows = {k: v for k, v in deduction_rows.items() if float(v) > 0}
     earning_rows = {k: v for k, v in earning_rows.items() if float(v) > 0}
 
     generated_on = datetime.datetime.now().strftime("%d %b %Y, %I:%M %p")
+
+    company = _company(client_info)
+    company_lines = "".join(
+        f"<div>{line}</div>"
+        for line in (company["legal_name"], company["address"], company["ids"])
+        if line
+    )
 
     return f"""<!doctype html>
 <html>
@@ -52,10 +121,8 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
 <meta charset="utf-8">
 <title>Payslip</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  
-  body {{ 
-    font-family: 'Inter', sans-serif; 
+  body {{
+    font-family: 'Inter', 'DejaVu Sans', 'Helvetica', sans-serif;
     color: #1f2937; 
     margin: 40px; 
     font-size: 13px;
@@ -203,41 +270,43 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
   <div class="header">
     <div class="header-left">
       <!-- You can replace this text with an <img src="..."> if you have a logo URL -->
-      <div class="logo">ACME Corp Ltd.</div>
+      <div class="logo">{company['name']}</div>
       <div class="company-info">
-        123 Tech Park, Suite 400, Innovation Blvd<br>
-        Bangalore, Karnataka 560001, India<br>
-        GSTIN: 29XXXXXXXXXXXXX | info@acmecorp.com
+        {company_lines}
       </div>
     </div>
     <div class="header-right">
       <h1>PAYSLIP</h1>
-      <div class="muted">For the period of <strong>{cycle.get('name', '')}</strong></div>
-      <div class="muted">{cycle.get('period_start', '')} to {cycle.get('period_end', '')}</div>
+      <div class="muted">For the period of <strong>{_txt(cycle.get('name'), '')}</strong></div>
+      <div class="muted">{_txt(cycle.get('period_start'), '')} to {_txt(cycle.get('period_end'), '')}</div>
     </div>
   </div>
 
   <div class="emp-box">
     <table class="meta">
       <tr>
-        <td class="lbl">Employee Name</td><td class="val">{emp.get('name', '')}</td>
-        <td class="lbl">Employee ID</td><td class="val">{emp.get('emp_code', '')}</td>
+        <td class="lbl">Employee Name</td><td class="val">{_txt(emp.get('name'))}</td>
+        <td class="lbl">Employee ID</td><td class="val">{_txt(emp.get('emp_code'))}</td>
       </tr>
       <tr>
-        <td class="lbl">Designation</td><td class="val">{emp.get('designation', '') or '-'}</td>
-        <td class="lbl">Department</td><td class="val">{emp.get('department', '') or '-'}</td>
+        <td class="lbl">Company</td><td class="val">{company['name']}</td>
+        <td class="lbl">Work Location</td><td class="val">{_txt(emp.get('work_location'))}</td>
       </tr>
       <tr>
-        <td class="lbl">PAN Number</td><td class="val">{emp.get('pan', '') or '-'}</td>
-        <td class="lbl">Bank A/C No.</td><td class="val">{_mask_bank_account(emp.get('bank_account'))}</td>
+        <td class="lbl">Designation</td><td class="val">{_txt(emp.get('designation'))}</td>
+        <td class="lbl">Department</td><td class="val">{_txt(emp.get('department'))}</td>
       </tr>
       <tr>
-        <td class="lbl">UAN Number</td><td class="val">{emp.get('uan', '') or '-'}</td>
-        <td class="lbl">PF Number</td><td class="val">{emp.get('pf_number', '') or '-'}</td>
+        <td class="lbl">PAN Number</td><td class="val">{_txt(emp.get('pan'))}</td>
+        <td class="lbl">Bank A/C No.</td><td class="val">{_bank_account(emp.get('bank_account'))}</td>
       </tr>
       <tr>
-        <td class="lbl">Total Days</td><td class="val">{attendance.get('total_days', '-')}</td>
-        <td class="lbl">Payable Days</td><td class="val">{attendance.get('payable_days', '-')} (LOP: {attendance.get('lop_days', '0')})</td>
+        <td class="lbl">UAN Number</td><td class="val">{_txt(emp.get('uan'))}</td>
+        <td class="lbl">PF Number</td><td class="val">{_txt(emp.get('pf_number'))}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Total Days</td><td class="val">{_txt(attendance.get('total_days'))}</td>
+        <td class="lbl">Payable Days</td><td class="val">{_txt(attendance.get('payable_days'))} (LOP: {_txt(attendance.get('lop_days'), '0')})</td>
       </tr>
     </table>
   </div>
@@ -281,7 +350,7 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str) -> str:
 
   <div class="footer">
     <p>This is a computer-generated document and does not require a signature.</p>
-    <p>Generated on {generated_on} via ACME HRMS.</p>
+    <p>Generated on {generated_on} via HRMS.</p>
   </div>
 
 </body>

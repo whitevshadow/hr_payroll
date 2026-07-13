@@ -7,6 +7,7 @@ class Settings(BaseServiceSettings):
 
     payroll_url: str = "http://payroll-service:4005"
     blobstore_url: str = "http://blobstore-service:4010"
+    client_url: str = "http://client-service:4011"
     reports_dir: str = "/app/reports"
 
 

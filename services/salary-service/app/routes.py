@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from hr_shared import RequestContext, create_access_token
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import logging
@@ -15,6 +15,9 @@ from .logic import compute_breakdown
 from .models import SalaryComponent, SalaryStructure, SalaryTemplate
 from .schemas import (
     Breakdown,
+    ComponentOut,
+    StructureBulkCreate,
+    StructureBulkCreateOut,
     SalaryTemplateCreate,
     SalaryTemplateOut,
     StructureCreate,
@@ -79,6 +82,15 @@ def _components_from_breakdown(b: dict) -> list[tuple[str, object]]:
 
 async def _to_out(structure: SalaryStructure) -> StructureOut:
     b = compute_breakdown(structure.ctc, structure.work_location)
+    components = [
+        ComponentOut(
+            component_name=name,
+            amount=amount,
+            component_type="EARNING",
+            is_taxable=True,
+        )
+        for name, amount in _components_from_breakdown(b)
+    ]
     return StructureOut(
         id=structure.id,
         employee_id=structure.employee_id,
@@ -88,7 +100,7 @@ async def _to_out(structure: SalaryStructure) -> StructureOut:
         is_active=structure.is_active,
         work_location=structure.work_location,
         template_id=structure.template_id,
-        components=structure.components,
+        components=components,
         breakdown=Breakdown(**b),
     )
 
@@ -113,16 +125,34 @@ async def _build_structure(
         .values(is_active=False)
     )
     breakdown = compute_breakdown(ctc, work_location)
-    structure = SalaryStructure(
-        tenant_id=tenant_id,
-        employee_id=employee_id,
-        ctc=ctc,
-        effective_from=effective_from,
-        work_location=work_location,
-        is_active=True,
-        template_id=template_id,
+
+    structure = await session.scalar(
+        select(SalaryStructure).where(
+            SalaryStructure.tenant_id == tenant_id,
+            SalaryStructure.employee_id == employee_id,
+            SalaryStructure.effective_from == effective_from,
+        )
     )
-    session.add(structure)
+    if structure:
+        structure.ctc = ctc
+        structure.work_location = work_location
+        structure.is_active = True
+        structure.effective_to = None
+        structure.template_id = template_id
+        await session.execute(
+            delete(SalaryComponent).where(SalaryComponent.structure_id == structure.id)
+        )
+    else:
+        structure = SalaryStructure(
+            tenant_id=tenant_id,
+            employee_id=employee_id,
+            ctc=ctc,
+            effective_from=effective_from,
+            work_location=work_location,
+            is_active=True,
+            template_id=template_id,
+        )
+        session.add(structure)
     await session.flush()
     
     # If template_id provided, we could use template logic, but for V2
@@ -146,6 +176,7 @@ async def _build_structure(
 @router.post("/structures", response_model=StructureOut, status_code=201)
 async def create_structure(
     body: StructureCreate,
+    background_tasks: BackgroundTasks,
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
@@ -161,9 +192,41 @@ async def create_structure(
     await session.commit()
     await session.refresh(structure)
     out = await _to_out(structure)
-    # Fire-and-forget TDS auto-compute
-    await _notify_tds(ctx, out)
+    background_tasks.add_task(_notify_tds, ctx, out)
     return out
+
+
+@router.post("/structures/bulk", response_model=StructureBulkCreateOut, status_code=201)
+async def create_structures_bulk(
+    body: StructureBulkCreate,
+    background_tasks: BackgroundTasks,
+    ctx: RequestContext = Depends(get_client_context),
+    session: AsyncSession = Depends(get_session),
+):
+    structures: list[SalaryStructure] = []
+    for item in body.structures:
+        structures.append(
+            await _build_structure(
+                session,
+                ctx.tenant_id,
+                item.employee_id,
+                item.ctc,
+                item.effective_from,
+                item.work_location,
+                item.template_id,
+            )
+        )
+
+    await session.commit()
+
+    out: list[StructureOut] = []
+    for structure in structures:
+        await session.refresh(structure)
+        structure_out = await _to_out(structure)
+        out.append(structure_out)
+        background_tasks.add_task(_notify_tds, ctx, structure_out)
+
+    return StructureBulkCreateOut(total=len(body.structures), created=len(out), structures=out)
 
 
 @router.get("/structures/{employee_id}", response_model=StructureOut)
@@ -206,6 +269,7 @@ async def get_structure_history(
 async def revise_structure(
     structure_id: uuid.UUID,
     body: StructureRevise,
+    background_tasks: BackgroundTasks,
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
@@ -225,8 +289,7 @@ async def revise_structure(
     await session.commit()
     await session.refresh(structure)
     out = await _to_out(structure)
-    # Fire-and-forget TDS auto-compute
-    await _notify_tds(ctx, out)
+    background_tasks.add_task(_notify_tds, ctx, out)
     return out
 
 

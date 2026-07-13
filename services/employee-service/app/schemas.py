@@ -110,7 +110,7 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
-    pass
+    aadhaar_number: str
 
 
 class EmployeeUpdate(BaseModel):
@@ -173,7 +173,7 @@ class EmployeePage(BaseModel):
 
 class BulkImportRow(BaseModel):
     """One row from the Excel/CSV template."""
-    emp_code: str
+    emp_code: str | None = None
     first_name: str
     last_name: str
     email: str | None = None
@@ -191,7 +191,7 @@ class BulkImportRow(BaseModel):
     uan_number: str | None = None
     bank_account: str | None = None
     bank_ifsc: str | None = None
-    aadhaar_number: str | None = None
+    aadhaar_number: str
     gender: str | None = None
     date_of_birth: date | None = None
     state: str | None = None

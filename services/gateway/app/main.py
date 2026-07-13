@@ -64,7 +64,10 @@ _IDENTITY_HEADERS = {"x-tenant-id", "x-user-id", "x-client-id"}
 @app.on_event("startup")
 async def _startup() -> None:
     global _client
-    _client = httpx.AsyncClient(timeout=30.0)
+    # Report downloads render PDFs on demand — a whole payroll cycle's payslips
+    # can legitimately take minutes, and a proxy timeout surfaces as an opaque
+    # 502 in the browser.
+    _client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0))
 
 
 @app.on_event("shutdown")
