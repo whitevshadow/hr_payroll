@@ -4,9 +4,13 @@ import uuid
 from datetime import date
 
 from hr_shared import EncryptedString, TenantAwareBase
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+# Postgres uses JSONB in production; SQLite (unit tests) falls back to plain
+# JSON. with_variant leaves the Postgres DDL unchanged.
+_JSONB = JSONB().with_variant(JSON(), "sqlite")
 
 
 class Department(TenantAwareBase):
@@ -38,7 +42,11 @@ class Location(TenantAwareBase):
 class Employee(TenantAwareBase):
     __tablename__ = "employees"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "emp_code", name="uq_emp_code"),
+        # Employee codes are unique per client company, not per tenant: a bureau
+        # serving several clients lets each run its own E001.. sequence. The
+        # previous (tenant_id, emp_code) key made the second client's E001 a
+        # duplicate.
+        UniqueConstraint("tenant_id", "client_id", "emp_code", name="uq_emp_code"),
     )
 
     emp_code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -108,7 +116,7 @@ class WorkflowDefinition(TenantAwareBase):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     # steps: [{order, role, action, label}]
-    steps: Mapped[dict] = mapped_column(JSONB, default=list)
+    steps: Mapped[dict] = mapped_column(_JSONB, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     instances: Mapped[list["WorkflowInstance"]] = relationship(
@@ -129,7 +137,7 @@ class WorkflowInstance(TenantAwareBase):
     current_step: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
     initiated_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    payload: Mapped[dict] = mapped_column(JSONB, default=dict)
+    payload: Mapped[dict] = mapped_column(_JSONB, default=dict)
 
     definition: Mapped["WorkflowDefinition | None"] = relationship(back_populates="instances")
     step_actions: Mapped[list["WorkflowStepAction"]] = relationship(

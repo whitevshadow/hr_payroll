@@ -43,7 +43,7 @@ import {
   Clock,
   Umbrella,
 } from "lucide-react";
-import { useAuth } from "../lib/auth";
+import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
 import { Z } from "../lib/zIndex";
 import { notificationsApi } from "../api/notifications";
@@ -113,7 +113,6 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
       { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
       { to: "/employees",   label: "Employees",   icon: Users,     hrOnly: true },
       { to: "/departments", label: "Departments", icon: Building2,  hrOnly: true },
-      { to: "/locations",   label: "Locations",   icon: Building2,  hrOnly: true },
     ],
   },
   {
@@ -745,7 +744,6 @@ function TopBar({
     "/reports":     "Reports",
     "/audit":       "Audit Log",
     "/clients":     "Clients",
-    "/locations":   "Locations",
     "/leave":       "Leave Policies",
     "/leave-management": "Leave Management",
     "/leave-balance": "Leave Ledger",
@@ -806,7 +804,7 @@ function TopBar({
               onChange={(e) => setSelectedClientId(e.target.value || null)}
             >
               <option value="">All Clients</option>
-              {clientsQuery.data?.items.map(c => (
+              {clientsQuery.data?.items?.map(c => (
                 <option key={c.id} value={c.id}>{c.client_name}</option>
               ))}
             </select>
@@ -879,9 +877,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sseStatus,   setSseStatus]   = useState<"connecting" | "open" | "closed" | "error">("closed");
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const { user } = useAuth();
+  // Router location — without this, the page-transition key below silently fell
+  // back to the global window.location.
+  const location = useLocation();
 
   usePayrollSSE({
-    token: user ? localStorage.getItem("token") : null,
+    token: user ? getToken() : null,
     onStatusChange: setSseStatus,
   });
 

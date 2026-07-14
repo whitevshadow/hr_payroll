@@ -5,18 +5,32 @@ import type { Me } from "../types";
 const TOKEN_KEY = "hrp_token";
 let _memToken: string | null = null;
 
+function safeGet(key: string): string | null {
+  try { return localStorage.getItem(key); } catch {}
+  try { return sessionStorage.getItem(key); } catch {}
+  return null;
+}
+function safeSet(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch {}
+  try { sessionStorage.setItem(key, value); } catch {}
+}
+function safeRemove(key: string) {
+  try { localStorage.removeItem(key); } catch {}
+  try { sessionStorage.removeItem(key); } catch {}
+}
+
 export function getToken(): string | null {
   if (_memToken) return _memToken;
-  _memToken = localStorage.getItem(TOKEN_KEY);
+  _memToken = safeGet(TOKEN_KEY);
   return _memToken;
 }
 export function setToken(token: string) {
   _memToken = token;
-  localStorage.setItem(TOKEN_KEY, token);
+  safeSet(TOKEN_KEY, token);
 }
 export function clearToken() {
   _memToken = null;
-  localStorage.removeItem(TOKEN_KEY);
+  safeRemove(TOKEN_KEY);
 }
 
 export const ME_QUERY_KEY = ["me"] as const;

@@ -14,7 +14,6 @@ import { EmployeeDocumentsPanel } from "../components/EmployeeDocumentsPanel";
 import { EmptyState } from "../components/EmptyState";
 import { formatINR } from "../lib/money";
 import { formatDate, formatMonth } from "../lib/format";
-import { maskPii, type PiiType } from "../lib/pii";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import clsx from "clsx";
 
@@ -24,7 +23,9 @@ export function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("personal");
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  // Maps a revealed field to its unmasked value returned by the audited
+  // pii-access endpoint. The detail response itself only contains masked PII.
+  const [revealedValues, setRevealedValues] = useState<Record<string, string | null>>({});
 
   const empQ = useQuery({
     queryKey: qk.employee(id!),
@@ -33,11 +34,14 @@ export function EmployeeDetail() {
 
   const emp = empQ.data;
 
-  async function reveal(field: string, type: PiiType) {
-    if (revealed.has(field)) return;
+  async function reveal(field: string) {
+    if (field in revealedValues) return;
     try {
-      await api.post(`/employees/${id}/pii-access`, { fields: [field] });
-      setRevealed((s) => new Set([...s, field]));
+      const { data } = await api.post<{ values: Record<string, string | null> }>(
+        `/employees/${id}/pii-access`,
+        { fields: [field] },
+      );
+      setRevealedValues((s) => ({ ...s, [field]: data.values?.[field] ?? null }));
       qc.invalidateQueries({ queryKey: qk.audit({}) });
       toastService.info("PII access recorded in audit log.");
     } catch (err) {
@@ -74,11 +78,11 @@ export function EmployeeDetail() {
         ))}
       </div>
 
-      {tab === "personal" && <PersonalTab emp={emp} revealed={revealed} onReveal={reveal} />}
+      {tab === "personal" && <PersonalTab emp={emp} revealedValues={revealedValues} onReveal={reveal} />}
       {tab === "employment" && <EmploymentTab emp={emp} />}
-      {tab === "bank" && <BankTab emp={emp} revealed={revealed} onReveal={reveal} />}
+      {tab === "bank" && <BankTab emp={emp} revealedValues={revealedValues} onReveal={reveal} />}
       {tab === "documents" && <DocumentsTab employeeId={id!} />}
-      {tab === "compliance" && <ComplianceTab emp={emp} revealed={revealed} onReveal={reveal} />}
+      {tab === "compliance" && <ComplianceTab emp={emp} revealedValues={revealedValues} onReveal={reveal} />}
       {tab === "salary" && <SalaryTab employeeId={id!} />}
       {tab === "notes" && <NotesTab />}
     </div>
@@ -86,18 +90,20 @@ export function EmployeeDetail() {
 }
 
 // ── Shared PII Field Component ─────────────────────────────────────────────
-function PiiField({ label, field, value, type, revealed, onReveal }: { label: string; field: string; value: string | null | undefined; type: PiiType; revealed: Set<string>; onReveal: (field: string, type: PiiType) => void; }) {
-  const isRevealed = revealed.has(field);
-  const masked = maskPii(value, type);
+// `value` is the server-masked value from the detail response. Clicking Reveal
+// calls the audited pii-access endpoint and shows the unmasked value it returns.
+function PiiField({ label, field, value, revealedValues, onReveal }: { label: string; field: string; value: string | null | undefined; revealedValues: Record<string, string | null>; onReveal: (field: string) => void; }) {
+  const isRevealed = field in revealedValues;
+  const display = isRevealed ? (revealedValues[field] ?? "—") : (value ?? "—");
   return (
     <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2 last:border-0 last:pb-0">
       <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">{label}</span>
       <div className="flex items-center gap-3">
-        <span className="font-mono text-sm text-slate-800 dark:text-slate-200">{isRevealed ? (value ?? "—") : masked}</span>
+        <span className="font-mono text-sm text-slate-800 dark:text-slate-200">{display}</span>
         {value && !isRevealed && (
           <button
             className="text-xs font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 dark:hover:text-accent-300"
-            onClick={() => onReveal(field, type)}
+            onClick={() => onReveal(field)}
           >
             Reveal
           </button>
@@ -108,7 +114,7 @@ function PiiField({ label, field, value, type, revealed, onReveal }: { label: st
 }
 
 // ── Personal Tab ─────────────────────────────────────────────────────────
-function PersonalTab({ emp, revealed, onReveal }: any) {
+function PersonalTab({ emp, revealedValues, onReveal }: any) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="card table-card">
@@ -143,8 +149,8 @@ function PersonalTab({ emp, revealed, onReveal }: any) {
           <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
         </h3>
         <div className="space-y-3 px-1">
-          <PiiField label="PAN Number" field="pan_number" value={emp.pan_number} type="pan" revealed={revealed} onReveal={onReveal} />
-          <PiiField label="Aadhaar Number" field="aadhaar_number" value={emp.aadhaar_number} type="generic" revealed={revealed} onReveal={onReveal} />
+          <PiiField label="PAN Number" field="pan_number" value={emp.pan_number} revealedValues={revealedValues} onReveal={onReveal} />
+          <PiiField label="Aadhaar Number" field="aadhaar_number" value={emp.aadhaar_number} revealedValues={revealedValues} onReveal={onReveal} />
         </div>
       </div>
     </div>
@@ -212,7 +218,7 @@ function EmploymentTab({ emp }: any) {
 }
 
 // ── Bank Tab ─────────────────────────────────────────────────────────────
-function BankTab({ emp, revealed, onReveal }: any) {
+function BankTab({ emp, revealedValues, onReveal }: any) {
   return (
     <div className="max-w-2xl card table-card">
       <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
@@ -220,15 +226,19 @@ function BankTab({ emp, revealed, onReveal }: any) {
         <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
       </h3>
       <div className="space-y-3 px-1">
-        <PiiField label="Bank Account Number" field="bank_account" value={emp.bank_account} type="account" revealed={revealed} onReveal={onReveal} />
-        <PiiField label="Bank IFSC Code" field="bank_ifsc" value={emp.bank_ifsc} type="ifsc" revealed={revealed} onReveal={onReveal} />
+        <PiiField label="Bank Account Number" field="bank_account" value={emp.bank_account} revealedValues={revealedValues} onReveal={onReveal} />
+        {/* IFSC is a public branch code, not sensitive PII — shown in full. */}
+        <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800/50 pb-2 last:border-0 last:pb-0">
+          <span className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Bank IFSC Code</span>
+          <span className="font-mono text-sm text-slate-800 dark:text-slate-200">{emp.bank_ifsc ?? "—"}</span>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Compliance Tab ───────────────────────────────────────────────────────
-function ComplianceTab({ emp, revealed, onReveal }: any) {
+function ComplianceTab({ emp, revealedValues, onReveal }: any) {
   return (
     <div className="max-w-2xl card table-card">
       <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
@@ -236,7 +246,7 @@ function ComplianceTab({ emp, revealed, onReveal }: any) {
         <span className="ml-2 text-[10px] font-normal uppercase tracking-wider text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Audited</span>
       </h3>
       <div className="space-y-3 px-1">
-        <PiiField label="Universal Account Number (UAN)" field="uan_number" value={emp.uan_number} type="generic" revealed={revealed} onReveal={onReveal} />
+        <PiiField label="Universal Account Number (UAN)" field="uan_number" value={emp.uan_number} revealedValues={revealedValues} onReveal={onReveal} />
       </div>
     </div>
   );

@@ -1,14 +1,31 @@
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
 venv/
-.env
+*.egg-info/
+build/
+
+# ── Node / frontend ──────────────────────────────────────────────────────────
 node_modules/
 frontend/dist/
-*.egg-info/
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# .env holds JWT_SECRET / FIELD_ENCRYPTION_KEY / MinIO creds — never commit it.
+# Generate one from .env.example with: python scripts/setup_env.py
+.env
+
+# ── Generated / tool output (regenerable — see README) ───────────────────────
+graphify-out/
+build_output.txt
+
+# ── Local scratch ────────────────────────────────────────────────────────────
+powershell.cmd
+run_docker_build.bat
+*.log
+
+# ── Editor / OS ──────────────────────────────────────────────────────────────
 .DS_Store
 .agents/
 .claude/
-graphify-out/
-powershell.cmd

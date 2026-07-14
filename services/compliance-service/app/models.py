@@ -4,7 +4,7 @@ import uuid
 from decimal import Decimal
 
 from hr_shared import TenantAwareBase
-from sqlalchemy import Boolean, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, Index, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,8 +37,18 @@ class ComplianceSetting(TenantAwareBase):
     gratuity_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+# Contribution rows are keyed by (tenant, employee, cycle): /compute deletes on
+# exactly that triple before re-inserting, and /summary aggregates by cycle.
+# The unique constraint stops a re-run or a race leaving duplicate rows (which
+# would double-count statutory totals) and indexes the delete; the extra
+# (tenant, cycle) index serves the summary, which the unique index cannot
+# because cycle_id is not a leading column there.
 class PFContribution(TenantAwareBase):
     __tablename__ = "pf_contributions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "employee_id", "cycle_id", name="uq_pf_emp_cycle"),
+        Index("ix_pf_tenant_cycle", "tenant_id", "cycle_id"),
+    )
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     cycle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
@@ -51,6 +61,10 @@ class PFContribution(TenantAwareBase):
 
 class ESIContribution(TenantAwareBase):
     __tablename__ = "esi_contributions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "employee_id", "cycle_id", name="uq_esi_emp_cycle"),
+        Index("ix_esi_tenant_cycle", "tenant_id", "cycle_id"),
+    )
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     cycle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
@@ -62,6 +76,10 @@ class ESIContribution(TenantAwareBase):
 
 class PTDeduction(TenantAwareBase):
     __tablename__ = "pt_deductions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "employee_id", "cycle_id", name="uq_pt_emp_cycle"),
+        Index("ix_pt_tenant_cycle", "tenant_id", "cycle_id"),
+    )
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     cycle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
@@ -71,6 +89,10 @@ class PTDeduction(TenantAwareBase):
 
 class LWFContribution(TenantAwareBase):
     __tablename__ = "lwf_contributions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "employee_id", "cycle_id", name="uq_lwf_emp_cycle"),
+        Index("ix_lwf_tenant_cycle", "tenant_id", "cycle_id"),
+    )
 
     employee_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     cycle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

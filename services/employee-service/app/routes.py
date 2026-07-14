@@ -4,9 +4,9 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from hr_shared import RequestContext, audit_log
+from hr_shared import RequestContext, audit_log, mask_pan, mask_bank_account, mask_aadhaar, mask_uan
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .deps import get_context, get_client_context, get_session, runtime
@@ -47,6 +47,25 @@ router = APIRouter(prefix="/api/v1", tags=["employees"])
 _admin = runtime.require_roles("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN", get_ctx=get_client_context)
 _PRIVILEGED = ("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")
 
+# PII fields returned masked in list/detail responses; the raw value is only
+# obtainable through the audited pii-access endpoint. (bank_ifsc is a public
+# branch code, not treated as sensitive PII.)
+_PII_MASKERS = {
+    "pan_number": mask_pan,
+    "bank_account": mask_bank_account,
+    "aadhaar_number": mask_aadhaar,
+    "uan_number": mask_uan,
+}
+
+
+def _masked_employee(emp) -> EmployeeOut:
+    """Serialise an Employee with its sensitive PII fields masked."""
+    data = EmployeeOut.model_validate(emp).model_dump()
+    for field, masker in _PII_MASKERS.items():
+        if data.get(field):
+            data[field] = masker(data[field])
+    return EmployeeOut.model_validate(data)
+
 
 # ── Locations ─────────────────────────────────────────────────────────────────
 
@@ -70,6 +89,9 @@ async def create_location(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
+    if not body.location_code:
+        import uuid
+        body.location_code = f"LOC-{uuid.uuid4().hex[:6].upper()}"
     loc = Location(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
     session.add(loc)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="LOCATION_CREATED",
@@ -172,17 +194,39 @@ async def bulk_import_employees(
     EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     PAN_RE   = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
     IFSC_RE  = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+    AADHAAR_RE = re.compile(r"^\d{12}$")
 
-    # 1. Pre-load existing codes + emails
     existing_rows = await session.execute(
-        select(Employee.emp_code, Employee.email).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id)
+        select(
+            Employee.emp_code,
+            Employee.email,
+            Employee.id,
+            Employee.mobile,
+            Employee.aadhaar_number,
+            Employee.first_name,
+            Employee.last_name,
+        ).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id)
     )
-    existing_codes: set[str] = set()
-    existing_emails: set[str] = set()
-    for code, email in existing_rows:
-        existing_codes.add(code.lower())
+    existing_codes: dict[str, str] = {}
+    existing_emails: dict[str, str] = {}
+    existing_aadhaars: dict[str, str] = {}
+    existing_mobile_names: dict[tuple[str, str, str], str] = {}
+    for code, email, emp_id, mobile, aadhaar, first_name, last_name in existing_rows:
+        existing_codes[code.lower()] = str(emp_id)
         if email:
-            existing_emails.add(email.lower())
+            existing_emails[email.lower()] = str(emp_id)
+        if aadhaar:
+            existing_aadhaars[str(aadhaar).replace(" ", "").replace("-", "")] = str(emp_id)
+        mobile_clean = re.sub(r"[^0-9]", "", str(mobile or ""))
+        if mobile_clean:
+            existing_mobile_names.setdefault(
+                (
+                    mobile_clean,
+                    (first_name or "").strip().lower(),
+                    (last_name or "").strip().lower(),
+                ),
+                str(emp_id),
+            )
 
     # 2. Pre-load departments
     dept_rows = await session.scalars(select(Department).where(Department.tenant_id == ctx.tenant_id, Department.client_id == ctx.client_id))
@@ -207,12 +251,13 @@ async def bulk_import_employees(
 
     for idx, row in enumerate(body.rows):
         code  = (row.emp_code or "").strip()
+        if not code:
+            code = f"EMP-{uuid.uuid4().hex[:6].upper()}"
+            row.emp_code = code
+
         fname = (row.first_name or "").strip()
         lname = (row.last_name or "").strip()
         email = (row.email or "").strip().lower() or None
-
-        if not code:
-            results.append(_err(idx, row, "Employee Code is required")); continue
         if not fname:
             results.append(_err(idx, row, "First Name is required")); continue
         if not lname:
@@ -233,17 +278,38 @@ async def bulk_import_employees(
             if not IFSC_RE.match(ifsc):
                 results.append(_err(idx, row, f"Invalid IFSC format: {ifsc}")); continue
             row = row.model_copy(update={"bank_ifsc": ifsc})
+        if not row.aadhaar_number:
+            results.append(_err(idx, row, "Aadhaar Number is required")); continue
+        aadhaar_clean = row.aadhaar_number.replace(" ", "").replace("-", "")
+        if not AADHAAR_RE.match(aadhaar_clean):
+            results.append(_err(idx, row, "Aadhaar must be 12 digits")); continue
+        row = row.model_copy(update={"aadhaar_number": aadhaar_clean})
         if row.basic_salary is not None and row.basic_salary <= 0:
             results.append(_err(idx, row, "Basic Salary must be positive")); continue
-        if code.lower() in existing_codes:
+        if code and code.lower() in existing_codes:
+            emp_id = existing_codes[code.lower()]
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
-                                     status="duplicate", error="Employee Code already exists")); continue
+                                     status="duplicate", error="Employee Code already exists", employee_id=emp_id)); continue
+        if aadhaar_clean in existing_aadhaars:
+            emp_id = existing_aadhaars[aadhaar_clean]
+            results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
+                                     status="duplicate", error="Aadhaar already exists", employee_id=emp_id)); continue
+        mobile_key = (
+            re.sub(r"[^0-9]", "", str(row.mobile or "")),
+            fname.lower(),
+            lname.lower(),
+        )
+        if mobile_key in existing_mobile_names:
+            emp_id = existing_mobile_names[mobile_key]
+            results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
+                                     status="duplicate", error="Mobile and name already exist", employee_id=emp_id)); continue
         if code.lower() in seen_codes:
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
                                      status="duplicate", error="Duplicate Employee Code in file")); continue
         if email and email in existing_emails:
+            emp_id = existing_emails[email]
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
-                                     status="duplicate", error="Email already exists")); continue
+                                     status="duplicate", error="Email already exists", employee_id=emp_id)); continue
         if email and email in seen_emails:
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
                                      status="duplicate", error="Duplicate email in file")); continue
@@ -277,6 +343,7 @@ async def bulk_import_employees(
             matched_loc = loc_map.get(loc_key)
             emp = Employee(
                 tenant_id=ctx.tenant_id,
+                client_id=ctx.client_id,
                 emp_code=p["code"],
                 first_name=p["fname"],
                 last_name=p["lname"],
@@ -331,6 +398,10 @@ async def create_employee(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
+    if not body.emp_code:
+        import uuid
+        body.emp_code = f"EMP-{uuid.uuid4().hex[:6].upper()}"
+
     dup = await session.scalar(
         select(Employee).where(Employee.tenant_id == ctx.tenant_id, Employee.client_id == ctx.client_id, Employee.emp_code == body.emp_code)
     )
@@ -359,7 +430,7 @@ async def list_employees(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
+    page_size: int = Query(50, ge=1, le=1000),
     search: str | None = None,
     status: str | None = None,
     client_id: uuid.UUID | None = None,
@@ -385,7 +456,10 @@ async def list_employees(
     rows  = await session.scalars(
         base.order_by(Employee.emp_code).offset((page - 1) * page_size).limit(page_size)
     )
-    return EmployeePage(items=list(rows), total=total or 0, page=page, page_size=page_size)
+    return EmployeePage(
+        items=[_masked_employee(e) for e in rows],
+        total=total or 0, page=page, page_size=page_size,
+    )
 
 
 async def _resolve_my_employee(ctx: RequestContext, session: AsyncSession) -> Employee | None:
@@ -449,7 +523,7 @@ async def get_employee(
         mine = await _resolve_my_employee(ctx, session)
         if not mine or mine.id != employee_id:
             raise HTTPException(status_code=403, detail="Access denied")
-    return emp
+    return _masked_employee(emp)
 
 
 @router.put("/employees/{employee_id}", response_model=EmployeeOut)
@@ -482,7 +556,15 @@ class PIIAccessRequest(BaseModel):
     fields: list[str]
 
 
-@router.post("/employees/{employee_id}/pii-access", status_code=204)
+class PIIAccessResponse(BaseModel):
+    values: dict[str, str | None]
+
+
+# Fields whose unmasked value may be revealed through this audited endpoint.
+_REVEALABLE_FIELDS = {"pan_number", "bank_account", "aadhaar_number", "uan_number", "bank_ifsc"}
+
+
+@router.post("/employees/{employee_id}/pii-access", response_model=PIIAccessResponse)
 async def pii_access(
     employee_id: uuid.UUID,
     body: PIIAccessRequest,
@@ -490,14 +572,27 @@ async def pii_access(
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
+    """Return the unmasked value of specific PII fields, recording an audit event.
+
+    Detail/list responses mask PII; this is the only way to obtain the raw value,
+    so every access is authorised (privileged role or self) and logged.
+    """
     emp = await session.get(Employee, employee_id)
     if not emp or emp.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Employee not found")
+    if not any(r in ctx.roles for r in _PRIVILEGED):
+        mine = await _resolve_my_employee(ctx, session)
+        if not mine or mine.id != employee_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    fields = [f for f in body.fields if f in _REVEALABLE_FIELDS]
+    values = {f: getattr(emp, f) for f in fields}
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="PII_ACCESSED",
                     entity_type="employee", entity_id=str(employee_id),
-                    payload={"fields": body.fields, "ip": request.client.host if request.client else "unknown"},
+                    payload={"fields": fields, "ip": request.client.host if request.client else "unknown"},
                     actor_id=ctx.user_id)
     await session.commit()
+    return PIIAccessResponse(values=values)
 
 
 # ── Financial Years ───────────────────────────────────────────────────────────
@@ -522,7 +617,10 @@ async def create_financial_year(
     # TODO: _admin should also enforce client context if needed, but _admin wraps get_context,
     session: AsyncSession = Depends(get_session),
 ):
-    fy = FinancialYear(tenant_id=ctx.tenant_id, client_id=ctx.client_id, **body.model_dump())
+    # A financial year is tenant-level: the statutory FY (1 Apr - 31 Mar) is the
+    # same for every client company under the tenant, so FinancialYear carries no
+    # client_id. Passing one raised TypeError and 500'd every call.
+    fy = FinancialYear(tenant_id=ctx.tenant_id, **body.model_dump())
     session.add(fy)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="FINANCIAL_YEAR_CREATED",
                     entity_type="financial_year", entity_id=body.name,
@@ -542,6 +640,17 @@ async def activate_financial_year(
     fy = await session.get(FinancialYear, fy_id)
     if not fy or fy.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Financial year not found")
+    # Exactly one FY may be active per tenant: deactivate the others, otherwise
+    # "the active FY" is ambiguous for every downstream consumer.
+    await session.execute(
+        update(FinancialYear)
+        .where(
+            FinancialYear.tenant_id == ctx.tenant_id,
+            FinancialYear.id != fy_id,
+            FinancialYear.is_active.is_(True),
+        )
+        .values(is_active=False)
+    )
     fy.is_active = True
     await session.commit()
     await session.refresh(fy)

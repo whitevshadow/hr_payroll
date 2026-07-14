@@ -25,6 +25,19 @@ def test_pf_below_ceiling_without_toggle():
     assert pf["employee_pf"] == D("1200.00")
 
 
+def test_pf_ceiling_off_above_ceiling_epf_eps_sum_to_total():
+    # basic 30000, ceiling disabled: EPF is on the full wage, EPS stays capped.
+    #   employer total = 12% * 30000        = 3600.00
+    #   employer EPS   = 8.33% * 15000      = 1249.50 (capped at ceiling)
+    #   employer EPF   = 3600 - 1249.50     = 2350.50   (was wrongly 1101.00)
+    pf = compute_pf(D("30000"), ceiling_on=False)
+    assert pf["pf_wages"] == D("30000.00")
+    assert pf["employer_eps"] == D("1249.50")
+    assert pf["employer_epf"] == D("2350.50")
+    # EPS + EPF must equal the full 12% employer contribution.
+    assert pf["employer_eps"] + pf["employer_epf"] == D("3600.00")
+
+
 def test_esi_eligible_when_within_threshold():
     esi = compute_esi(D("20000"))
     assert esi["is_esi_eligible"] is True

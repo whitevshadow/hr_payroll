@@ -55,7 +55,24 @@ export function Compliance() {
   );
   const filteredEmpIds = new Set(filteredEmployees.map((e) => e.id));
 
-  const t = summary.data?.totals;
+  // The summary endpoint returns rows/totals for the whole cycle (all clients).
+  // Scope everything the page shows — tables, KPI totals, and CSV export — to
+  // the selected client so they agree and the CSV never leaks other clients.
+  const filteredPf = (summary.data?.pf ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
+  const filteredEsi = (summary.data?.esi ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
+  const filteredPt = (summary.data?.pt ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
+
+  const t = summary.data
+    ? {
+        total_employee_pf: String(sum(filteredPf, "employee_pf")),
+        total_employer_pf: String(sum(filteredPf, "employer_epf")),
+        total_employer_eps: String(sum(filteredPf, "employer_eps")),
+        total_employee_esi: String(sum(filteredEsi, "employee_esi")),
+        total_employer_esi: String(sum(filteredEsi, "employer_esi")),
+        total_pt: String(sum(filteredPt, "pt_amount")),
+        esi_eligible_count: filteredEsi.filter((r: any) => r.is_esi_eligible).length,
+      }
+    : undefined;
 
   const TAB_LABELS: Record<CompTab, string> = {
     pf: "Provident Fund",
@@ -83,7 +100,7 @@ export function Compliance() {
         <button
           className="btn-ghost"
           disabled={!summary.data}
-          onClick={() => exportCsv(tab, summary.data!, empMap)}
+          onClick={() => exportCsv(tab, { pf: filteredPf, esi: filteredEsi, pt: filteredPt }, empMap)}
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -172,15 +189,9 @@ export function Compliance() {
         />
       )}
 
-      {summary.data && tab === "pf" && (
-        <PFTable rows={selectedClientId ? summary.data.pf.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.pf} empMap={empMap} />
-      )}
-      {summary.data && tab === "esi" && (
-        <ESITable rows={selectedClientId ? summary.data.esi.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.esi} empMap={empMap} />
-      )}
-      {summary.data && tab === "pt" && (
-        <PTTable rows={selectedClientId ? summary.data.pt.filter((r: any) => filteredEmpIds.has(r.employee_id)) : summary.data.pt} empMap={empMap} />
-      )}
+      {summary.data && tab === "pf" && <PFTable rows={filteredPf} empMap={empMap} />}
+      {summary.data && tab === "esi" && <ESITable rows={filteredEsi} empMap={empMap} />}
+      {summary.data && tab === "pt" && <PTTable rows={filteredPt} empMap={empMap} />}
     </div>
   );
 }

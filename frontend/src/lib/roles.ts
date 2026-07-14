@@ -16,8 +16,16 @@ export type AppRole =
 const ADMIN_ROLES: AppRole[] = ["SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN"];
 const HR_ROLES: AppRole[] = [...ADMIN_ROLES, "HR_MANAGER"];
 
+/** Normalise so casing/whitespace drift in a backend role string can't silently
+ *  make every check false (which would hide nav and approve buttons with no error). */
+function normalised(user: Me | null | undefined): Set<string> {
+  return new Set((user?.roles ?? []).map((r) => String(r).trim().toUpperCase()));
+}
+
 export function hasRole(user: Me | null | undefined, ...roles: AppRole[]): boolean {
-  return !!user && roles.some((r) => user.roles.includes(r));
+  if (!user) return false;
+  const held = normalised(user);
+  return roles.some((r) => held.has(r));
 }
 
 export function canApprove(user: Me | null | undefined): boolean {
@@ -30,7 +38,8 @@ export function canViewAudit(user: Me | null | undefined): boolean {
 }
 
 export function isEmployeeOnly(user: Me | null | undefined): boolean {
-  return !!user && user.roles.length === 1 && user.roles[0] === "EMPLOYEE";
+  const held = normalised(user);
+  return !!user && held.size === 1 && held.has("EMPLOYEE");
 }
 
 export function isAdmin(user: Me | null | undefined): boolean {

@@ -120,10 +120,34 @@ def mask_pan(pan: str | None) -> str:
 
 
 def mask_bank_account(account: str | None) -> str:
-    """12345678901234 → XXXXXXXXXX1234  (last 4 digits visible for reconciliation)."""
+    """12345678901234 → XXXXXXXXXX1234  (last 4 digits visible for reconciliation).
+
+    An account of exactly 4 digits has nothing to mask (the last 4 *are* the
+    whole value); shorter values are masked entirely.
+    """
     if not account:
         return "-"
     account = account.strip()
-    if len(account) <= 4:
+    if len(account) < 4:
         return "X" * len(account)
     return "X" * (len(account) - 4) + account[-4:]
+
+
+def mask_aadhaar(aadhaar: str | None) -> str:
+    """123412341234 → XXXX XXXX 1234  (only the last 4 digits are shown, per UIDAI)."""
+    if not aadhaar:
+        return "-"
+    digits = "".join(ch for ch in aadhaar if ch.isdigit())
+    if len(digits) < 4:
+        return "X" * len(digits)
+    return f"XXXX XXXX {digits[-4:]}"
+
+
+def mask_uan(uan: str | None) -> str:
+    """100123456789 → XXXXXXXX6789  (last 4 digits visible)."""
+    if not uan:
+        return "-"
+    uan = uan.strip()
+    if len(uan) <= 4:
+        return "X" * len(uan)
+    return "X" * (len(uan) - 4) + uan[-4:]

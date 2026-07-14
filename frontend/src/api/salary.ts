@@ -15,6 +15,17 @@ export const salaryApi = {
     template_id?: string | null;
   }) => api.post<SalaryStructure>("/salary/structures", body).then((r) => r.data),
 
+  bulkCreate: (structures: Array<{
+    employee_id: string;
+    ctc: number;
+    effective_from: string;
+    work_location?: string | null;
+    template_id?: string | null;
+  }>) =>
+    api
+      .post<{ total: number; created: number; structures: SalaryStructure[] }>("/salary/structures/bulk", { structures })
+      .then((r) => r.data),
+
   revise: (
     structureId: string,
     body: { ctc: number; effective_from: string; work_location?: string | null; template_id?: string | null }

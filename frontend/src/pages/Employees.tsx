@@ -21,13 +21,15 @@ const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
   status: "ACTIVE", work_location: "", designation: "",
   pan_number: "", bank_account: "", bank_ifsc: "", joining_date: "",
+  aadhaar_number: "",
 };
 
 function validate(f: Partial<Employee>): string | null {
   if (!f.client_id) return "Client is required";
-  if (!f.emp_code?.trim()) return "Employee code is required";
   if (!f.first_name?.trim()) return "First name is required";
   if (!f.last_name?.trim()) return "Last name is required";
+  if (!f.aadhaar_number?.trim()) return "Aadhaar Number is required";
+  if (!/^\d{12}$/.test(f.aadhaar_number.trim())) return "Aadhaar Number must be 12 digits";
   if (f.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
     return "PAN must be in the format ABCDE1234F";
   if (f.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank_ifsc.toUpperCase()))
@@ -480,12 +482,6 @@ function EmployeeModal({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="f-code">Employee Code *</label>
-          <input id="f-code" className="input" disabled={isEdit}
-            value={value.emp_code ?? ""}
-            onChange={(e) => set("emp_code", e.target.value)} />
-        </div>
-        <div>
           <label className="label" htmlFor="f-status">Status</label>
           <select id="f-status" className="input" value={value.status ?? "ACTIVE"}
             onChange={(e) => set("status", e.target.value)}>
@@ -538,6 +534,11 @@ function EmployeeModal({
             onChange={(e) => set("pan_number", e.target.value.toUpperCase())} />
         </div>
         <div>
+          <label className="label" htmlFor="f-aadhaar">Aadhaar Number *</label>
+          <input id="f-aadhaar" className="input" placeholder="123456789012" value={value.aadhaar_number ?? ""}
+            onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, ""))} />
+        </div>
+        <div>
           <label className="label" htmlFor="f-bank">Bank Account</label>
           <input id="f-bank" className="input" value={value.bank_account ?? ""}
             onChange={(e) => set("bank_account", e.target.value)} />
@@ -552,14 +553,10 @@ function EmployeeModal({
           <input id="f-join" className="input" type="date" value={value.joining_date ?? ""}
             onChange={(e) => set("joining_date", e.target.value || null)} />
         </div>
-        <div>
-          <label className="label" htmlFor="f-client">Client Company</label>
-          <select id="f-client" className="input" value={value.client_id ?? ""}
-            onChange={(e) => set("client_id", e.target.value || null)}>
-            <option value="">— No Client —</option>
-            {clients.map((c) => <option key={c.id} value={c.id}>{c.client_name} ({c.client_code})</option>)}
-          </select>
-        </div>
+        {/* The client is chosen by the required "Client *" field at the top of
+            this form. A second control bound to the same client_id (with the
+            same #f-client id) was removed: duplicate DOM ids break label
+            association and the two behaved differently on edit. */}
         <div className="col-span-2">
           <label className="label" htmlFor="f-manager">Reporting Manager</label>
           <select id="f-manager" className="input" value={value.reporting_manager_id ?? ""}

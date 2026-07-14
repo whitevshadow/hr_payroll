@@ -6,6 +6,7 @@ import { clientsApi } from "../api/clients";
 import { blobstoreApi } from "../api/blobstore";
 import { Client, ClientDocument } from "../types";
 import { qk } from "../lib/queryClient";
+import { getToken } from "../lib/auth";
 import { Spinner } from "./Spinner";
 import { StatusBadge } from "./StatusBadge";
 import clsx from "clsx";
@@ -79,7 +80,7 @@ export function ClientDocumentsPanel({ client }: Props) {
     
     fetch(url, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     })
       .then((res) => res.blob())

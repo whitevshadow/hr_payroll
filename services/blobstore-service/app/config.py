@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # Explicit allowed origins. A wildcard "*" combined with credentials is
     # invalid per the CORS spec, so credentials are only enabled when the
     # origin list is not the wildcard.
-    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:4050"]
 
     # ── Database ──────────────────────────────────────────────────
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/blobstore"
@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     # ── Auth / JWT (shared platform secret) ───────────────────────
     # One shared secret across auth-service and every consuming service.
     # The compose stack injects JWT_SECRET / JWT_ALGORITHM via x-common-env.
-    JWT_SECRET: str = "change-me-in-production"
+    # Required (no default) so the service refuses to boot with a publicly
+    # known signing key — see the platform-wide fix in hr_shared/config.py.
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     # Roles permitted to delete / restore / run audit operations on blobs.
     BLOB_ADMIN_ROLES: list[str] = [
@@ -68,6 +70,17 @@ class Settings(BaseSettings):
     # Production:   s3.example.com  or  s3.example.com:443
     # Falls back to MINIO_ENDPOINT when unset (generates internal Docker URLs — unusable by browsers).
     MINIO_PUBLIC_ENDPOINT: Optional[str] = None
+
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def reject_weak_jwt_secret(cls, v: str) -> str:
+        """Refuse to boot with an unset or publicly-known signing key."""
+        if v.strip() in {"", "change-me-in-production", "super-secret-shared-key-change-me"}:
+            raise ValueError(
+                "JWT_SECRET is unset or set to a known insecure default. Set a "
+                "strong, unique value shared with the auth service."
+            )
+        return v
 
     @field_validator("MINIO_PUBLIC_ENDPOINT", mode="before")
     @classmethod
@@ -158,7 +171,7 @@ class Settings(BaseSettings):
     OUTBOX_BATCH_SIZE: int = 100
 
     # ── Blobstore Service ────────────────────────────────────────
-    BLOB_STORE_URL: str = "http://blobstore:8010"
+    BLOB_STORE_URL: str = "http://blobstore-service:4010"
 
     # ── Runtime ──────────────────────────────────────────────────
     APP_ENV: str = "development"

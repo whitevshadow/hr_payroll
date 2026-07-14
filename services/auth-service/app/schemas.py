@@ -8,12 +8,20 @@ from pydantic import BaseModel, EmailStr, Field
 class RegisterRequest(BaseModel):
     tenant_name: str = Field(min_length=2)
     email: EmailStr
-    password: str = Field(min_length=6)
+    # 8 is the practical floor. A longer minimum is preferable for a payroll
+    # system but would invalidate the documented demo credentials.
+    password: str = Field(min_length=8)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    # Optional tenant scope. The same email may legitimately exist in several
+    # tenants (uniqueness is per (tenant_id, email)). When supplied, login is
+    # bound to exactly that tenant; when omitted, an email that resolves to more
+    # than one tenant is rejected rather than silently matched to an arbitrary
+    # row.
+    tenant_id: uuid.UUID | None = None
 
 
 class TokenResponse(BaseModel):

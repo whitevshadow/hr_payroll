@@ -5,9 +5,13 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from hr_shared import TenantAwareBase
-from sqlalchemy import Boolean, Date, DateTime, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
+
+# Postgres uses JSONB in production; SQLite (unit tests) falls back to plain
+# JSON. with_variant leaves the Postgres DDL unchanged.
+_JSONB = JSONB().with_variant(JSON(), "sqlite")
 
 
 class AttendanceRecord(TenantAwareBase):
@@ -42,7 +46,7 @@ class AttendanceRecord(TenantAwareBase):
     daily_status: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # V2: structured leave breakdown JSONB
-    leave_breakdown: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    leave_breakdown: Mapped[dict | None] = mapped_column(_JSONB, nullable=True)
 
     # V2: client filter support
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
@@ -60,13 +64,19 @@ class AttendanceRecord(TenantAwareBase):
         }
 
 
+# The monthly control/lock record is per client company, not per tenant. Without
+# client_id, locking a month for one client locked it for every client under the
+# tenant, and the roll-up counts were computed across all clients' employees.
 class AttendanceMonth(TenantAwareBase):
     """Month-level control record — tracks DRAFT/VALIDATED/LOCKED state."""
     __tablename__ = "attendance_months"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "month", name="uq_att_control_month"),
+        UniqueConstraint("tenant_id", "client_id", "month", name="uq_att_control_month"),
     )
 
+    client_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
     month: Mapped[date] = mapped_column(Date, nullable=False)   # always 1st of month
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")
     total_employees: Mapped[int] = mapped_column(Integer, default=0)
@@ -100,7 +110,7 @@ class AttendanceAudit(TenantAwareBase):
     new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
 
@@ -112,16 +122,24 @@ class LeavePolicy(TenantAwareBase):
 
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     leave_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    # CL | SL | PL | LOP | COMP_OFF | WFH | OPTIONAL
-    annual_quota: Mapped[Decimal] = mapped_column(Numeric(5, 1), default=0)
+    # CL | SL | PL | LOP | COMP_OFF | WFH | OPTIONAL | CASUAL | SICK | EARNED | MATERNITY | PATERNITY | UNPAID
+    annual_allowance: Mapped[Decimal] = mapped_column(Numeric(5, 1), default=0)
+    # Alias column so both 'annual_quota' and 'annual_allowance' work in queries
     carry_forward: Mapped[bool] = mapped_column(Boolean, default=False)
     max_carry_forward: Mapped[Decimal] = mapped_column(Numeric(5, 1), default=0)
     encashable: Mapped[bool] = mapped_column(Boolean, default=False)
     max_consecutive_days: Mapped[int] = mapped_column(Integer, default=0)
+    requires_document_after_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     accrual_type: Mapped[str] = mapped_column(String(20), default="ANNUAL")
     # ANNUAL | MONTHLY | QUARTERLY
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    @property
+    def annual_quota(self) -> Decimal:
+        """Backward-compat alias for annual_allowance."""
+        return self.annual_allowance
 
 
 class LeaveBalance(TenantAwareBase):
@@ -174,5 +192,5 @@ class LeaveTransaction(TenantAwareBase):
     balance_after: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default="NOW()"
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

@@ -268,8 +268,7 @@ export function CycleSummary() {
                           <button
                             onClick={async () => {
                               try {
-                                const { url } = await reportingApi.getPayslipUrl(cycleId!, r.employee_id, true);
-                                window.open(url, "_blank");
+                                await reportingApi.openPayslip(cycleId!, r.employee_id);
                               } catch (e) {
                                 alert("Failed to load payslip.");
                               }
@@ -282,8 +281,7 @@ export function CycleSummary() {
                           <button
                             onClick={async () => {
                               try {
-                                const { url } = await reportingApi.getPayslipUrl(cycleId!, r.employee_id, false);
-                                window.location.assign(url);
+                                await reportingApi.downloadPayslipPdf(cycleId!, r.employee_id);
                               } catch (e) {
                                 alert("Failed to download payslip.");
                               }

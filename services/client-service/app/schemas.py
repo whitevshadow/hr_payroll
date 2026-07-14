@@ -51,7 +51,7 @@ class PayrollInfoSchema(BaseModel):
 # ── Client Schemas ────────────────────────────────────────────────────────────
 
 class ClientBase(BaseModel):
-    client_code: str
+    client_code: str | None = None
     client_name: str
     legal_name: str | None = None
     industry: str | None = None
@@ -65,8 +65,8 @@ class ClientBase(BaseModel):
 
     @field_validator("client_code", mode="before")
     @classmethod
-    def normalize_code(cls, v: str) -> str:
-        return v.strip().upper()
+    def normalize_code(cls, v: str | None) -> str | None:
+        return v.strip().upper() if v else v
 
 
 class ClientCreate(ClientBase):

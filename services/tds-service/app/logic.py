@@ -144,7 +144,11 @@ class TaxLawRegistry:
                         name="NEW",
                         standard_deduction=D("75000"),
                         cess_rate=D("0.04"),
-                        rebate=RebateRule(threshold=D("0"), amount=D("0")),
+                        # s.87A rebate: no tax up to Rs.12,00,000 taxable income
+                        # under the new regime. Tax on Rs.12L = 5%*4L + 10%*4L =
+                        # 60,000, which the rebate cancels exactly.
+                        # VERIFY against current government notification.
+                        rebate=RebateRule(threshold=D("1200000"), amount=D("60000")),
                         slabs=(
                             Slab(D("0"), D("400000"), D("0.00")),
                             Slab(D("400000"), D("800000"), D("0.05")),
@@ -227,6 +231,25 @@ def cap(value: Decimal, limit: Decimal) -> Decimal:
     return money(min(max(value, Decimal("0")), limit))
 
 
+# Surcharge on the income tax, keyed by taxable income. Applies above Rs.50L.
+# The new regime caps the top rate at 25% (the 37% band was withdrawn for it).
+# Marginal relief is not modelled. VERIFY against current government notification.
+_SURCHARGE_BANDS: tuple[tuple[Decimal, Decimal], ...] = (
+    (D("5000000"), D("0.00")),
+    (D("10000000"), D("0.10")),
+    (D("20000000"), D("0.15")),
+    (D("50000000"), D("0.25")),
+)
+
+
+def surcharge_rate(taxable_income: Decimal, regime_name: str) -> Decimal:
+    for upper, rate in _SURCHARGE_BANDS:
+        if taxable_income <= upper:
+            return rate
+    # Above Rs.5 crore.
+    return D("0.25") if regime_name == "NEW" else D("0.37")
+
+
 def compute_annual_tds(
     *,
     salary_payment_date: date,
@@ -297,7 +320,8 @@ def compute_annual_tds(
 
     relief = min(tax_after_rebate, money(relief_89))
     tax_after_relief = money(max(Decimal("0"), tax_after_rebate - relief))
-    surcharge = Decimal("0.00")  # Registry hook; no surcharge thresholds configured yet.
+    sc_rate = surcharge_rate(taxable_income, regime_name)
+    surcharge = money(tax_after_relief * sc_rate)
     cess = money((tax_after_relief + surcharge) * regime.cess_rate)
     annual_tax = money(tax_after_relief + surcharge + cess)
 
@@ -328,7 +352,7 @@ def compute_annual_tds(
             "amount": str(money(rebate)),
             "threshold": str(regime.rebate.threshold) if regime.rebate else None,
         },
-        "surcharge": {"amount": str(money(surcharge)), "trace": []},
+        "surcharge": {"amount": str(money(surcharge)), "rate": str(sc_rate), "trace": []},
         "relief": {"section_89": str(money(relief))},
         "cess": {"rate": str(regime.cess_rate), "amount": str(cess)},
         "annual_tax": str(annual_tax),
@@ -436,6 +460,7 @@ def compute_overview(
     hra_monthly: Decimal,
     is_metro: bool = False,
     declarations: dict[str, Decimal] | None = None,
+    approved_proofs: dict[str, bool] | None = None,
     salary_payment_date: date | None = None,
 ) -> dict[str, Any]:
     """Full employee tax overview for the UI dashboard.
@@ -449,11 +474,11 @@ def compute_overview(
     monthly_gross = money(ctc / Decimal("12"))
     decl = declarations or {}
 
-    # If no explicit approved_proofs provided, assume all declared items are self-attested
-    proofs: dict[str, bool] = {}
-    for key in ("80C", "80CCD_1B", "80D", "HRA", "PROFESSIONAL_TAX"):
-        if key in decl and decl[key] > 0:
-            proofs[key] = True
+    # A deduction is granted only where an approved proof exists. Previously
+    # every declared section was auto-approved, so the old-regime projection
+    # counted unverified investments and understated the tax (and thus the
+    # monthly TDS) shown on the dashboard.
+    proofs: dict[str, bool] = dict(approved_proofs) if approved_proofs else {}
 
     comparison = compare_regimes(
         salary_payment_date=payment_date,

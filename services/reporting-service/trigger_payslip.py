@@ -13,7 +13,7 @@ async def main():
     
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            "http://127.0.0.1:8010/api/v1/reports/payslips/generate",
+            "http://127.0.0.1:4009/api/v1/reports/payslips/generate",
             json={
                 "cycle_id": "8cdaea8a-6efa-4c52-9e70-52705763a0e8",
                 "employee_ids": ["ed7841ae-07b4-41c0-9fb6-05b9504d03d1"]

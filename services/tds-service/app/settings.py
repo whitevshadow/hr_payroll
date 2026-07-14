@@ -9,8 +9,8 @@ class Settings(BaseServiceSettings):
     service_name: str = "tds-service"
     db_schema: str = "tds_schema"
 
-    salary_url: str = "http://salary-service:8004"
-    employee_url: str = "http://employee-service:8003"
+    salary_url: str = "http://salary-service:4003"
+    employee_url: str = "http://employee-service:4002"
 
 
 settings = Settings()

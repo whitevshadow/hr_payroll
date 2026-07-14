@@ -37,6 +37,9 @@ async def create_client(
     ctx: RequestContext = Depends(_admin),
     session: AsyncSession = Depends(get_session),
 ):
+    if not body.client_code:
+        body.client_code = f"CLI-{uuid.uuid4().hex[:6].upper()}"
+
     dup = await session.scalar(
         select(Client).where(Client.tenant_id == ctx.tenant_id, Client.client_code == body.client_code)
     )

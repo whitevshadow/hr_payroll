@@ -59,11 +59,13 @@ export function AuditLog() {
 
   const activeEventType = tab === "pii" ? "PII_ACCESSED" : eventType;
 
+  // The key must match what the queryFn actually sends. entity_type / trace_id
+  // are applied client-side in `filtered`, so keeping them in the key only
+  // spawned a new cache entry and re-fetched the same 500 rows on every
+  // keystroke.
   const logs = useQuery({
     queryKey: qk.audit({
       event_type: activeEventType || undefined,
-      entity_type: entityType || undefined,
-      trace_id: traceId || undefined,
       limit: 500,
     }),
     queryFn: () =>

@@ -2,11 +2,11 @@ import httpx, asyncio
 
 async def test():
     async with httpx.AsyncClient(timeout=10) as c:
-        r = await c.post('http://auth-service:8001/api/v1/auth/login', json={'email': 'admin@demo.com', 'password': 'Admin@123'})
+        r = await c.post('http://auth-service:4001/api/v1/auth/login', json={'email': 'admin@demo.com', 'password': 'Admin@123'})
         token = r.json()['access_token']
         
         # Get all employees
-        r2 = await c.get('http://employee-service:8003/api/v1/employees?page_size=200', headers={'Authorization': f'Bearer {token}'})
+        r2 = await c.get('http://employee-service:4002/api/v1/employees?page_size=200', headers={'Authorization': f'Bearer {token}'})
         employees = r2.json()['items']
         
         print(f"{'Name':<20} {'CTC':>12} {'Annual Tax':>12} {'Monthly TDS':>12} {'Rate':>8} {'Regime':>8}")
@@ -16,7 +16,7 @@ async def test():
             eid = emp['id']
             name = f"{emp['first_name']} {emp['last_name']}"
             r3 = await c.get(
-                f'http://localhost:8007/api/v1/tds/overview/{eid}',
+                f'http://localhost:4006/api/v1/tds/overview/{eid}',
                 headers={'Authorization': f'Bearer {token}'}
             )
             if r3.status_code == 200:

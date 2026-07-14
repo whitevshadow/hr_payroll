@@ -27,9 +27,10 @@ router = APIRouter(prefix="/api/v1/attendance", tags=["attendance"])
 _HR_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN")
 _ADMIN_ROLES = ("SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN")
 
-# Route-level guards — replacing bare Depends(get_client_context) on all write endpoints.
-# EMPLOYEE role must never reach any attendance write path.
-_require_hr = runtime.require_roles(*_HR_ROLES)      # manual, bulk, validate, lock
+# Route-level guards. Attendance is client-scoped, so every write requires the
+# client context too — a write without it would create records (and a monthly
+# control row) with a NULL client_id that no client-scoped read could ever see.
+_require_hr = runtime.require_roles(*_HR_ROLES, get_ctx=get_client_context)      # manual, bulk, validate, lock
 _require_admin = runtime.require_roles(*_ADMIN_ROLES, get_ctx=get_client_context)  # unlock (higher privilege)
 
 
@@ -49,6 +50,9 @@ def _parse_month(value: str) -> date:
 
 def _calc(total: int, present: Decimal, cl: Decimal, sl: Decimal, pl: Decimal,
           wo: Decimal, holiday: Decimal, wfh: Decimal):
+    # WFH is already counted inside present_days (the grid marks a WFH day as
+    # present), so it must NOT be subtracted again — doing so double-counts it
+    # and hides genuine LOP. wfh is accepted only to be stored on the record.
     lop = Decimal(total) - present - cl - sl - pl - wo - holiday
     lop = max(Decimal("0"), lop)
     payable = Decimal(total) - lop
@@ -57,28 +61,39 @@ def _calc(total: int, present: Decimal, cl: Decimal, sl: Decimal, pl: Decimal,
 
 
 async def _get_or_create_control(
-    session: AsyncSession, tenant_id: uuid.UUID, month: date
+    session: AsyncSession, tenant_id: uuid.UUID, client_id: uuid.UUID | None, month: date
 ) -> AttendanceMonth:
+    """Fetch (or create) the monthly control row for one client company.
+
+    Keyed by (tenant, client, month) — a lock on one client's month must not
+    affect any other client under the same tenant.
+    """
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
             AttendanceMonth.tenant_id == tenant_id,
+            AttendanceMonth.client_id == client_id,
             AttendanceMonth.month == month,
         )
     )
     if not ctrl:
-        ctrl = AttendanceMonth(tenant_id=tenant_id, month=month, status="DRAFT")
+        ctrl = AttendanceMonth(
+            tenant_id=tenant_id, client_id=client_id, month=month, status="DRAFT"
+        )
         session.add(ctrl)
         await session.flush()
     return ctrl
 
 
 async def _recompute_control(
-    session: AsyncSession, tenant_id: uuid.UUID, month: date
+    session: AsyncSession, tenant_id: uuid.UUID, client_id: uuid.UUID | None, month: date
 ) -> AttendanceMonth:
-    ctrl = await _get_or_create_control(session, tenant_id, month)
+    ctrl = await _get_or_create_control(session, tenant_id, client_id, month)
+    # Roll-ups count only this client's employees; previously they were summed
+    # across every client in the tenant.
     rows = (await session.scalars(
         select(AttendanceRecord).where(
             AttendanceRecord.tenant_id == tenant_id,
+            AttendanceRecord.client_id == client_id,
             AttendanceRecord.month == month,
         )
     )).all()
@@ -125,6 +140,7 @@ async def upsert_manual(
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
             AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == month,
         )
     )
@@ -163,13 +179,15 @@ async def upsert_manual(
         record.daily_status = body.daily_status
         # V2: dual-write structured leave_breakdown JSONB
         record.leave_breakdown = record.build_leave_breakdown()
-        if body.client_id:
-            record.client_id = body.client_id
+        # client_id is never taken from the body: the record was located by the
+        # validated ctx.client_id, and honouring a body value would move it to
+        # another client company.
         if ctrl and ctrl.status == "VALIDATED":
             ctrl.status = "DRAFT"  # edit resets validation
     else:
         record = AttendanceRecord(
             tenant_id=ctx.tenant_id,
+            client_id=ctx.client_id,
             employee_id=body.employee_id,
             month=month,
             total_days=body.total_days,
@@ -195,7 +213,7 @@ async def upsert_manual(
         previous_value=prev,
         new_value=f"present={present},lop={lop}",
     )
-    await _recompute_control(session, ctx.tenant_id, month)
+    await _recompute_control(session, ctx.tenant_id, ctx.client_id, month)
     await session.commit()
     await session.refresh(record)
     return record
@@ -214,6 +232,7 @@ async def bulk_upsert(
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
             AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == month,
         )
     )
@@ -255,6 +274,7 @@ async def bulk_upsert(
         else:
             session.add(AttendanceRecord(
                 tenant_id=ctx.tenant_id,
+                client_id=ctx.client_id,
                 employee_id=item.employee_id,
                 month=month,
                 total_days=item.total_days,
@@ -282,7 +302,7 @@ async def bulk_upsert(
         month=month,
         new_value=f"source={body.source},created={created},updated={updated}",
     )
-    await _recompute_control(session, ctx.tenant_id, month)
+    await _recompute_control(session, ctx.tenant_id, ctx.client_id, month)
     await session.commit()
     return {"created": created, "updated": updated, "month": str(month), "source": body.source}
 
@@ -299,6 +319,7 @@ async def get_monthly(
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
             AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == m,
         )
     )
@@ -320,7 +341,7 @@ async def get_month_status(
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
-    ctrl = await _get_or_create_control(session, ctx.tenant_id, m)
+    ctrl = await _get_or_create_control(session, ctx.tenant_id, ctx.client_id, m)
     await session.commit()
     await session.refresh(ctrl)
     return ctrl
@@ -335,7 +356,7 @@ async def validate_month(
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
-    ctrl = await _get_or_create_control(session, ctx.tenant_id, m)
+    ctrl = await _get_or_create_control(session, ctx.tenant_id, ctx.client_id, m)
     if ctrl.status == "LOCKED":
         raise HTTPException(status_code=409, detail="Cannot validate a LOCKED month")
     ctrl.status = "VALIDATED"
@@ -357,7 +378,7 @@ async def lock_month(
     session: AsyncSession = Depends(get_session),
 ):
     m = _parse_month(month)
-    ctrl = await _get_or_create_control(session, ctx.tenant_id, m)
+    ctrl = await _get_or_create_control(session, ctx.tenant_id, ctx.client_id, m)
     if ctrl.status == "LOCKED":
         raise HTTPException(status_code=409, detail="Month is already LOCKED")
 
@@ -398,6 +419,7 @@ async def unlock_month(
     ctrl = await session.scalar(
         select(AttendanceMonth).where(
             AttendanceMonth.tenant_id == ctx.tenant_id,
+            AttendanceMonth.client_id == ctx.client_id,
             AttendanceMonth.month == m,
         )
     )

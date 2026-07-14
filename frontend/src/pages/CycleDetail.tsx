@@ -305,9 +305,9 @@ export function CycleDetail() {
               {runMut.data.computed} computed, {runMut.data.failed} failed (
               {runMut.data.total_employees} total)
             </p>
-            {runMut.data.errors.length > 0 && (
+            {(runMut.data.errors?.length ?? 0) > 0 && (
               <ul className="mt-2 list-disc pl-5 text-sm text-danger-dark dark:text-danger space-y-0.5">
-                {runMut.data.errors.map((e, i) => (
+                {runMut.data.errors?.map((e, i) => (
                   <li key={i}>{e}</li>
                 ))}
               </ul>

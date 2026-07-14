@@ -11,22 +11,28 @@ from .settings import PT_DEFAULT, PT_SLABS
 
 def compute_pf(
     basic: Decimal,
-    employee_rate: Decimal,
-    employer_rate: Decimal,
-    ceiling: Decimal,
+    # Statutory defaults. VERIFY against current government notification.
+    employee_rate: Decimal = Decimal("12"),
+    employer_rate: Decimal = Decimal("12"),
+    ceiling: Decimal = Decimal("15000"),
     ceiling_on: bool = True,
 ) -> dict:
     basic = Decimal(basic)
     pf_wages = min(basic, ceiling) if ceiling_on else basic
     employee_pf = money(pf_wages * (employee_rate / Decimal("100")))
-    # EPS is fixed at 8.33% by default, or employer_rate if it's less
+    # EPS (pension) is 8.33% (or employer_rate if lower) and is always capped at
+    # the statutory ceiling, even when the employer opts out of the PF ceiling.
     eps_rate = min(Decimal("8.33"), employer_rate)
     employer_eps = money(min(pf_wages, ceiling) * (eps_rate / Decimal("100")))
-    
-    # EPF is the remaining portion of employer contribution
-    employer_epf_rate = employer_rate - eps_rate
-    employer_epf = money(pf_wages * (employer_epf_rate / Decimal("100")))
-    
+
+    # Total employer contribution is employer_rate% of pf_wages; EPF is whatever
+    # remains after EPS. Deriving EPF as (employer_rate - eps_rate)% of pf_wages
+    # is only correct when EPS shares the same base — it understates EPF once
+    # pf_wages exceeds the ceiling with the ceiling disabled (EPS stays capped
+    # while the residual rate wrongly applies to the full wage).
+    employer_total = money(pf_wages * (employer_rate / Decimal("100")))
+    employer_epf = money(employer_total - employer_eps)
+
     return {
         "pf_wages": money(pf_wages),
         "employee_pf": employee_pf,
@@ -38,9 +44,10 @@ def compute_pf(
 
 def compute_esi(
     monthly_gross: Decimal,
-    employee_rate: Decimal,
-    employer_rate: Decimal,
-    threshold: Decimal,
+    # Statutory defaults. VERIFY against current government notification.
+    employee_rate: Decimal = Decimal("0.75"),
+    employer_rate: Decimal = Decimal("3.25"),
+    threshold: Decimal = Decimal("21000"),
 ) -> dict:
     gross = Decimal(monthly_gross)
     eligible = gross <= threshold

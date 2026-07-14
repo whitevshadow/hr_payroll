@@ -85,6 +85,7 @@ export interface BulkImportRow {
   basic_salary?: number;         // annual CTC — used by frontend to call salary-service
   pan_number?: string;
   uan_number?: string;
+  aadhaar_number?: string;
   bank_account?: string;
   bank_ifsc?: string;
   gender?: string;

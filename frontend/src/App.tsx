@@ -1,6 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
 import { ClientProvider } from "./lib/ClientContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { canViewAudit } from "./lib/roles";
@@ -24,17 +25,21 @@ import { AuditLog } from "./pages/AuditLog";
 import { Clients } from "./pages/Clients";
 import { Leave } from "./pages/Leave";
 import { LeaveBalance } from "./pages/LeaveBalance";
-import { Locations } from "./pages/Locations";
 import { FinancialYears } from "./pages/FinancialYears";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { LeaveManagement } from "./pages/LeaveManagement";
 import { AdminPayslips } from "./pages/AdminPayslips";
 
 function Shell({ children }: { children: React.ReactElement }) {
+  const location = useLocation();
   return (
     <ProtectedRoute>
       <ClientProvider>
-        <AppShell>{children}</AppShell>
+        <AppShell>
+          {/* A page that throws must not take the whole app down to a blank
+              screen. Keyed on the path so navigating away clears the error. */}
+          <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>
+        </AppShell>
       </ClientProvider>
     </ProtectedRoute>
   );
@@ -82,7 +87,6 @@ export default function App() {
       <Route path="/departments" element={<Shell><HrRoute><Departments /></HrRoute></Shell>} />
       <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
       <Route path="/clients/:id" element={<Shell><HrRoute><ClientDashboard /></HrRoute></Shell>} />
-      <Route path="/locations" element={<Shell><HrRoute><Locations /></HrRoute></Shell>} />
       <Route path="/financial-years" element={<Shell><HrRoute><FinancialYears /></HrRoute></Shell>} />
       <Route path="/leave" element={<Shell><HrRoute><Leave /></HrRoute></Shell>} />
       <Route path="/leave-management" element={<Shell><HrRoute><LeaveManagement /></HrRoute></Shell>} />

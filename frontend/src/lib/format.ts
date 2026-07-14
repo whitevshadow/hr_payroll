@@ -1,7 +1,16 @@
+/** Parse an ISO string, returning null when it is missing or unparseable, so the
+ *  formatters render the em-dash placeholder instead of the string "Invalid Date". */
+function parseIso(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** ISO date → "DD MMM YYYY" */
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-IN", {
+  const d = parseIso(iso);
+  if (!d) return "—";
+  return d.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -10,8 +19,9 @@ export function formatDate(iso: string | null | undefined): string {
 
 /** ISO date → "MMM YYYY" (for cycles / attendance month headers) */
 export function formatMonth(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-IN", {
+  const d = parseIso(iso);
+  if (!d) return "—";
+  return d.toLocaleDateString("en-IN", {
     month: "short",
     year: "numeric",
   });
@@ -19,8 +29,9 @@ export function formatMonth(iso: string | null | undefined): string {
 
 /** ISO datetime → locale datetime string */
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-IN");
+  const d = parseIso(iso);
+  if (!d) return "—";
+  return d.toLocaleString("en-IN");
 }
 
 /** Get "YYYY-MM-01" for the current month. */
