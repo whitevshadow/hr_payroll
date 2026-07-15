@@ -175,6 +175,25 @@ async def archive_client(
     return ClientOut.from_orm_v2(client)
 
 
+@router.post("/clients/{client_id}/unarchive", response_model=ClientOut)
+async def unarchive_client(
+    client_id: uuid.UUID,
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    """Restore client from ARCHIVED status."""
+    client = await session.get(Client, client_id)
+    if not client or client.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="Client not found")
+    client.status = "ACTIVE"
+    await audit_log(session, tenant_id=ctx.tenant_id, event_type="CLIENT_UNARCHIVED",
+                    entity_type="client", entity_id=str(client_id),
+                    payload={"client_name": client.client_name}, actor_id=ctx.user_id)
+    await session.commit()
+    await session.refresh(client)
+    return ClientOut.from_orm_v2(client)
+
+
 @router.delete("/clients/{client_id}", status_code=204)
 async def delete_client(
     client_id: uuid.UUID,

@@ -245,7 +245,7 @@ async def bulk_import_employees(
     def _err(idx: int, row, msg: str) -> RowResult:
         return RowResult(
             row_index=idx, emp_code=row.emp_code or f"row-{idx+1}",
-            name=f"{row.first_name} {row.last_name}".strip(),
+            name=row.name.strip() if row.name else "",
             status="error", error=msg,
         )
 
@@ -255,13 +255,13 @@ async def bulk_import_employees(
             code = f"EMP-{uuid.uuid4().hex[:6].upper()}"
             row.emp_code = code
 
-        fname = (row.first_name or "").strip()
-        lname = (row.last_name or "").strip()
+        name_parts = (row.name or "").strip().split(" ", 1)
+        fname = name_parts[0]
+        lname = name_parts[1] if len(name_parts) > 1 else ""
+        
         email = (row.email or "").strip().lower() or None
         if not fname:
-            results.append(_err(idx, row, "First Name is required")); continue
-        if not lname:
-            results.append(_err(idx, row, "Last Name is required")); continue
+            results.append(_err(idx, row, "Name is required")); continue
         if email and not EMAIL_RE.match(email):
             results.append(_err(idx, row, f"Invalid email: {email}")); continue
         if row.mobile:
@@ -542,6 +542,17 @@ async def update_employee(
         loc = await session.get(Location, dump["location_id"])
         if loc and loc.tenant_id == ctx.tenant_id:
             dump.update(city=loc.city, state=loc.state, work_location=loc.location_name)
+            
+    # Ignore masked PII fields so they don't overwrite the real values
+    if dump.get("aadhaar_number") and "X" in dump["aadhaar_number"]:
+        dump.pop("aadhaar_number")
+    if dump.get("pan_number") and ("#" in dump["pan_number"] or "X" in dump["pan_number"]):
+        dump.pop("pan_number")
+    if dump.get("bank_account") and "X" in dump["bank_account"]:
+        dump.pop("bank_account")
+    if dump.get("uan_number") and "X" in dump["uan_number"]:
+        dump.pop("uan_number")
+        
     for k, v in dump.items():
         setattr(emp, k, v)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="EMPLOYEE_UPDATED",

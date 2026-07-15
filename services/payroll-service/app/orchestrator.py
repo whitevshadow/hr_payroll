@@ -339,6 +339,7 @@ async def approve_cycle(
         # demand when they are first viewed, so pre-generation is an
         # optimisation, not a prerequisite; a failure here is recorded and the
         # cycle still completes.
+        report = None
         try:
             report = await client.generate_payslips(
                 http,

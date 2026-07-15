@@ -28,7 +28,7 @@ import clsx from "clsx";
 const STEPS = ["Download Template", "Upload File", "Preview & Validate", "Import Results"];
 
 const MANDATORY_HEADERS = [
-  "First Name", "Last Name", "Mobile", "Aadhaar Number",
+  "Name", "Mobile", "Aadhaar Number",
   "Department", "Work Location", "Date of Joining",
   "Employment Type", "Basic Salary (Annual CTC)",
 ];
@@ -59,12 +59,12 @@ interface ParsedRow extends BulkImportRow {
 function downloadTemplate() {
   const sampleRows = [
     [
-      "Rahul", "Sharma", "9876543210", "123456789012",
+      "Rahul Sharma", "9876543210", "123456789012",
       "Engineering", "Pune", "2026-06-01", "Full Time", "540000",
       "E010", "rahul@company.com", "Developer", "ABCDE1234F", "", "12345678901", "HDFC0001234", "", "", "Maharashtra", "Mumbai", "",
     ],
     [
-      "Priya", "Patil", "9876543211", "987654321098",
+      "Priya Patil", "9876543211", "987654321098",
       "HR", "Mumbai", "2026-06-01", "Full Time", "420000",
       "", "priya@company.com", "Executive", "", "", "", "", "Female", "", "Maharashtra", "Mumbai", "",
     ],
@@ -164,8 +164,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
 
         const COL: Record<string, number> = {
           emp_code:       Math.max(colIdx("employee code"), colIdx("emp code"), colIdx("emp_code")),
-          first_name:     colIdx("first name"),
-          last_name:      colIdx("last name"),
+          name:           colIdx("name"),
           email:          colIdx("email"),
           mobile:         colIdx("mobile"),
           department:     colIdx("department"),
@@ -199,8 +198,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           if (r.every((c) => !String(c).trim())) continue;
 
           const empCode  = get(r, "emp_code");
-          const firstName= get(r, "first_name");
-          const lastName = get(r, "last_name");
+          const name     = get(r, "name");
           const email    = get(r, "email").toLowerCase();
           const mobile   = get(r, "mobile").replace(/\D/g, "");
           const salary   = parseFloat(get(r, "basic_salary")) || undefined;
@@ -213,8 +211,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           const errors: string[] = [];
 
           // Validation
-          if (!firstName)  errors.push("First Name is required");
-          if (!lastName)   errors.push("Last Name is required");
+          if (!name)       errors.push("Name is required");
           if (email && !EMAIL_RE.test(email)) errors.push(`Invalid email: ${email}`);
           if (mobile && mobile.length !== 10) errors.push("Mobile must be 10 digits");
           if (!aadhaar) errors.push("Aadhaar Number is required");
@@ -241,8 +238,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             _errors: errors,
             _isValid: errors.length === 0,
             emp_code: empCode,
-            first_name: firstName,
-            last_name: lastName,
+            name: name,
             email: email || undefined,
             mobile: mobile || undefined,
             department: get(r, "department") || undefined,

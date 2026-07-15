@@ -776,6 +776,14 @@ export function Clients() {
     onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
 
+  const unarchiveMut = useMutation({
+    mutationFn: (id: string) => clientsApi.unarchive(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
+  });
+
   const deleteMut = useMutation({
     mutationFn: (id: string) => clientsApi.delete(id),
     onSuccess: () => {
@@ -955,13 +963,23 @@ export function Clients() {
                     >
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>
-                    <button
-                      title="Archive"
-                      onClick={() => { setConfirmArchive(client); setDeleteError(""); }}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                    >
-                      <Archive className="h-3.5 w-3.5" />
-                    </button>
+                    {client.status === "ACTIVE" ? (
+                      <button
+                        title="Archive"
+                        onClick={() => { setConfirmArchive(client); setDeleteError(""); }}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        title="Unarchive"
+                        onClick={() => unarchiveMut.mutate(client.id!)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               );
