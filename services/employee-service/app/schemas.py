@@ -174,8 +174,7 @@ class EmployeePage(BaseModel):
 class BulkImportRow(BaseModel):
     """One row from the Excel/CSV template."""
     emp_code: str | None = None
-    first_name: str
-    last_name: str
+    name: str
     email: str | None = None
     mobile: str | None = None
     client_name: str | None = None        # looked up to client_id

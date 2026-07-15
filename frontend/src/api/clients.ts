@@ -39,6 +39,9 @@ export const clientsApi = {
   archive: (id: string) =>
     api.post<Client>(`/clients/${id}/archive`).then((r) => r.data),
 
+  unarchive: (id: string) =>
+    api.post<Client>(`/clients/${id}/unarchive`).then((r) => r.data),
+
   delete: (id: string) =>
     api.delete(`/clients/${id}`).then((r) => r.data),
 

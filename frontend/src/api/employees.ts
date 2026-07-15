@@ -73,8 +73,7 @@ export const employeesApi = {
 
 export interface BulkImportRow {
   emp_code: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   email?: string;
   mobile?: string;
   department?: string;

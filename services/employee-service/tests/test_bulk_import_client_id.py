@@ -111,8 +111,8 @@ async def test_emp_code_is_unique_per_client_not_per_tenant(client: AsyncClient,
 async def test_bulk_import_persists_client_id(client: AsyncClient, db: AsyncSession):
     body = {
         "rows": [
-            {"emp_code": "E1", "first_name": "Asha", "last_name": "Rao"},
-            {"emp_code": "E2", "first_name": "Vik", "last_name": "Nair"},
+            {"emp_code": "E1", "name": "Asha Rao"},
+            {"emp_code": "E2", "name": "Vik Nair"},
         ]
     }
     r = await client.post("/api/v1/employees/bulk-import", json=body, headers=_hdr())

@@ -28,11 +28,13 @@ function validate(f: Partial<Employee>): string | null {
   if (!f.client_id) return "Client is required";
   if (!f.first_name?.trim()) return "First name is required";
   if (!f.last_name?.trim()) return "Last name is required";
-  if (!f.aadhaar_number?.trim()) return "Aadhaar Number is required";
-  if (!/^\d{12}$/.test(f.aadhaar_number.trim())) return "Aadhaar Number must be 12 digits";
-  if (f.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
+  const aadhaar = f.aadhaar_number?.trim() || "";
+  if (!aadhaar) return "Aadhaar Number is required";
+  if (!aadhaar.includes("X") && !/^\d{12}$/.test(aadhaar.replace(/\s/g, ""))) return "Aadhaar Number must be 12 digits";
+  
+  if (f.pan_number && !f.pan_number.includes("#") && !f.pan_number.includes("X") && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
     return "PAN must be in the format ABCDE1234F";
-  if (f.bank_ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank_ifsc.toUpperCase()))
+  if (f.bank_ifsc && !f.bank_ifsc.includes("X") && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank_ifsc.toUpperCase()))
     return "IFSC must be in the format ABCD0123456";
   return null;
 }
