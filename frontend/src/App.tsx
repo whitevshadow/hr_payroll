@@ -24,11 +24,8 @@ import { Reports } from "./pages/Reports";
 import { Payslip } from "./pages/Payslip";
 import { AuditLog } from "./pages/AuditLog";
 import { Clients } from "./pages/Clients";
-import { Leave } from "./pages/Leave";
-import { LeaveBalance } from "./pages/LeaveBalance";
 import { FinancialYears } from "./pages/FinancialYears";
 import { ClientDashboard } from "./pages/ClientDashboard";
-import { LeaveManagement } from "./pages/LeaveManagement";
 import { AdminPayslips } from "./pages/AdminPayslips";
 
 function Shell({ children }: { children: React.ReactElement }) {
@@ -89,9 +86,7 @@ export default function App() {
       <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
       <Route path="/clients/:id" element={<Shell><HrRoute><ClientDashboard /></HrRoute></Shell>} />
       <Route path="/financial-years" element={<Shell><HrRoute><FinancialYears /></HrRoute></Shell>} />
-      <Route path="/leave" element={<Shell><HrRoute><Leave /></HrRoute></Shell>} />
-      <Route path="/leave-management" element={<Shell><HrRoute><LeaveManagement /></HrRoute></Shell>} />
-      <Route path="/leave-balance" element={<Shell><HrRoute><LeaveBalance /></HrRoute></Shell>} />
+
       <Route path="/salary" element={<Shell><HrRoute><Salary /></HrRoute></Shell>} />
       <Route path="/attendance" element={<Shell><HrRoute><Attendance /></HrRoute></Shell>} />
       <Route path="/cycles" element={<Shell><HrRoute><Cycles /></HrRoute></Shell>} />

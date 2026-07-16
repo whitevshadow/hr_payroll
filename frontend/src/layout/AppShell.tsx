@@ -40,8 +40,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Briefcase,
-  Clock,
-  Umbrella,
   Landmark,
 } from "lucide-react";
 import { useAuth, getToken } from "../lib/auth";
@@ -122,9 +120,6 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     hrOnly: true,
     items: [
       { to: "/attendance", label: "Attendance", icon: Calendar,   hrOnly: true },
-      { to: "/leave-management", label: "Leave Management", icon: Calendar, hrOnly: true },
-      { to: "/leave", label: "Leave Policies", icon: Umbrella, hrOnly: true },
-      { to: "/leave-balance", label: "Leave Ledger", icon: Clock, hrOnly: true },
       { to: "/salary",     label: "Salary",     icon: DollarSign, hrOnly: true },
     ],
   },
