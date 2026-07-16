@@ -42,6 +42,7 @@ import {
   Briefcase,
   Clock,
   Umbrella,
+  Landmark,
 } from "lucide-react";
 import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
@@ -54,6 +55,7 @@ import { CommandPalette, useCommandPalette } from "../components/CommandPalette"
 import { usePayrollSSE } from "../hooks/usePayrollSSE";
 import { useClientContext } from "../lib/ClientContext";
 import clsx from "clsx";
+import type { Client } from "../types";
 
 // ── Theme Context ──────────────────────────────────────────────────────────────
 const ThemeContext = createContext<{ dark: boolean; toggle: () => void }>({
@@ -141,6 +143,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     hrOnly: true,
     items: [
       { to: "/compliance", label: "Compliance", icon: ShieldCheck, hrOnly: true },
+      { to: "/statutory-portals", label: "Statutory Filings", icon: Landmark, hrOnly: true },
       { to: "/reports",    label: "Reports",    icon: BarChart3,   hrOnly: true },
     ],
   },
@@ -697,7 +700,219 @@ function NotificationBell() {
   );
 }
 
+
+// ── Active Client Selector ──────────────────────────────────────────────────
+function ActiveClientSelector({
+  clients,
+  selectedClientId,
+  onSelect,
+}: {
+  clients: Client[];
+  selectedClientId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const selected = clients.find((c) => c.id === selectedClientId) ?? null;
+
+  // Compute portal position from the trigger button's bounding rect
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen((o) => !o);
+  };
+
+  // Close on outside click (checks both the button and the panel)
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        !btnRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const dropdownPanel = (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          ref={panelRef}
+          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          style={{
+            position: "fixed",
+            top: dropdownPos.top,
+            right: dropdownPos.right,
+            zIndex: 99999,
+            width: 256,
+          }}
+          className={clsx(
+            "rounded-xl border shadow-2xl overflow-hidden",
+            "bg-white dark:bg-slate-900",
+            "border-slate-200 dark:border-slate-700"
+          )}
+          role="listbox"
+        >
+          {/* Header */}
+          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+              Switch Client Account
+            </p>
+          </div>
+
+          {/* All Clients option */}
+          <button
+            role="option"
+            aria-selected={selectedClientId === null}
+            onClick={() => { onSelect(null); setOpen(false); }}
+            className={clsx(
+              "w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
+              selectedClientId === null
+                ? "bg-accent-50 dark:bg-accent-900/20"
+                : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            )}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <svg className="h-3.5 w-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </span>
+            <span className="flex flex-col leading-none gap-0.5">
+              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">All Clients</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">No filter applied</span>
+            </span>
+            {selectedClientId === null && (
+              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent-500" />
+            )}
+          </button>
+
+          {/* Divider */}
+          {clients.length > 0 && (
+            <div className="border-t border-slate-100 dark:border-slate-800" />
+          )}
+
+          {/* Client list */}
+          <div className="max-h-72 overflow-y-auto">
+            {clients.map((c) => (
+              <button
+                key={c.id}
+                role="option"
+                aria-selected={selectedClientId === c.id}
+                onClick={() => { onSelect(c.id); setOpen(false); }}
+                className={clsx(
+                  "w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
+                  selectedClientId === c.id
+                    ? "bg-accent-50 dark:bg-accent-900/20"
+                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                )}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-50 dark:bg-accent-900/30 border border-accent-200 dark:border-accent-700 text-[11px] font-bold text-accent-700 dark:text-accent-300 uppercase">
+                  {c.client_name.slice(0, 2)}
+                </span>
+                <span className="flex flex-col leading-none gap-0.5 min-w-0">
+                  <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200 truncate">
+                    {c.client_name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                    Internal ID: {c.client_code}
+                  </span>
+                </span>
+                {selectedClientId === c.id && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent-500 shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <div className="relative mr-1 sm:mr-2">
+      {/* Trigger card */}
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        className={clsx(
+          "group flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl border transition-all duration-200 select-none",
+          "bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm",
+          "border-slate-200 dark:border-slate-700",
+          "hover:border-accent-400 dark:hover:border-accent-500 hover:shadow-sm",
+          open && "border-accent-400 dark:border-accent-500 shadow-sm"
+        )}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {/* Icon */}
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-50 dark:bg-accent-900/30 border border-accent-200 dark:border-accent-700">
+          <svg
+            className="h-3.5 w-3.5 text-accent-600 dark:text-accent-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </span>
+
+        {/* Text */}
+        <span className="hidden sm:flex flex-col items-start leading-none gap-0.5 min-w-0">
+          <span className="text-[9px] font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+            Active Client Account
+          </span>
+          <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]">
+            {selected ? selected.client_name : "All Clients"}
+          </span>
+          {selected && (
+            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+              Internal ID: {selected.client_code}
+            </span>
+          )}
+        </span>
+
+        {/* Chevron */}
+        <ChevronDown
+          className={clsx(
+            "h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      {/* Render dropdown via portal so it escapes header overflow/stacking context */}
+      {createPortal(dropdownPanel, document.body)}
+    </div>
+  );
+}
+
 // ── Top Bar ────────────────────────────────────────────────────────────────────
+
 function TopBar({
   onMobileMenuOpen,
   onCmdK,
@@ -740,6 +955,7 @@ function TopBar({
     "/payouts":     "Payouts",
     "/payslips":    "Payslips",
     "/compliance":  "Compliance",
+    "/statutory-portals": "Statutory Filings",
     "/tds":         "TDS",
     "/reports":     "Reports",
     "/audit":       "Audit Log",
@@ -794,21 +1010,13 @@ function TopBar({
 
       {/* ── Right: utilities ───────────────────────────────────────────── */}
       <div className="flex items-center gap-1 ml-auto">
-        {/* Global Client Selector */}
+        {/* Global Client Selector — card-style "Active Client Account" */}
         {!isEmployeeOnly(user) && (
-          <div className="flex items-center gap-2 mr-1 sm:mr-3">
-            <span className="hidden sm:inline text-[11px] font-medium text-slate-400">Context:</span>
-            <select
-              className="search-glass px-2 sm:px-3 py-1.5 text-[11px] font-semibold text-accent-700 dark:text-accent-400 cursor-pointer max-w-[100px] sm:max-w-none"
-              value={selectedClientId || ""}
-              onChange={(e) => setSelectedClientId(e.target.value || null)}
-            >
-              <option value="">All Clients</option>
-              {clientsQuery.data?.items?.map(c => (
-                <option key={c.id} value={c.id}>{c.client_name}</option>
-              ))}
-            </select>
-          </div>
+          <ActiveClientSelector
+            clients={clientsQuery.data?.items ?? []}
+            selectedClientId={selectedClientId}
+            onSelect={setSelectedClientId}
+          />
         )}
 
         {/* Period selector */}

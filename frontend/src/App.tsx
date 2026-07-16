@@ -17,6 +17,7 @@ import { Cycles } from "./pages/Cycles";
 import { CycleDetail } from "./pages/CycleDetail";
 import { CycleSummary } from "./pages/CycleSummary";
 import { Compliance } from "./pages/Compliance";
+import { StatutoryPortals } from "./pages/StatutoryPortals";
 import { TDS } from "./pages/TDS";
 import { Payouts } from "./pages/Payouts";
 import { Reports } from "./pages/Reports";
@@ -97,6 +98,7 @@ export default function App() {
       <Route path="/cycles/:cycleId" element={<Shell><HrRoute><CycleDetail /></HrRoute></Shell>} />
       <Route path="/cycles/:cycleId/summary" element={<Shell><HrRoute><CycleSummary /></HrRoute></Shell>} />
       <Route path="/compliance" element={<Shell><HrRoute><Compliance /></HrRoute></Shell>} />
+      <Route path="/statutory-portals" element={<Shell><HrRoute><StatutoryPortals /></HrRoute></Shell>} />
       <Route path="/tds" element={<Shell><HrRoute><TDS /></HrRoute></Shell>} />
       <Route path="/payouts" element={<Shell><HrRoute><Payouts /></HrRoute></Shell>} />
       <Route path="/reports" element={<Shell><HrRoute><Reports /></HrRoute></Shell>} />
