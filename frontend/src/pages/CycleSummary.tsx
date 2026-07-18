@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { payrollApi } from "../api/payroll";
 import { reportingApi } from "../api/reporting";
@@ -18,6 +18,7 @@ const ROW_HEIGHT = 56;
 
 export function CycleSummary() {
   const { cycleId } = useParams<{ cycleId: string }>();
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const summary = useQuery({
@@ -266,13 +267,7 @@ export function CycleSummary() {
                       {!isFailed && (
                         <>
                           <button
-                            onClick={async () => {
-                              try {
-                                await reportingApi.openPayslip(cycleId!, r.employee_id);
-                              } catch (e) {
-                                alert("Failed to load payslip.");
-                              }
-                            }}
+                            onClick={() => navigate(`/payslips/${cycleId}/${r.employee_id}`)}
                             title="View Payslip"
                             className="inline-flex items-center text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
                           >

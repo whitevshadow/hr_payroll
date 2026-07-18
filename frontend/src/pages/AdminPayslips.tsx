@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Printer, Eye, RefreshCw } from "lucide-react";
 import { useClientContext } from "../lib/ClientContext";
@@ -14,6 +15,7 @@ import clsx from "clsx";
 export function AdminPayslips() {
   const { selectedClientId, setSelectedClientId } = useClientContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [selectedCycleId, setSelectedCycleId] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>(""); // e.g. "2023-01"
@@ -203,13 +205,7 @@ export function AdminPayslips() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             disabled={isFailed}
-                            onClick={async () => {
-                              try {
-                                await reportingApi.openPayslip(activeCycleId, res.employee_id);
-                              } catch (e) {
-                                toastService.error("Failed to load payslip");
-                              }
-                            }}
+                            onClick={() => navigate(`/payslips/${activeCycleId}/${res.employee_id}`)}
                             className="btn btn-sm btn-ghost text-slate-600 hover:text-blue-600"
                             title="View"
                           >
