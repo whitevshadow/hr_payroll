@@ -18,8 +18,10 @@ api.interceptors.request.use((config) => {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Attach the globally selected client, but never clobber a client id a
+  // caller set explicitly for one request (e.g. a cycle's own client).
   const clientId = localStorage.getItem("hr_selected_client_id");
-  if (clientId) {
+  if (clientId && !config.headers["x-client-id"]) {
     config.headers["x-client-id"] = clientId;
   }
   return config;

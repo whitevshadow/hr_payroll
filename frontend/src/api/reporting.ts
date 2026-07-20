@@ -45,10 +45,13 @@ export const reportingApi = {
       .post(`/reports/payslip/${cycleId}/${employeeId}/regenerate`)
       .then((r) => r.data),
 
-  // Use this for bulk downloading a cycle's payslips
-  downloadBulkPayslips: async (cycleId: string) => {
+  // Use this for bulk downloading a cycle's payslips. Pass the cycle's own
+  // client_id: the reporting service needs a client scope to query payroll,
+  // and the globally selected client may be unset ("All Clients").
+  downloadBulkPayslips: async (cycleId: string, clientId?: string | null) => {
     const response = await api.get(`/reports/payslips/bulk/${cycleId}`, {
       responseType: "blob",
+      headers: clientId ? { "x-client-id": clientId } : undefined,
     });
     const url = URL.createObjectURL(response.data as Blob);
     const a = document.createElement("a");

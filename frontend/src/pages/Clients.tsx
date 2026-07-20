@@ -753,6 +753,7 @@ export function Clients() {
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [confirmArchive, setConfirmArchive] = useState<Client | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
   const [activeTab, setActiveTab] = useState<"details" | "credentials" | "documents" | "locations">("details");
 
   // Debounce search
@@ -788,7 +789,8 @@ export function Clients() {
     mutationFn: (id: string) => clientsApi.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
-      setConfirmArchive(null);
+      toastService.success("Client deleted.");
+      setConfirmDelete(null);
     },
     onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
@@ -864,7 +866,7 @@ export function Clients() {
           <div className="w-28 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400">Code</div>
           <div className="w-36 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400">Location</div>
           <div className="w-24 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400">Status</div>
-          <div className="w-20 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400 text-right">Actions</div>
+          <div className="w-24 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400 text-right">Actions</div>
         </div>
 
         {/* Skeleton */}
@@ -953,7 +955,7 @@ export function Clients() {
 
                   {/* Actions */}
                   <div
-                    className="w-20 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="w-24 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
@@ -980,6 +982,13 @@ export function Clients() {
                         <RefreshCw className="h-3.5 w-3.5" />
                       </button>
                     )}
+                    <button
+                      title="Delete"
+                      onClick={() => { setConfirmDelete(client); setDeleteError(""); }}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -1172,6 +1181,12 @@ export function Clients() {
                 >
                   <Archive className="h-3.5 w-3.5" /> Archive
                 </button>
+                <button
+                  onClick={() => { setConfirmDelete(detailClient); setDetailClient(null); setDeleteError(""); }}
+                  className="btn-outline flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-semibold text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
               </div>
             </motion.div>
           </>
@@ -1203,6 +1218,37 @@ export function Clients() {
             onSave={() => archiveMut.mutate(confirmArchive.id)}
             saving={archiveMut.isPending}
             saveLabel="Archive Client"
+          />
+        </Modal>
+      )}
+
+      {/* ── Delete confirm modal ──────────────────────────────────────────── */}
+      {confirmDelete && (
+        <Modal
+          open
+          onClose={() => setConfirmDelete(null)}
+          title="Delete Client"
+          size="sm"
+        >
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800/40 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <div className="text-[12.5px] text-red-700 dark:text-red-300">
+                <strong>{confirmDelete.client_name}</strong> will be permanently deleted,
+                including its credentials and documents. This cannot be undone.
+                Deletion is blocked if any employees are still linked to this client —
+                reassign them or use Archive instead.
+              </div>
+            </div>
+            {deleteError && (
+              <div className="alert-danger text-sm whitespace-pre-wrap">{deleteError}</div>
+            )}
+          </div>
+          <ModalFooter
+            onClose={() => setConfirmDelete(null)}
+            onSave={() => deleteMut.mutate(confirmDelete.id)}
+            saving={deleteMut.isPending}
+            saveLabel="Delete Client"
           />
         </Modal>
       )}

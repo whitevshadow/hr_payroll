@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Search, Plus, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from "lucide-react";
 import { employeesApi } from "../api/employees";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
@@ -59,6 +59,8 @@ export function Employees() {
   const [page, setPage] = useState(1);
   const { selectedClientId, setSelectedClientId } = useClientContext();
   const [editing, setEditing] = useState<Partial<Employee> | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Employee | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [formError, setFormError] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -112,6 +114,17 @@ export function Employees() {
       setFormError("");
     },
     onError: (err) => setFormError(extractErrorMessage(err)),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => employeesApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Employee deleted.");
+      setConfirmDelete(null);
+      setDeleteError("");
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
 
   const total = list.data?.total ?? 0;
@@ -283,6 +296,13 @@ export function Employees() {
                       >
                         Edit
                       </button>
+                      <button
+                        title="Delete employee"
+                        className="text-slate-400 hover:text-red-600 transition-colors"
+                        onClick={() => { setConfirmDelete(e); setDeleteError(""); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                       <Link
                         to={`/employees/${e.id}`}
                         className="text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
@@ -367,6 +387,13 @@ export function Employees() {
                 >
                   Edit
                 </button>
+                <button
+                  title="Delete employee"
+                  className="btn-secondary h-8 px-2.5 text-slate-400 hover:text-red-600"
+                  onClick={() => { setConfirmDelete(e); setDeleteError(""); }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
                 <Link
                   to={`/employees/${e.id}`}
                   className="flex-1 btn h-8 text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100"
@@ -435,6 +462,36 @@ export function Employees() {
           error={formError}
           onChange={setEditing}
         />
+      )}
+
+      {/* Delete confirm modal */}
+      {confirmDelete && (
+        <Modal
+          open
+          onClose={() => setConfirmDelete(null)}
+          title="Delete Employee"
+          size="sm"
+        >
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800/40 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <div className="text-[12.5px] text-red-700 dark:text-red-300">
+                <strong>{confirmDelete.first_name} {confirmDelete.last_name}</strong> ({confirmDelete.emp_code}) will be
+                permanently deleted. This cannot be undone. Consider setting the
+                status to INACTIVE or SEPARATED instead if you want to keep the record.
+              </div>
+            </div>
+            {deleteError && (
+              <div className="alert-danger text-sm whitespace-pre-wrap">{deleteError}</div>
+            )}
+          </div>
+          <ModalFooter
+            onClose={() => setConfirmDelete(null)}
+            onSave={() => deleteMut.mutate(confirmDelete.id)}
+            saving={deleteMut.isPending}
+            saveLabel="Delete Employee"
+          />
+        </Modal>
       )}
 
       {/* Bulk Import Modal */}

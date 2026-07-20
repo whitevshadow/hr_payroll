@@ -36,6 +36,10 @@ export const employeesApi = {
   update: (id: string, body: EmployeeUpdate) =>
     api.put<Employee>(`/employees/${id}`, body).then((r) => r.data),
 
+  /** Permanently delete an employee. */
+  delete: (id: string) =>
+    api.delete(`/employees/${id}`).then((r) => r.data),
+
   /** List all departments in the current tenant. */
   departments: () =>
     api.get<Department[]>("/departments").then((r) => r.data),

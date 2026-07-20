@@ -91,7 +91,7 @@ export function CycleDetail() {
   });
 
   const bulkMut = useMutation({
-    mutationFn: () => reportingApi.downloadBulkPayslips(cycleId!),
+    mutationFn: () => reportingApi.downloadBulkPayslips(cycleId!, c?.client_id),
     onError: (err) => toastService.error(extractErrorMessage(err)),
   });
 

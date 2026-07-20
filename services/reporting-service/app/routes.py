@@ -354,7 +354,10 @@ async def regenerate_payslip(
 async def bulk_download_payslips(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_context),
+    # Requires x-client-id: every payroll read this fans out to is
+    # client-scoped, so without it the request can only die downstream as an
+    # opaque 502. Failing here yields a clear 400 instead.
+    ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Zip every payslip for a cycle, generating any that do not exist yet."""

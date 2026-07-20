@@ -12,7 +12,7 @@ import { FullPageSpinner } from "../components/Spinner";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import type { Employee, SalaryStructure } from "../types";
 import { useClientContext } from "../lib/ClientContext";
-import { Users, DollarSign, RefreshCw, TrendingUp, Building2, Calculator, Settings, Plus, FileText } from "lucide-react";
+import { Users, DollarSign, RefreshCw, TrendingUp, Building2, Calculator, Settings, Plus, FileText, Search, X } from "lucide-react";
 import { Modal, ModalFooter } from "../components/Modal";
 import clsx from "clsx";
 
@@ -21,6 +21,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 export function Salary() {
   const qc = useQueryClient();
   const [selectedEmpId, setSelectedEmpId] = useState("");
+  const [empSearch, setEmpSearch] = useState("");
   const [ctc, setCtc] = useState("");
   const [effFrom, setEffFrom] = useState(TODAY);
   const [formError, setFormError] = useState("");
@@ -42,6 +43,18 @@ export function Salary() {
   });
 
   const selectedEmp = employees.data?.items.find((e) => e.id === selectedEmpId) as Employee | undefined;
+
+  // Filter the employee dropdown by name / code / email; keep the currently
+  // selected employee visible even when they don't match the search text.
+  const q = empSearch.trim().toLowerCase();
+  const filteredEmployees = (employees.data?.items ?? []).filter(
+    (e) =>
+      e.id === selectedEmpId ||
+      !q ||
+      `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) ||
+      e.emp_code.toLowerCase().includes(q) ||
+      (e.email ?? "").toLowerCase().includes(q)
+  );
 
   const structure = useQuery({
     queryKey: qk.salary(selectedEmpId),
@@ -117,7 +130,28 @@ export function Salary() {
 
       {activeTab === "salaries" && (
         <div className="space-y-6">
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 max-w-2xl">
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 max-w-4xl">
+            <div className="flex-1">
+              <label className="label" htmlFor="emp-search">Search Employee</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="emp-search"
+                  className="input pl-9 pr-8"
+                  placeholder="Name, code, or email…"
+                  value={empSearch}
+                  onChange={(e) => setEmpSearch(e.target.value)}
+                />
+                {empSearch && (
+                  <button
+                    onClick={() => setEmpSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="flex-1">
               <label className="label" htmlFor="client-sel">Select Client</label>
               <select
@@ -144,8 +178,14 @@ export function Salary() {
                 value={selectedEmpId}
                 onChange={(e) => { setSelectedEmpId(e.target.value); setCtc(""); }}
               >
-                <option value="">Choose an employee…</option>
-                {employees.data?.items.map((e) => (
+                <option value="">
+                  {q && filteredEmployees.length === 0
+                    ? "No employees match the search"
+                    : q
+                      ? `Choose from ${filteredEmployees.length} match(es)…`
+                      : "Choose an employee…"}
+                </option>
+                {filteredEmployees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.emp_code} — {e.first_name} {e.last_name} ({e.work_location ?? "?"})
                   </option>
