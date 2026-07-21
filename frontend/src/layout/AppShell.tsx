@@ -244,7 +244,7 @@ function Sidebar({
               <div className="text-[13.5px] font-bold text-slate-900 dark:text-slate-100 leading-tight tracking-tight">
                 PeopleOS
               </div>
-              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.18em] mt-0.5">
+              <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.18em] mt-0.5">
                 HR &amp; Payroll
               </div>
             </motion.div>
@@ -312,8 +312,8 @@ function Sidebar({
               whileTap={{ scale: 0.99 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
             >
-              <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span className="flex-1 text-left truncate text-[12px] text-slate-400 dark:text-slate-500">
+              <Search className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+              <span className="flex-1 text-left truncate text-[12px] text-slate-500 dark:text-slate-400">
                 Search employees, payrolls…
               </span>
               <kbd className="sidebar-kbd">
@@ -389,7 +389,7 @@ function Sidebar({
               </>
             ) : (
               <>
-                <Moon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <Moon className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
                 <span>Dark Mode</span>
               </>
             )}
@@ -474,7 +474,7 @@ const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item
           "h-[16px] w-[16px] shrink-0 relative z-10 transition-colors duration-150",
           isActive
             ? "text-accent dark:text-violet-400 nav-icon-active"
-            : "text-slate-400 dark:text-slate-500"
+            : "text-slate-500 dark:text-slate-400"
         )}
         strokeWidth={isActive ? 2.2 : 1.8}
       />
@@ -484,7 +484,7 @@ const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item
           "relative z-10 truncate text-[13px] font-medium transition-colors duration-150",
           isActive
             ? "text-slate-900 dark:text-slate-100 font-semibold"
-            : "text-slate-600 dark:text-slate-400"
+            : "text-slate-700 dark:text-slate-300"
         )}
       >
         {item.label}
@@ -526,7 +526,7 @@ const CollapsedNavItem = memo(function CollapsedNavItem({ item, isActive }: { it
           "h-[18px] w-[18px] relative z-10 transition-colors duration-150",
           isActive
             ? "text-accent dark:text-violet-400"
-            : "text-slate-400 dark:text-slate-500"
+            : "text-slate-500 dark:text-slate-400"
         )}
         strokeWidth={isActive ? 2.2 : 1.8}
       />
@@ -766,7 +766,7 @@ function ActiveClientSelector({
         >
           {/* Header */}
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
               Switch Client Account
             </p>
           </div>
@@ -792,7 +792,7 @@ function ActiveClientSelector({
             </span>
             <span className="flex flex-col leading-none gap-0.5">
               <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">All Clients</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">No filter applied</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">No filter applied</span>
             </span>
             {selectedClientId === null && (
               <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent-500" />
@@ -826,7 +826,7 @@ function ActiveClientSelector({
                   <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-200 truncate">
                     {c.client_name}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
                     Internal ID: {c.client_code}
                   </span>
                 </span>
@@ -878,14 +878,14 @@ function ActiveClientSelector({
 
         {/* Text */}
         <span className="hidden sm:flex flex-col items-start leading-none gap-0.5 min-w-0">
-          <span className="text-[9px] font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+          <span className="text-[9px] font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
             Active Client Account
           </span>
           <span className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]">
             {selected ? selected.client_name : "All Clients"}
           </span>
           {selected && (
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
               Internal ID: {selected.client_code}
             </span>
           )}
@@ -894,7 +894,7 @@ function ActiveClientSelector({
         {/* Chevron */}
         <ChevronDown
           className={clsx(
-            "h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200",
+            "h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400 transition-transform duration-200",
             open && "rotate-180"
           )}
         />
@@ -975,16 +975,11 @@ function TopBar({
         <Menu className="h-4 w-4" />
       </button>
 
-      {/* ── Left: breadcrumb + workspace badge ─────────────────────────── */}
+      {/* ── Left: breadcrumb ──────────────────────────────────────────── */}
       <div className="hidden lg:flex items-center gap-2.5 shrink-0">
         <span className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">
           {title}
         </span>
-        <button className="workspace-pill inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold">
-          PeopleOS
-          <span className="text-[10px] text-slate-400 dark:text-slate-500">v</span>
-          <ChevronDown className="h-3 w-3 text-slate-400" />
-        </button>
       </div>
 
       {/* ── Center: global search ──────────────────────────────────────── */}
@@ -993,11 +988,11 @@ function TopBar({
           onClick={onCmdK}
           className="search-glass flex items-center gap-2.5 px-4 py-2 w-full max-w-[360px] text-left"
         >
-          <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <span className="flex-1 text-[13px] text-slate-400">
+          <Search className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+          <span className="flex-1 text-[13px] text-slate-500 dark:text-slate-400">
             Search employees, cycles, or commands…
           </span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[9px] text-slate-400">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[9px] text-slate-500 dark:text-slate-400">
             <Command className="h-2.5 w-2.5" />K
           </kbd>
         </button>
@@ -1017,7 +1012,7 @@ function TopBar({
         {/* Period selector */}
         {isDashboard && (
           <div className="hidden md:flex items-center gap-2 mr-1">
-            <span className="text-[11px] font-medium text-slate-400">Period</span>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Period</span>
             <select
               className="search-glass px-3 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
               value={period}
@@ -1029,22 +1024,6 @@ function TopBar({
             </select>
           </div>
         )}
-
-        {/* Live SSE dot */}
-        <div
-          title={`Real-time: ${sseStatus}`}
-          className={clsx(
-            "hidden lg:flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-            sseStatus === "open"       && "text-emerald-500",
-            sseStatus === "connecting" && "text-amber-400 animate-pulse",
-            (sseStatus === "closed" || sseStatus === "error") && "text-slate-300 dark:text-slate-700"
-          )}
-        >
-          {sseStatus === "open"
-            ? <Wifi className="h-3.5 w-3.5" />
-            : <WifiOff className="h-3.5 w-3.5" />
-          }
-        </div>
 
         {/* Theme toggle */}
         <button

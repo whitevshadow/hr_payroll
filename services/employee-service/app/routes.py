@@ -563,6 +563,30 @@ async def update_employee(
     return emp
 
 
+@router.delete("/employees/{employee_id}", status_code=204)
+async def delete_employee(
+    employee_id: uuid.UUID,
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    """Hard delete an employee record.
+
+    Direct reports keep working: reporting_manager_id has ON DELETE SET NULL.
+    Rows in other services (salary, attendance, payroll) reference the id
+    without FK constraints, so historical data is left untouched.
+    """
+    emp = await session.get(Employee, employee_id)
+    if not emp or emp.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    await audit_log(session, tenant_id=ctx.tenant_id, event_type="EMPLOYEE_DELETED",
+                    entity_type="employee", entity_id=str(employee_id),
+                    payload={"emp_code": emp.emp_code,
+                             "name": f"{emp.first_name} {emp.last_name}"},
+                    actor_id=ctx.user_id)
+    await session.delete(emp)
+    await session.commit()
+
+
 class PIIAccessRequest(BaseModel):
     fields: list[str]
 

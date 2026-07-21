@@ -10,7 +10,7 @@ import {
   Calendar, Download, Upload, Lock, Unlock, CheckCircle2,
   AlertCircle, AlertTriangle, Users, Percent, FileSpreadsheet,
   RefreshCw, X, ChevronDown, ShieldCheck, Save, Eye,
-  BarChart3, Clock,
+  BarChart3, Clock, Search,
 } from "lucide-react";
 import { attendanceApi, type AttendanceRecordFull, type AttendanceStatus } from "../api/attendance";
 import { employeesApi } from "../api/employees";
@@ -450,6 +450,7 @@ export function Attendance() {
 
   const [month, setMonth] = useState(currentMonthValue());
   const [activeTab, setActiveTab] = useState<ActiveTab>("summary");
+  const [empSearch, setEmpSearch] = useState("");
   const { selectedClientId } = useClientContext();
 
   // Grid state
@@ -516,6 +517,20 @@ export function Attendance() {
       };
     });
   }, [monthlyRecords, empById]);
+
+  // Employee search — filters both the summary table and the edit grid.
+  // KPIs and lock/validate actions stay based on the full data set.
+  const q = empSearch.trim().toLowerCase();
+  const filteredSummaryRows = useMemo(
+    () => (q ? summaryRows.filter((r) =>
+      r.name.toLowerCase().includes(q) || r.emp_code.toLowerCase().includes(q)) : summaryRows),
+    [summaryRows, q],
+  );
+  const filteredGridRows = useMemo(
+    () => (q ? gridRows.filter((r) =>
+      r.name.toLowerCase().includes(q) || r.emp_code.toLowerCase().includes(q)) : gridRows),
+    [gridRows, q],
+  );
 
   // KPI values
   const totalEmp = employees.length;
@@ -889,7 +904,8 @@ export function Attendance() {
         <KPICard icon={Calendar} label="Working Days" value={totalDays} sub={monthLabel} color="#6366F1" />
       </div>
 
-      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      {/* ── Tabs + employee search ───────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-card-bg)] p-1 w-fit">
         {([["summary", BarChart3, "Summary"], ["grid", FileSpreadsheet, "Edit Grid"]] as const).map(([id, Icon, label]) => (
           <button
@@ -918,6 +934,26 @@ export function Attendance() {
         ))}
       </div>
 
+      {/* Employee search */}
+      <div className="relative w-full sm:w-64">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+        <input
+          className="input pl-9 pr-8 text-sm py-2"
+          placeholder="Search employee name or code…"
+          value={empSearch}
+          onChange={(e) => setEmpSearch(e.target.value)}
+        />
+        {empSearch && (
+          <button
+            onClick={() => setEmpSearch("")}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      </div>
+
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
@@ -935,7 +971,9 @@ export function Attendance() {
                 </h3>
                 <div className="flex items-center gap-2">
                   {monthlyQ.isFetching && <RefreshCw className="h-3.5 w-3.5 animate-spin text-[var(--text-muted)]" />}
-                  <span className="text-xs text-[var(--text-muted)]">{summaryRows.length} records</span>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {q ? `${filteredSummaryRows.length} of ${summaryRows.length} records` : `${summaryRows.length} records`}
+                  </span>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -965,14 +1003,16 @@ export function Attendance() {
                         </tr>
                       ))
                     )}
-                    {!monthlyQ.isLoading && summaryRows.length === 0 && (
+                    {!monthlyQ.isLoading && filteredSummaryRows.length === 0 && (
                       <tr>
                         <td colSpan={11} className="td py-10 text-center text-[var(--text-muted)]">
-                          No attendance records for {monthLabel}. Import Excel or use the Edit Grid.
+                          {q
+                            ? <>No employees match “{empSearch}”.</>
+                            : <>No attendance records for {monthLabel}. Import Excel or use the Edit Grid.</>}
                         </td>
                       </tr>
                     )}
-                    {summaryRows.map((r) => {
+                    {filteredSummaryRows.map((r) => {
                       const lop = parseFloat(r.lop_days);
                       const pct = parseFloat(r.attendance_pct);
                       return (
@@ -1085,7 +1125,7 @@ export function Attendance() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--glass-border-subtle)]">
-                          {gridRows.map((row, ri) => {
+                          {filteredGridRows.map((row) => {
                             const s = summariseDays(row.days, totalDays);
                             return (
                               <tr
@@ -1113,8 +1153,8 @@ export function Attendance() {
                                         disabled={!canEdit}
                                         onChange={(newCode) => {
                                           setGridRows((rs) =>
-                                            rs.map((r, idx) =>
-                                              idx === ri
+                                            rs.map((r) =>
+                                              r.employee_id === row.employee_id
                                                 ? { ...r, dirty: true, days: r.days.map((d, j) => j === di ? newCode : d) }
                                                 : r
                                             )

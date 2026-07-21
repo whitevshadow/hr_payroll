@@ -51,10 +51,13 @@ export function Payslip() {
         </button>
       </PageHeader>
 
-      <div className="card table-card overflow-hidden p-0 flex-1 min-h-[700px]">
+      {/* The card needs a definite height (not just min-height): the iframe
+          fills it as a flex item, since a percentage height cannot resolve
+          against the layout's auto-height content wrapper. */}
+      <div className="card table-card overflow-hidden p-0 flex flex-col h-[calc(100vh-180px)] min-h-[600px]">
         {pdfQ.isLoading && <FullPageSpinner />}
         {pdfQ.isError && (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
             <p className="font-medium text-red-600">Could not load payslip PDF.</p>
             <p className="text-sm text-slate-500">
               It may not have been generated yet for this cycle.
@@ -65,7 +68,7 @@ export function Payslip() {
           <iframe
             title="Payslip PDF"
             src={objectUrl}
-            className="h-full w-full border-0"
+            className="w-full flex-1 border-0"
           />
         )}
       </div>

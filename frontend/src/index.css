@@ -41,7 +41,7 @@
     /* Text hierarchy */
     --text-primary:   #0F172A;
     --text-secondary: #475569;
-    --text-muted:     #64748B;
+    --text-muted:     #475569;
 
     /* Accent — Indigo #5A52E5 */
     --accent:       #5A52E5;
@@ -103,7 +103,7 @@
 
     --text-primary:   #E2E8F0;
     --text-secondary: #94A3B8;
-    --text-muted:     #64748B;
+    --text-muted:     #94A3B8;
 
     --accent:       #8B5CF6;
     --accent-strong:#7C3AED;
@@ -415,7 +415,7 @@
     text-transform: uppercase;
     letter-spacing: 0.20em;
     color: var(--text-muted);
-    opacity: 0.65;
+    opacity: 0.88;
   }
 
   /* ── Sidebar section divider (collapsed mode) ─────────────────────────── */
