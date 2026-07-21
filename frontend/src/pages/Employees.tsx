@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Edit2, User, MoreHorizontal } from "lucide-react";
 import { employeesApi } from "../api/employees";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
@@ -52,6 +53,94 @@ const AVATAR_COLORS = [
   "from-pink-400 to-pink-600",
   "from-teal-400 to-teal-600",
 ];
+
+// ── Row actions menu ──────────────────────────────────────────────────────────
+// Collapses Edit / Delete / Profile into a single "Edit" trigger that reveals
+// the other actions on click. Portalled into #popover-root so the menu isn't
+// clipped by the table card's overflow-hidden (same pattern as the attendance
+// grid's cell dropdown).
+function RowActionsMenu({
+  employee, onEdit, onDelete, triggerClassName,
+}: {
+  employee: Employee;
+  onEdit: () => void;
+  onDelete: () => void;
+  triggerClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  function openMenu() {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const MENU_W = 170;
+      setPos({
+        top: rect.bottom + 4,
+        left: Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8),
+      });
+    }
+    setOpen(true);
+  }
+
+  const portalRoot = typeof document !== "undefined" ? document.getElementById("popover-root") : null;
+
+  const menu = (
+    <AnimatePresence>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[1199]" onClick={() => setOpen(false)} />
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.12 }}
+            style={{ top: pos.top, left: pos.left, width: 170 }}
+            className="fixed z-[1200] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-1"
+          >
+            <button
+              onClick={() => { setOpen(false); onEdit(); }}
+              className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Edit2 className="h-3.5 w-3.5" /> Edit
+            </button>
+            <Link
+              to={`/employees/${employee.id}`}
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <User className="h-3.5 w-3.5" /> View Profile
+            </Link>
+            <div className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+            <button
+              onClick={() => { setOpen(false); onDelete(); }}
+              className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        className={
+          triggerClassName ??
+          "flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        }
+      >
+        Edit
+        <MoreHorizontal className="h-3.5 w-3.5" />
+      </button>
+      {portalRoot ? createPortal(menu, portalRoot) : menu}
+    </>
+  );
+}
 
 export function Employees() {
   const qc = useQueryClient();
@@ -289,26 +378,12 @@ export function Employees() {
                     <StatusBadge status={e.status} />
                   </td>
                   <td className="td">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                        onClick={() => setEditing(e)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        title="Delete employee"
-                        className="text-slate-400 hover:text-red-600 transition-colors"
-                        onClick={() => { setConfirmDelete(e); setDeleteError(""); }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      <Link
-                        to={`/employees/${e.id}`}
-                        className="text-xs font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
-                      >
-                        Profile →
-                      </Link>
+                    <div className="flex items-center justify-end">
+                      <RowActionsMenu
+                        employee={e}
+                        onEdit={() => setEditing(e)}
+                        onDelete={() => { setConfirmDelete(e); setDeleteError(""); }}
+                      />
                     </div>
                   </td>
                 </motion.tr>
@@ -380,26 +455,13 @@ export function Employees() {
                   </span>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
-                <button
-                  className="flex-1 btn-secondary h-8 text-xs"
-                  onClick={() => setEditing(e)}
-                >
-                  Edit
-                </button>
-                <button
-                  title="Delete employee"
-                  className="btn-secondary h-8 px-2.5 text-slate-400 hover:text-red-600"
-                  onClick={() => { setConfirmDelete(e); setDeleteError(""); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-                <Link
-                  to={`/employees/${e.id}`}
-                  className="flex-1 btn h-8 text-xs bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100"
-                >
-                  Profile
-                </Link>
+              <div className="mt-4">
+                <RowActionsMenu
+                  employee={e}
+                  onEdit={() => setEditing(e)}
+                  onDelete={() => { setConfirmDelete(e); setDeleteError(""); }}
+                  triggerClassName="w-full flex items-center justify-center gap-1.5 btn-secondary h-8 text-xs"
+                />
               </div>
             </motion.div>
           ))}

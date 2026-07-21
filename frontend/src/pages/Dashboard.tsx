@@ -126,7 +126,7 @@ function KpiCard({
       initial="hidden"
       animate="show"
       className={clsx(
-        "card kpi-card flex flex-col gap-3 group relative overflow-hidden",
+        "card kpi-card h-full flex flex-col gap-3 group relative overflow-hidden",
         to && "cursor-pointer hover:-translate-y-0.5 transition-all duration-200",
         danger && "border-danger/25 dark:border-danger/15"
       )}
@@ -169,7 +169,7 @@ function KpiCard({
       </div>
     </motion.div>
   );
-  return to && !locked ? <Link to={to}>{inner}</Link> : inner;
+  return to && !locked ? <Link to={to} className="block h-full">{inner}</Link> : inner;
 }
 
 // ── Custom chart tooltip ──────────────────────────────────────────────────
@@ -437,8 +437,13 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* KPI Strip — 6 cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+      {/* KPI Strip — 6 cards. items-stretch (+ h-full on each card, see KpiCard)
+          ensures every card fills its grid cell at the same height regardless
+          of how much sub-content it has — without this, cards wrapped in a
+          <Link> (those with a `to` prop) sit at their own intrinsic height
+          instead of the row's, since the Link — not the card div — is the
+          actual grid item. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6 items-stretch">
         <KpiCard
           index={0}
           label="Active Employees"
