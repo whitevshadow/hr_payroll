@@ -1,0 +1,347 @@
+erDiagram
+  tenants {
+    uuid id
+    character name
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+  users {
+    uuid id
+    uuid tenant_id
+    character email
+    character password_hash
+    boolean is_active
+    timestamp created_at
+    timestamp updated_at
+  }
+  user_roles {
+    uuid id
+    uuid tenant_id
+    uuid user_id
+    character role_name
+    timestamp created_at
+    timestamp updated_at
+  }
+  locations {
+    uuid id
+    uuid tenant_id
+    character location_name
+    character city
+    character state
+    character country
+    timestamp created_at
+    timestamp updated_at
+  }
+  departments {
+    uuid id
+    uuid tenant_id
+    character name
+    character cost_center
+    timestamp created_at
+    timestamp updated_at
+  }
+  clients {
+    uuid id
+    uuid tenant_id
+    character client_code
+    character client_name
+    character legal_name
+    character status
+    jsonb address
+    jsonb contact
+    jsonb statutory_ids
+    timestamp created_at
+    timestamp updated_at
+  }
+  employees {
+    uuid id
+    uuid tenant_id
+    uuid user_id
+    character emp_code
+    character first_name
+    character last_name
+    character email
+    character designation
+    character status
+    date joining_date
+    text pan_number
+    text bank_account
+    text bank_ifsc
+    text uan_number
+    uuid department_id
+    uuid location_id
+    uuid client_id
+    timestamp created_at
+    timestamp updated_at
+  }
+  salary_structures {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    numeric ctc
+    date effective_from
+    date effective_to
+    boolean is_active
+    character work_location
+    timestamp created_at
+    timestamp updated_at
+  }
+  salary_components {
+    uuid id
+    uuid tenant_id
+    uuid structure_id
+    character component_name
+    numeric amount
+    character component_type
+    boolean is_taxable
+    timestamp created_at
+    timestamp updated_at
+  }
+  attendance_months {
+    uuid id
+    uuid tenant_id
+    date month
+    character status
+    integer total_employees
+    integer employees_with_lop
+    numeric completion_pct
+    uuid validated_by
+    timestamp validated_at
+    uuid locked_by
+    timestamp locked_at
+    timestamp created_at
+    timestamp updated_at
+  }
+  attendance_records {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    date month
+    integer total_days
+    numeric present_days
+    numeric lop_days
+    numeric payable_days
+    numeric attendance_pct
+    numeric overtime_hours
+    boolean is_finalized
+    jsonb leave_breakdown
+    text daily_status
+    timestamp created_at
+    timestamp updated_at
+  }
+  payroll_cycles {
+    uuid id
+    uuid tenant_id
+    character name
+    date period_start
+    date period_end
+    character status
+    boolean is_dry_run
+    uuid created_by
+    uuid approved_by
+    uuid trace_id
+    timestamp created_at
+    timestamp updated_at
+  }
+  payroll_results {
+    uuid id
+    uuid tenant_id
+    uuid cycle_id
+    uuid employee_id
+    numeric gross_earnings
+    numeric total_deductions
+    numeric net_pay
+    jsonb breakdown_json
+    character status
+    character error
+    timestamp created_at
+    timestamp updated_at
+  }
+  pf_contributions {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    uuid cycle_id
+    numeric pf_wages
+    numeric employee_pf
+    numeric employer_eps
+    numeric employer_epf
+    boolean is_ceiling_applied
+    timestamp created_at
+    timestamp updated_at
+  }
+  esi_contributions {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    uuid cycle_id
+    numeric gross_wages
+    boolean is_esi_eligible
+    numeric employee_esi
+    numeric employer_esi
+    timestamp created_at
+    timestamp updated_at
+  }
+  pt_deductions {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    uuid cycle_id
+    character state
+    numeric pt_amount
+    timestamp created_at
+    timestamp updated_at
+  }
+  tds_declarations {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    character financial_year
+    character regime_preference
+    character residential_status
+    numeric sec_80c
+    numeric sec_80d
+    numeric hra_claimed
+    numeric other_deductions
+    boolean is_finalized
+    jsonb payload_json
+    timestamp created_at
+    timestamp updated_at
+  }
+  tds_calculations {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    uuid cycle_id
+    character tax_year
+    character regime_applied
+    character law_version
+    numeric taxable_income
+    numeric annual_tax
+    numeric remaining_tax
+    numeric monthly_tds
+    character reconciliation_status
+    jsonb trace_json
+    date salary_payment_date
+    timestamp created_at
+    timestamp updated_at
+  }
+  payout_batches {
+    uuid id
+    uuid tenant_id
+    uuid cycle_id
+    character batch_type
+    numeric total_amount
+    character status
+    timestamp created_at
+    timestamp updated_at
+  }
+  payout_transactions {
+    uuid id
+    uuid tenant_id
+    uuid batch_id
+    uuid employee_id
+    numeric amount
+    character idempotency_key
+    character status
+    text bank_reference
+    timestamp created_at
+    timestamp updated_at
+  }
+  generated_reports {
+    uuid id
+    uuid tenant_id
+    uuid cycle_id
+    uuid employee_id
+    character report_type
+    character status
+    uuid blob_id
+    timestamp created_at
+    timestamp updated_at
+  }
+  notifications {
+    uuid id
+    uuid tenant_id
+    uuid user_id
+    character type
+    text body
+    text link
+    boolean is_read
+    timestamp created_at
+  }
+  audit_logs {
+    uuid id
+    uuid tenant_id
+    character event_type
+    uuid actor_id
+    character entity_type
+    character entity_id
+    jsonb payload_json
+    character payload_hash
+    uuid trace_id
+    timestamp created_at
+  }
+  blobs {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    character bucket_name
+    text object_key
+    text file_name
+    character mime_type
+    bigint size
+    character etag
+    character checksum
+    character version
+    uuid uploaded_by
+    timestamp uploaded_at
+    boolean is_deleted
+    timestamp retention_until
+    timestamp updated_at
+  }
+  employee_documents {
+    uuid id
+    uuid tenant_id
+    uuid employee_id
+    uuid blob_id
+    character doc_category
+    character doc_label
+    text description
+    character verification_status
+    uuid verified_by
+    timestamp verified_at
+    text verification_comment
+    uuid superseded_by_id
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  users ||--o{ user_roles : "id=>user_id"
+  departments ||--o{ employees : "id=>department_id"
+  locations ||--o{ employees : "id=>location_id"
+  clients ||--o{ employees : "id=>client_id"
+  employees ||--o{ salary_structures : "id=>employee_id"
+  salary_structures ||--o{ salary_components : "id=>structure_id"
+  employees ||--o{ attendance_records : "id=>employee_id"
+  payroll_cycles ||--o{ payroll_results : "id=>cycle_id"
+  employees ||--o{ payroll_results : "id=>employee_id"
+  payroll_cycles ||--o{ pf_contributions : "id=>cycle_id"
+  employees ||--o{ pf_contributions : "id=>employee_id"
+  payroll_cycles ||--o{ esi_contributions : "id=>cycle_id"
+  employees ||--o{ esi_contributions : "id=>employee_id"
+  payroll_cycles ||--o{ pt_deductions : "id=>cycle_id"
+  employees ||--o{ pt_deductions : "id=>employee_id"
+  employees ||--o{ tds_declarations : "id=>employee_id"
+  employees ||--o{ tds_calculations : "id=>employee_id"
+  payroll_cycles ||--o{ tds_calculations : "id=>cycle_id"
+  payroll_cycles ||--o{ payout_batches : "id=>cycle_id"
+  payout_batches ||--o{ payout_transactions : "id=>batch_id"
+  employees ||--o{ payout_transactions : "id=>employee_id"
+  payroll_cycles ||--o{ generated_reports : "id=>cycle_id"
+  employees ||--o{ generated_reports : "id=>employee_id"
+  blobs ||--o{ generated_reports : "id=>blob_id"
+  users ||--o{ notifications : "id=>user_id"
+  employees ||--o{ blobs : "id=>employee_id"
+  blobs ||--o{ employee_documents : "id=>blob_id"
+  employees ||--o{ employee_documents : "id=>employee_id"
