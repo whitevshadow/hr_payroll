@@ -46,8 +46,11 @@ def _payroll_headers(token: str, client_id: str | None) -> dict[str, str]:
 
 async def _fetch_result(token: str, cycle_id, employee_id, client_id: str | None = None) -> dict:
     url = f"{settings.payroll_url}/api/v1/payroll/results/{cycle_id}/{employee_id}"
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Payroll service unreachable: {exc}")
     if resp.status_code == 404:
         raise HTTPException(
             status_code=404,
@@ -60,8 +63,11 @@ async def _fetch_result(token: str, cycle_id, employee_id, client_id: str | None
 
 async def _fetch_cycle(token: str, cycle_id, client_id: str | None = None) -> dict:
     url = f"{settings.payroll_url}/api/v1/payroll/cycles/{cycle_id}"
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Payroll service unreachable: {exc}")
     if resp.status_code == 404:
         raise HTTPException(status_code=404, detail="Payroll cycle not found")
     if resp.status_code != 200:
@@ -73,8 +79,12 @@ async def _fetch_client(token: str, client_id: str) -> dict:
     """Look up the client company. Never fatal — a payslip is still renderable."""
     url = f"{settings.client_url}/api/v1/clients/{client_id}"
     headers = {"Authorization": f"Bearer {token}"}
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        resp = await http.get(url, headers=headers)
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.get(url, headers=headers)
+    except httpx.RequestError as exc:
+        logger.warning("client-service unreachable resolving %s for payslip header: %s", client_id, exc)
+        return {}
     if resp.status_code != 200:
         logger.warning(
             "Could not resolve client %s for payslip header (%s): %s",
@@ -86,8 +96,11 @@ async def _fetch_client(token: str, client_id: str) -> dict:
 
 async def _fetch_summary(token: str, cycle_id, client_id: str | None = None) -> dict:
     url = f"{settings.payroll_url}/api/v1/payroll/cycles/{cycle_id}/summary"
-    async with httpx.AsyncClient(timeout=30.0) as http:
-        resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as http:
+            resp = await http.get(url, headers=_payroll_headers(token, client_id))
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Payroll service unreachable: {exc}")
     if resp.status_code == 404:
         raise HTTPException(status_code=404, detail="Payroll cycle not found")
     if resp.status_code != 200:
@@ -129,14 +142,22 @@ async def _build_payslip_pdf(token: str, cycle_id, employee_id, client_id: str |
 
 async def _upload_payslip(http: httpx.AsyncClient, token: str, tenant_id, employee_id, pdf_bytes: bytes) -> str:
     """Store the PDF in the blobstore and return its blob id."""
-    resp = await http.post(
-        f"{settings.blobstore_url}/api/v1/blobs/upload",
-        headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(tenant_id)},
-        files={"file": (f"payslip_{employee_id}.pdf", pdf_bytes, "application/pdf")},
-        data={"doc_type": "PAYSLIP", "employee_id": str(employee_id)},
-    )
-    resp.raise_for_status()
-    return resp.json()["blob_id"]
+    try:
+        resp = await http.post(
+            f"{settings.blobstore_url}/api/v1/blobs/upload",
+            headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(tenant_id)},
+            files={"file": (f"payslip_{employee_id}.pdf", pdf_bytes, "application/pdf")},
+            data={"doc_type": "PAYSLIP", "employee_id": str(employee_id)},
+        )
+        resp.raise_for_status()
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Blobstore service unreachable: {exc}")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Blobstore upload failed: {exc.response.text}")
+    blob_id = resp.json().get("blob_id")
+    if not blob_id:
+        raise HTTPException(status_code=502, detail="Blobstore upload response missing blob_id")
+    return blob_id
 
 
 async def _record_payslip(session: AsyncSession, tenant_id, cycle_id, employee_id, blob_id: str | None) -> None:
@@ -170,11 +191,15 @@ async def _record_payslip(session: AsyncSession, tenant_id, cycle_id, employee_i
 
 async def _fetch_blob(token: str, tenant_id, blob_id: str) -> bytes | None:
     """Download a stored payslip; None if the blobstore no longer has it."""
-    async with httpx.AsyncClient(timeout=30.0) as http:
-        resp = await http.get(
-            f"{settings.blobstore_url}/api/v1/blobs/{blob_id}",
-            headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(tenant_id)},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as http:
+            resp = await http.get(
+                f"{settings.blobstore_url}/api/v1/blobs/{blob_id}",
+                headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(tenant_id)},
+            )
+    except httpx.RequestError as exc:
+        logger.warning("blobstore-service unreachable fetching blob %s: %s", blob_id, exc)
+        return None
     return resp.content if resp.status_code == 200 else None
 
 
@@ -295,16 +320,22 @@ async def get_payslip(
     blob_id = existing.file_path
     blobstore_url = f"{settings.blobstore_url}/api/v1/blobs/{blob_id}/url?inline={str(inline).lower()}"
 
-    async with httpx.AsyncClient(timeout=10.0) as http:
-        resp = await http.get(
-            blobstore_url,
-            headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(ctx.tenant_id)}
-        )
-        if resp.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to retrieve payslip URL")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            resp = await http.get(
+                blobstore_url,
+                headers={"Authorization": f"Bearer {token}", "X-Tenant-Id": str(ctx.tenant_id)}
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Blobstore service unreachable: {exc}")
 
-        data = resp.json()
-        return {"url": data["url"]}
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="Failed to retrieve payslip URL")
+
+    url = resp.json().get("url")
+    if not url:
+        raise HTTPException(status_code=502, detail="Blobstore response missing url")
+    return {"url": url}
 
 
 @router.get("/payslip/{cycle_id}/{employee_id}/pdf")
@@ -354,10 +385,7 @@ async def regenerate_payslip(
 async def bulk_download_payslips(
     cycle_id: uuid.UUID,
     request: Request,
-    # Requires x-client-id: every payroll read this fans out to is
-    # client-scoped, so without it the request can only die downstream as an
-    # opaque 502. Failing here yields a clear 400 instead.
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(get_context),
     session: AsyncSession = Depends(get_session),
 ):
     """Zip every payslip for a cycle, generating any that do not exist yet."""

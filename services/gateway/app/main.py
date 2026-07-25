@@ -27,12 +27,7 @@ _JSON = "application/json"
 app = FastAPI(title="gateway")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4050",
-        "http://127.0.0.1:4050",
-        "http://localhost:4000",
-        "http://127.0.0.1:4000"
-    ],
+    allow_origins=settings.cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -19,6 +19,7 @@ from .schemas import (
     CycleCreate,
     CycleOut,
     CycleSummary,
+    ImportRegisterRequest,
     ResultOut,
     RunSummary,
 )
@@ -105,6 +106,25 @@ async def run_cycle(
     return RunSummary(**summary)
 
 
+@router.post("/payroll/cycles/{cycle_id}/import-register", response_model=RunSummary)
+async def import_register(
+    cycle_id: uuid.UUID,
+    body: ImportRegisterRequest,
+    request: Request,
+    ctx: RequestContext = Depends(_admin_only),
+    session: AsyncSession = Depends(get_session),
+):
+    """Bring a cycle to COMPUTED from a pre-computed Excel payroll register."""
+    if not body.rows:
+        raise HTTPException(status_code=400, detail="No rows to import")
+    cycle = await _load_cycle(session, ctx.tenant_id, cycle_id)
+    token = _bearer(request)
+    summary = await orchestrator.import_register(
+        session, ctx, token, cycle, body.rows, body.mode
+    )
+    return RunSummary(**summary)
+
+
 @router.post("/payroll/cycles/{cycle_id}/approve")
 async def approve_cycle(
     cycle_id: uuid.UUID,
@@ -148,7 +168,10 @@ async def get_my_result(
     token = _bearer(request)
     from . import client as svc_client
     async with svc_client.make_client() as http:
-        emp = await svc_client.get_my_employee(http, token)
+        try:
+            emp = await svc_client.get_my_employee(http, token)
+        except ServiceCallError as exc:
+            raise HTTPException(status_code=502, detail=f"Employee lookup failed: {exc}")
     return await _result_for(session, ctx.tenant_id, cycle_id, uuid.UUID(emp["id"]))
 
 

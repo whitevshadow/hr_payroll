@@ -532,19 +532,29 @@ def download_object_stream(
     object_name: str,
     bucket_name: str | None = None,
 ) -> Iterator[bytes]:
-    """Legacy sync streaming helper."""
+    """Legacy sync streaming helper.
+
+    ``get_object`` runs eagerly here (not inside the returned generator) so a
+    missing object raises ``S3Error`` synchronously, before the caller has
+    committed to a 200 response — a generator function would defer the
+    MinIO call until first iteration, i.e. after headers/status are already
+    sent to the client.
+    """
     bucket = bucket_name or settings.MINIO_BUCKET
-    response = None
     try:
         response = _minio_client.get_object(bucket, object_name)
-        yield from response
     except S3Error as exc:
         logger.error("Failed to download '%s' from '%s': %s", object_name, bucket, exc)
         raise
-    finally:
-        if response:
+
+    def _iter() -> Iterator[bytes]:
+        try:
+            yield from response
+        finally:
             response.close()
             response.release_conn()
+
+    return _iter()
 
 
 def delete_object(object_name: str, bucket_name: str | None = None) -> None:

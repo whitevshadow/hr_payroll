@@ -4,6 +4,19 @@ from hr_shared import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "gateway"
 
+    # Origins allowed to call the gateway cross-origin (JSON list in the env
+    # var, e.g. CORS_ALLOW_ORIGINS=["https://hr.example.com"]). The shipped
+    # frontend never needs this — nginx proxies /api/ same-origin — but direct
+    # gateway access (local dev without nginx, a separately hosted frontend,
+    # mobile/API clients) does. Override via CORS_ALLOW_ORIGINS in production
+    # instead of editing code.
+    cors_allow_origins: list[str] = [
+        "http://localhost:4050",
+        "http://127.0.0.1:4050",
+        "http://localhost:4000",
+        "http://127.0.0.1:4000",
+    ]
+
     # Downstream service base URLs (container-name addressing in compose).
     auth_url: str = "http://auth-service:4001"
     employee_url: str = "http://employee-service:4002"

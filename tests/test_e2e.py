@@ -17,7 +17,7 @@ from decimal import Decimal
 
 import pytest
 
-BASE = os.environ.get("GATEWAY_URL", "http://localhost:8000") + "/api/v1"
+BASE = os.environ.get("GATEWAY_URL", "http://localhost:4000") + "/api/v1"
 
 
 def _http(method, path, token=None, body=None):

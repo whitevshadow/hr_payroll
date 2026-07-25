@@ -137,7 +137,10 @@ services:
     environment:
       <<: *common-env
       # Must be host:port WITHOUT scheme — _build_boto_client prepends http:// itself.
-      MINIO_PUBLIC_ENDPOINT: localhost:9000
+      # Override in .env for non-local deployments (e.g. s3.example.com:443),
+      # otherwise presigned URLs returned to the browser will point at
+      # localhost and be unreachable off the deploying host.
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
       # Service account credentials (least-privilege IAM user created by minio-init).
       # Root credentials are intentionally absent here.
       MINIO_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY must be set in .env}
