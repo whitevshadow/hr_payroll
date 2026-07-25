@@ -269,7 +269,7 @@ interface KPIProps {
   trendLabel?: string;
 }
 
-function KPICard({ icon: Icon, label, value, sub, accent = "#5A52E5", tooltip, trend, trendLabel }: KPIProps) {
+function KPICard({ icon: Icon, label, value, sub, accent = "#3395FF", tooltip, trend, trendLabel }: KPIProps) {
   const [tip, setTip] = useState(false);
   return (
     <motion.div

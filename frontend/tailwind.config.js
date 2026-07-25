@@ -5,19 +5,15 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Primary — Plus Jakarta Sans
+        // "Systematic Trust" design system — Inter throughout
         sans: [
-          "Plus Jakarta Sans",
           "Inter",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
           "sans-serif",
         ],
-        // Display / headings
         display: [
-          "Plus Jakarta Sans",
-          "Space Grotesk",
           "Inter",
           "ui-sans-serif",
           "sans-serif",
@@ -33,30 +29,50 @@ export default {
         ],
       },
       colors: {
-        // Primary accent — Indigo #5A52E5
+        // Primary — "Systematic Trust" Razorpay Blue #3395FF
         accent: {
-          DEFAULT: "#5A52E5",
-          50:  "#EDEEFF",
-          100: "#E0E1FF",
-          200: "#C3C5FD",
-          300: "#A5A8FB",
-          400: "#8A8CF8",
-          500: "#6E6FF4",
-          600: "#5A52E5",
-          700: "#4841CC",
-          800: "#3830A6",
-          900: "#2A2484",
+          DEFAULT: "#3395FF",
+          50:  "#EAF3FF",
+          100: "#D6E9FF",
+          200: "#ADD3FF",
+          300: "#85BDFF",
+          400: "#5CA7FF",
+          500: "#3395FF",
+          600: "#1A7FEA",
+          700: "#005FAF",
+          800: "#004785",
+          900: "#002D58",
+        },
+        // Secondary — deep navy #0D233E (sidebar / high-level navigation)
+        secondary: {
+          DEFAULT: "#0D233E",
+          50:  "#EAEDF2",
+          100: "#D2D9E3",
+          300: "#7C8CA3",
+          500: "#33475F",
+          700: "#17304C",
+          900: "#0D233E",
+        },
+        // Tertiary — brand orange #E07800
+        tertiary: {
+          DEFAULT: "#E07800",
+          50:  "#FFF3E5",
+          100: "#FFDCC4",
+          300: "#FFB77F",
+          500: "#E07800",
+          700: "#924C00",
+          900: "#482200",
         },
         // Semantic
         success: { DEFAULT: "#10B981", light: "#D1FAE5", dark: "#059669" },
         warning: { DEFAULT: "#F59E0B", light: "#FEF3C7", dark: "#D97706" },
         danger:  { DEFAULT: "#EF4444", light: "#FEE2E2", dark: "#DC2626" },
-        info:    { DEFAULT: "#3B82F6", light: "#DBEAFE", dark: "#2563EB" },
+        info:    { DEFAULT: "#0EA5E9", light: "#E0F2FE", dark: "#0284C7" },
         // Neutral surface
         surface: {
-          DEFAULT: "#F8FAFF",
-          card:    "rgba(255,255,255,0.55)",
-          border:  "rgba(220,230,245,0.60)",
+          DEFAULT: "#F8FAFC",
+          card:    "#FFFFFF",
+          border:  "#E2E8F0",
         },
       },
       backdropBlur: {

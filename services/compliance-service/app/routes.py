@@ -144,7 +144,7 @@ async def compute(
     esi = {}
     if settings_obj.esi_enabled:
         esi = compute_esi(
-            monthly_gross=body.monthly_gross,
+            monthly_gross=body.esi_gross if body.esi_gross is not None else body.monthly_gross,
             employee_rate=settings_obj.esi_employee_rate,
             employer_rate=settings_obj.esi_employer_rate,
             threshold=settings_obj.esi_wage_limit,
@@ -156,7 +156,7 @@ async def compute(
 
     pt = {}
     if settings_obj.pt_enabled:
-        pt = compute_pt(body.state, body.month)
+        pt = compute_pt(body.state, body.month, body.monthly_gross, body.gender)
         session.add(PTDeduction(tenant_id=ctx.tenant_id, employee_id=body.employee_id,
                                 cycle_id=body.cycle_id, **pt))
     else:

@@ -61,9 +61,27 @@ def compute_esi(
     }
 
 
-def compute_pt(state: str, month: int) -> dict:
+def compute_pt(
+    state: str,
+    month: int,
+    monthly_gross: Decimal | None = None,
+    gender: str | None = None,
+) -> dict:
+    """PT by state slab. Without monthly_gross (legacy callers) the top-slab
+    amount applies; with it, the income slabs and any women's exemption do."""
     slab = PT_SLABS.get(state, PT_DEFAULT)
     amount = slab["february"] if month == 2 else slab["regular"]
+    if monthly_gross is not None:
+        gross = Decimal(monthly_gross)
+        exempt_upto = slab.get("women_exempt_upto")
+        is_female = (gender or "").strip().lower() in ("f", "female")
+        if exempt_upto is not None and is_female and gross <= exempt_upto:
+            amount = Decimal("0")
+        else:
+            for limit, slab_amount in slab.get("slabs", []):
+                if gross <= limit:
+                    amount = slab_amount
+                    break
     return {"state": state, "pt_amount": money(amount)}
 
 

@@ -28,8 +28,8 @@ export function Stepper({ status }: { status: CycleStatus }) {
                 className={clsx(
                   "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors",
                   {
-                    "bg-indigo-600 text-white": done,
-                    "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-600": active,
+                    "bg-accent-600 text-white": done,
+                    "bg-accent-100 text-accent-600 ring-2 ring-accent-600": active,
                     "bg-red-100 text-red-600 ring-2 ring-red-500": failed,
                     "bg-gray-100 text-gray-400": !done && !active && !failed,
                   }
@@ -40,7 +40,7 @@ export function Stepper({ status }: { status: CycleStatus }) {
               </div>
               <div
                 className={clsx("mt-1 text-[10px] font-medium", {
-                  "text-indigo-600": done || active,
+                  "text-accent-600": done || active,
                   "text-red-600": failed,
                   "text-gray-400": !done && !active && !failed,
                 })}
@@ -51,7 +51,7 @@ export function Stepper({ status }: { status: CycleStatus }) {
             {i < STEPS.length - 1 && (
               <div
                 className={clsx("mx-1 h-0.5 flex-1", {
-                  "bg-indigo-600": done,
+                  "bg-accent-600": done,
                   "bg-gray-200": !done,
                 })}
               />

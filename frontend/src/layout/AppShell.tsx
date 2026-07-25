@@ -12,11 +12,11 @@ import { NavLink, useNavigate, useLocation, useSearchParams } from "react-router
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
+  LayoutGrid,
   Users,
   Building2,
-  Calendar,
-  DollarSign,
+  CalendarClock,
+  Banknote,
   CreditCard,
   FileText,
   ShieldCheck,
@@ -104,7 +104,7 @@ interface NavItem {
 const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
   {
     label: "Overview",
-    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, end: true }],
+    items: [{ to: "/", label: "Dashboard", icon: LayoutGrid, end: true }],
   },
   {
     label: "Organization",
@@ -119,8 +119,8 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Workforce",
     hrOnly: true,
     items: [
-      { to: "/attendance", label: "Attendance", icon: Calendar,   hrOnly: true },
-      { to: "/salary",     label: "Salary",     icon: DollarSign, hrOnly: true },
+      { to: "/attendance", label: "Attendance", icon: CalendarClock, hrOnly: true },
+      { to: "/salary",     label: "Salary",     icon: Banknote,      hrOnly: true },
     ],
   },
   {
@@ -129,8 +129,8 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     items: [
       { to: "/cycles",  label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
       { to: "/payouts", label: "Payouts",        icon: CreditCard,       hrOnly: true },
-      { to: "/payslips", label: "Payslips",      icon: FileText,         hrOnly: true },
-      { to: "/tds",     label: "TDS",            icon: Receipt,          hrOnly: true },
+      { to: "/payslips", label: "Payslips",      icon: Receipt,          hrOnly: true },
+      { to: "/tds",     label: "TDS",            icon: FileText,         hrOnly: true },
     ],
   },
   {
@@ -473,7 +473,7 @@ const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item
         className={clsx(
           "h-[16px] w-[16px] shrink-0 relative z-10 transition-colors duration-150",
           isActive
-            ? "text-accent dark:text-violet-400 nav-icon-active"
+            ? "text-white"
             : "text-slate-500 dark:text-slate-400"
         )}
         strokeWidth={isActive ? 2.2 : 1.8}
@@ -481,9 +481,9 @@ const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item
 
       <span
         className={clsx(
-          "relative z-10 truncate text-[13px] font-medium transition-colors duration-150",
+          "relative z-10 truncate text-[13px] font-semibold transition-colors duration-150",
           isActive
-            ? "text-slate-900 dark:text-slate-100 font-semibold"
+            ? "text-white font-bold"
             : "text-slate-700 dark:text-slate-300"
         )}
       >
@@ -492,7 +492,7 @@ const ExpandedNavItem = memo(function ExpandedNavItem({ item, isActive }: { item
 
       {/* Active dot — CSS, no layoutId */}
       <span
-        className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-accent dark:bg-violet-400 shrink-0"
+        className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-white shrink-0"
         style={{
           opacity: isActive ? 1 : 0,
           transform: isActive ? "scale(1)" : "scale(0)",
@@ -509,9 +509,7 @@ const CollapsedNavItem = memo(function CollapsedNavItem({ item, isActive }: { it
     <div
       className={clsx(
         "relative flex items-center justify-center rounded-xl mx-1 p-2.5 cursor-pointer transition-colors duration-150",
-        isActive
-          ? "bg-accent/10 dark:bg-violet-500/15"
-          : "hover:bg-white/40 dark:hover:bg-white/6"
+        !isActive && "hover:bg-slate-900/5 dark:hover:bg-white/6"
       )}
     >
       <div
@@ -525,13 +523,13 @@ const CollapsedNavItem = memo(function CollapsedNavItem({ item, isActive }: { it
         className={clsx(
           "h-[18px] w-[18px] relative z-10 transition-colors duration-150",
           isActive
-            ? "text-accent dark:text-violet-400"
+            ? "text-white"
             : "text-slate-500 dark:text-slate-400"
         )}
         strokeWidth={isActive ? 2.2 : 1.8}
       />
       {isActive && (
-        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-accent dark:bg-violet-400" />
+        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 h-1 w-1 rounded-full bg-white" />
       )}
     </div>
   );
@@ -620,13 +618,13 @@ function NotificationPanel({
                   className={clsx(
                     "border-b border-white/10 dark:border-white/5 px-4 py-3 text-sm last:border-0 transition-colors duration-75",
                     !n.is_read
-                      ? "bg-[#5A52E5]/4 dark:bg-violet-900/10"
+                      ? "bg-accent-500/5 dark:bg-accent-900/10"
                       : "hover:bg-white/20 dark:hover:bg-white/4"
                   )}
                 >
                   <div className="flex items-start gap-2">
                     {!n.is_read && (
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#5A52E5]" />
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3395FF]" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] font-medium leading-relaxed text-slate-800 dark:text-slate-200">
@@ -638,7 +636,7 @@ function NotificationPanel({
                         </span>
                         {!n.is_read && (
                           <button
-                            className="text-[10px] font-semibold text-[#5A52E5] hover:text-[#4841CC] dark:text-violet-400 transition-colors"
+                            className="text-[10px] font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
                             onClick={() => readMut.mutate(n.id)}
                           >
                             Mark read
@@ -989,7 +987,7 @@ function TopBar({
           className="search-glass flex items-center gap-2.5 px-4 py-2 w-full max-w-[360px] text-left"
         >
           <Search className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
-          <span className="flex-1 text-[13px] text-slate-500 dark:text-slate-400">
+          <span className="flex-1 truncate text-[13px] text-slate-500 dark:text-slate-400">
             Search employees, cycles, or commands…
           </span>
           <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[9px] text-slate-500 dark:text-slate-400">

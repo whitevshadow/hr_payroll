@@ -206,7 +206,7 @@ export function AdminPayslips() {
                           <button
                             disabled={isFailed}
                             onClick={() => navigate(`/payslips/${activeCycleId}/${res.employee_id}`)}
-                            className="btn btn-sm btn-ghost text-slate-600 hover:text-blue-600"
+                            className="btn btn-sm btn-ghost text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400"
                             title="View"
                           >
                             <Eye className="h-4 w-4" />
@@ -220,7 +220,7 @@ export function AdminPayslips() {
                                 toastService.error("Failed to download payslip");
                               }
                             }}
-                            className="btn btn-sm btn-ghost text-slate-600 hover:text-emerald-600"
+                            className="btn btn-sm btn-ghost text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400"
                             title="Download"
                           >
                             <Download className="h-4 w-4" />
@@ -234,14 +234,14 @@ export function AdminPayslips() {
                                 toastService.error("Failed to print payslip");
                               }
                             }}
-                            className="btn btn-sm btn-ghost text-slate-600 hover:text-purple-600"
+                            className="btn btn-sm btn-ghost text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400"
                             title="Print"
                           >
                             <Printer className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleRegenerate(res.employee_id)}
-                            className="btn btn-sm btn-ghost text-slate-600 hover:text-amber-600"
+                            className="btn btn-sm btn-ghost text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400"
                             title="Regenerate"
                           >
                             <RefreshCw className="h-4 w-4" />

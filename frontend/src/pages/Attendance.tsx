@@ -124,7 +124,7 @@ function StatusBadge({ status }: { status: AttendanceStatus }) {
   );
 }
 
-function KPICard({ icon: Icon, label, value, sub, color = "#5A52E5" }: {
+function KPICard({ icon: Icon, label, value, sub, color = "#3395FF" }: {
   icon: React.ElementType; label: string; value: string | number; sub?: string; color?: string;
 }) {
   return (

@@ -15,12 +15,14 @@ import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { useAuth } from "../lib/auth";
 import { canApprove as canApproveRole } from "../lib/roles";
+import { ExcelRegisterImportModal } from "../components/ExcelRegisterImportModal";
 import type { PayoutBatch } from "../types";
 import {
   ArrowLeft,
   Play,
   CheckCircle,
   FileText,
+  FileSpreadsheet,
   AlertTriangle,
   Loader2,
   DollarSign,
@@ -35,6 +37,7 @@ export function CycleDetail() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [polling, setPolling] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const cycle = useQuery({
     queryKey: qk.cycle(cycleId!),
@@ -230,6 +233,15 @@ export function CycleDetail() {
             )}
           </button>
 
+          <button
+            className="btn-ghost"
+            disabled={!canRun || isComputing}
+            onClick={() => setShowImportModal(true)}
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Import Excel Register
+          </button>
+
           <Link
             to={`/cycles/${cycleId}/summary`}
             className={clsx(
@@ -315,6 +327,18 @@ export function CycleDetail() {
           </motion.div>
         )}
       </div>
+
+      {showImportModal && (
+        <ExcelRegisterImportModal
+          cycle={c}
+          onClose={() => setShowImportModal(false)}
+          onImported={() => {
+            qc.invalidateQueries({ queryKey: qk.cycle(cycleId!) });
+            qc.invalidateQueries({ queryKey: qk.cycleSummary(cycleId!) });
+            qc.invalidateQueries({ queryKey: qk.cycles });
+          }}
+        />
+      )}
 
       {/* Payout summary when disbursed */}
       {isDisbursed && batches.data && batches.data.length > 0 && (

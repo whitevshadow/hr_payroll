@@ -58,3 +58,23 @@ def test_pt_maharashtra_february_is_300():
 
 def test_pt_maharashtra_regular_is_200():
     assert compute_pt("Maharashtra", 5)["pt_amount"] == D("200.00")
+
+
+def test_pt_maharashtra_income_slabs():
+    # <= 7500 -> nil; 7501-10000 -> 175; above -> 200 (300 in Feb).
+    assert compute_pt("Maharashtra", 5, D("4448"))["pt_amount"] == D("0.00")
+    assert compute_pt("Maharashtra", 5, D("9000"))["pt_amount"] == D("175.00")
+    assert compute_pt("Maharashtra", 5, D("12354"))["pt_amount"] == D("200.00")
+    assert compute_pt("Maharashtra", 2, D("12354"))["pt_amount"] == D("300.00")
+
+
+def test_pt_maharashtra_women_exempt_upto_25000():
+    assert compute_pt("Maharashtra", 5, D("13343"), gender="Female")["pt_amount"] == D("0.00")
+    assert compute_pt("Maharashtra", 5, D("26000"), gender="Female")["pt_amount"] == D("200.00")
+    assert compute_pt("Maharashtra", 5, D("13343"), gender="Male")["pt_amount"] == D("200.00")
+
+
+def test_pt_without_gross_keeps_legacy_flat_amount():
+    # Callers that don't send monthly_gross still get the top-slab amount.
+    assert compute_pt("Maharashtra", 5, None)["pt_amount"] == D("200.00")
+    assert compute_pt("UnknownState", 5, D("5000"))["pt_amount"] == D("200.00")

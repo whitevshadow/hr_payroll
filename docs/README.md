@@ -2,6 +2,8 @@
 
 | Document | What it covers |
 |----------|----------------|
+| [DEPLOY_STEP_BY_STEP.md](DEPLOY_STEP_BY_STEP.md) | Condensed deployment checklist — clone → `.env` → compose up → verify → harden |
+| [../DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md) | Full deployment guide — architecture of the wiring, hardening, troubleshooting, scaling |
 | [ISSUES.md](ISSUES.md) | Codebase audit — every finding, its resolution, and known follow-ups |
 | [db_schemas.md](db_schemas.md) | Per-service database schema notes |
 | [system_test_guide.md](system_test_guide.md) | Manual end-to-end test walkthrough |

@@ -237,7 +237,7 @@ export function Departments() {
                   <div className="w-16 flex justify-end">
                     <button
                       onClick={() => { setEditing(d); setFormError(""); }}
-                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-[#5A52E5] hover:bg-[#5A52E5]/6 dark:hover:bg-[#5A52E5]/10 transition-colors opacity-0 group-hover:opacity-100"
+                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-[#3395FF] hover:bg-[#3395FF]/6 dark:hover:bg-[#3395FF]/10 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Edit2 className="h-3 w-3" />
                       Edit

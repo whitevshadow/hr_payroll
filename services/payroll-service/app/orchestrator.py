@@ -102,6 +102,7 @@ async def _compute_for_employee(
             "basic": str(basic),
             "monthly_gross": str(monthly_gross),
             "state": emp.get("state") or "ALL",  # Uses state-specific or ALL settings
+            "gender": emp.get("gender"),
             "month": cycle.period_start.month,
             "ceiling_on": settings.pf_ceiling_enabled,
         },
@@ -173,6 +174,275 @@ async def _compute_for_employee(
         "total_deductions": total_deductions,
         "net_pay": net_pay,
         "breakdown": breakdown,
+    }
+
+
+def _employee_block(emp: dict) -> dict:
+    return {
+        "emp_code": emp.get("emp_code"),
+        "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+        # Masked: breakdown_json is accessible to HR admins and stored in JSONB.
+        # Full PAN appears only on the employee's own Form 16 (ITA 1961 s.203).
+        "pan": _mask_pan(emp.get("pan_number")),
+        "bank_account": _mask_bank_account(emp.get("bank_account")),
+        "designation": emp.get("designation"),
+        "work_location": emp.get("work_location"),
+    }
+
+
+async def _result_from_register_row(
+    http, token: str, cycle: PayrollCycle, emp: dict, row, mode: str
+) -> dict:
+    """Build a PayrollResult-shaped dict from one imported register row.
+
+    "prefilled": the sheet's deduction/net figures are authoritative.
+    "compute": PF/ESI/PT/TDS and net pay are derived from the sheet's
+    earnings via compliance-service and tds-service — the same calls
+    run_cycle makes, minus the salary-service CTC lookup.
+    """
+    client_id = str(cycle.client_id) if cycle.client_id else None
+    basic = money(row.basic)
+    da = money(row.da)
+    hra = money(row.hra)
+    bonus = money(row.bonus)
+    gross = money(row.gross)
+    # Residual so the itemised earning rows add up to the sheet's gross.
+    special = money(gross - (basic + da + hra + bonus))
+    if special < 0:
+        special = money(0)
+
+    employer_contrib = None
+    tds_trace: dict = {}
+
+    if mode == "compute":
+        comp = await client.compute_compliance(
+            http,
+            token,
+            {
+                "employee_id": emp["id"],
+                "cycle_id": str(cycle.id),
+                "client_id": client_id,
+                # PF wages are statutorily Basic + DA (bonus/HRA excluded).
+                "basic": str(money(basic + da)),
+                "monthly_gross": str(gross),
+                # ESI wages exclude the bonus head of the register's gross.
+                "esi_gross": str(money(gross - bonus)),
+                "state": emp.get("state") or "ALL",
+                "gender": emp.get("gender"),
+                "month": cycle.period_start.month,
+                "ceiling_on": settings.pf_ceiling_enabled,
+            },
+            client_id,
+        )
+        employee_pf = money(comp["employee_pf"])
+        employee_esi = money(comp["employee_esi"])
+        pt_amount = money(comp["pt_amount"])
+        tds = await client.compute_tds(
+            http,
+            token,
+            {
+                "employee_id": emp["id"],
+                "cycle_id": str(cycle.id),
+                "monthly_gross": str(gross),
+            },
+            client_id,
+        )
+        monthly_tds = money(tds["monthly_tds"])
+        tds_trace = tds.get("tax_trace", {})
+        other = money(0)
+        total_deductions = money(employee_pf + employee_esi + pt_amount + monthly_tds)
+        net_pay = money(gross - total_deductions)
+        employer_contrib = {
+            "employer_eps": str(money(comp["employer_eps"])),
+            "employer_epf": str(money(comp["employer_epf"])),
+            "employer_esi": str(money(comp["employer_esi"])),
+        }
+    else:
+        employee_pf = money(row.employee_pf)
+        employee_esi = money(row.employee_esi)
+        pt_amount = money(row.pt)
+        monthly_tds = money(0)
+        total_deductions = money(row.total_deductions)
+        net_pay = money(row.net_pay)
+        # Residual so the itemised deduction rows add up to the sheet's total.
+        other = money(total_deductions - (employee_pf + employee_esi + pt_amount))
+        if other < 0:
+            other = money(0)
+
+    attendance = {
+        "total_days": row.total_days,
+        "payable_days": str(row.total_days),
+        "lop_days": "0",
+    }
+    if row.present_days is not None:
+        attendance["present_days"] = str(row.present_days)
+    if row.holiday_days is not None:
+        attendance["holiday_days"] = str(row.holiday_days)
+    if row.wo_days is not None:
+        attendance["wo_days"] = str(row.wo_days)
+
+    breakdown = {
+        "employee": _employee_block(emp),
+        "earnings": {
+            "basic": str(basic),
+            "da": str(da),
+            "hra": str(hra),
+            "bonus": str(bonus),
+            "special_allowance": str(special),
+            "gross": str(gross),
+        },
+        "deductions": {
+            "employee_pf": str(employee_pf),
+            "employee_esi": str(employee_esi),
+            "pt": str(pt_amount),
+            "tds": str(monthly_tds),
+            "lop": "0",
+            "other": str(other),
+        },
+        "attendance": attendance,
+        "tds_trace": tds_trace,
+        "net_pay": str(net_pay),
+        "source": "excel_import",
+        "import_mode": mode,
+    }
+    if employer_contrib is not None:
+        breakdown["employer_contrib"] = employer_contrib
+    return {
+        "gross": gross,
+        "total_deductions": total_deductions,
+        "net_pay": net_pay,
+        "breakdown": breakdown,
+    }
+
+
+async def import_register(
+    session: AsyncSession, ctx, token: str, cycle: PayrollCycle, rows, mode: str = "prefilled"
+) -> dict:
+    """Bring a cycle to COMPUTED from an imported Excel register.
+
+    Same row-lock and state transitions as run_cycle; the numbers come from
+    the uploaded rows instead of the salary/attendance services.
+    """
+    trace_id = uuid.uuid4()
+    locked = await session.scalar(
+        select(PayrollCycle)
+        .where(PayrollCycle.id == cycle.id)
+        .with_for_update()
+    )
+    if locked is not None:
+        cycle = locked
+    cycle.trace_id = trace_id
+    state.assert_transition(cycle.status, state.LOCKED)
+    cycle.status = state.LOCKED
+    state.assert_transition(cycle.status, state.COMPUTING)
+    cycle.status = state.COMPUTING
+    await session.commit()
+
+    imported = 0
+    failed = 0
+    errors: list[str] = []
+
+    async with client.make_client() as http:
+        try:
+            employees = await client.list_active_employees(
+                http, token, str(cycle.client_id) if cycle.client_id else None
+            )
+        except ServiceCallError as exc:
+            logging.error("[payroll] Failed to fetch employees: %s", exc)
+            cycle.status = state.FAILED
+            await session.commit()
+            return {
+                "cycle_id": cycle.id,
+                "status": cycle.status,
+                "total_employees": len(rows),
+                "computed": 0,
+                "failed": 0,
+                "errors": [str(exc)],
+            }
+        emp_by_id = {e["id"]: e for e in employees}
+
+        for row in rows:
+            emp = emp_by_id.get(str(row.employee_id))
+            if emp is None:
+                failed += 1
+                errors.append(
+                    f"employee {row.employee_id}: not an active employee of this cycle's client"
+                )
+                continue
+            try:
+                result = await _result_from_register_row(http, token, cycle, emp, row, mode)
+                await _upsert_result(
+                    session,
+                    ctx.tenant_id,
+                    cycle.id,
+                    row.employee_id,
+                    gross=result["gross"],
+                    total_deductions=result["total_deductions"],
+                    net_pay=result["net_pay"],
+                    breakdown=result["breakdown"],
+                    status="COMPUTED",
+                )
+                await audit_log(
+                    session,
+                    tenant_id=ctx.tenant_id,
+                    event_type="PAYROLL_RESULT_COMPUTED",
+                    entity_type="payroll_result",
+                    entity_id=emp["id"],
+                    payload={
+                        "cycle_id": str(cycle.id),
+                        "net_pay": str(result["net_pay"]),
+                        "source": "excel_import",
+                    },
+                    actor_id=ctx.user_id,
+                    trace_id=trace_id,
+                )
+                imported += 1
+            except Exception as exc:  # per-row failure isolates
+                failed += 1
+                msg = f"employee {emp.get('emp_code', emp['id'])}: {exc}"
+                logging.error("[payroll] Register import row failure: %s", msg)
+                errors.append(msg)
+                await _upsert_result(
+                    session,
+                    ctx.tenant_id,
+                    cycle.id,
+                    row.employee_id,
+                    gross=money(0),
+                    total_deductions=money(0),
+                    net_pay=money(0),
+                    breakdown={},
+                    status="FAILED",
+                    error=str(exc)[:500],
+                )
+            await session.commit()
+
+    cycle.status = state.COMPUTED if imported > 0 or failed == 0 else state.FAILED
+    await audit_log(
+        session,
+        tenant_id=ctx.tenant_id,
+        event_type="PAYROLL_REGISTER_IMPORTED",
+        entity_type="payroll_cycle",
+        entity_id=str(cycle.id),
+        payload={
+            "cycle_id": str(cycle.id),
+            "mode": mode,
+            "row_count": len(rows),
+            "imported": imported,
+            "failed": failed,
+            "source": "excel_import",
+        },
+        actor_id=ctx.user_id,
+        trace_id=trace_id,
+    )
+    await session.commit()
+
+    return {
+        "cycle_id": cycle.id,
+        "status": cycle.status,
+        "total_employees": len(rows),
+        "computed": imported,
+        "failed": failed,
+        "errors": errors,
     }
 
 

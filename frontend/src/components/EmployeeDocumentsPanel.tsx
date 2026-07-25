@@ -656,8 +656,8 @@ export function EmployeeDocumentsPanel({
                     className={clsx(
                       "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 transition-colors duration-150",
                       isDragging
-                        ? "border-[#5A52E5] bg-[#5A52E5]/5"
-                        : "border-slate-200 dark:border-slate-700 hover:border-[#5A52E5]/50 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                        ? "border-[#3395FF] bg-[#3395FF]/5"
+                        : "border-slate-200 dark:border-slate-700 hover:border-[#3395FF]/50 hover:bg-slate-50 dark:hover:bg-slate-800/40"
                     )}
                   >
                     <input
@@ -667,7 +667,7 @@ export function EmployeeDocumentsPanel({
                       accept={ALLOWED_EXTENSIONS}
                       onChange={e => setFile(e.target.files?.[0] ?? null)}
                     />
-                    <Upload className={clsx("h-8 w-8 mb-2", isDragging ? "text-[#5A52E5]" : "text-slate-300 dark:text-slate-600")} />
+                    <Upload className={clsx("h-8 w-8 mb-2", isDragging ? "text-[#3395FF]" : "text-slate-300 dark:text-slate-600")} />
                     {file ? (
                       <div className="text-center">
                         <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">{file.name}</div>
@@ -676,7 +676,7 @@ export function EmployeeDocumentsPanel({
                     ) : (
                       <div className="text-center">
                         <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                          Drop a file here or <span className="text-[#5A52E5]">browse</span>
+                          Drop a file here or <span className="text-[#3395FF]">browse</span>
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           PDF, JPG, PNG, DOCX · max 20 MB

@@ -18,6 +18,11 @@ class ComputeRequest(BaseModel):
     month: int = 1  # calendar month number (1-12), for PT February rule
     ceiling_on: bool = True
     client_id: Optional[uuid.UUID] = None
+    # ESI wages when they differ from monthly_gross (e.g. a register whose
+    # gross includes a bonus head that is excluded from ESI wages).
+    esi_gross: Optional[Decimal] = None
+    # For state PT rules with a gender exemption (e.g. Maharashtra).
+    gender: Optional[str] = None
 
 
 class ComputeResponse(BaseModel):

@@ -162,7 +162,7 @@ function KpiCard({
           )}
         </div>
         {sub && !locked && (
-          <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {loading ? <Skeleton className="h-3 w-20 mt-1" /> : sub}
           </div>
         )}
@@ -553,7 +553,7 @@ export function Dashboard() {
               <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                 Payroll Trend
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Last 6 cycles — Gross vs Net
               </p>
             </div>
@@ -868,7 +868,7 @@ export function Dashboard() {
                   <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
                     {d.name}
                   </div>
-                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {d.description}
                   </div>
                 </div>

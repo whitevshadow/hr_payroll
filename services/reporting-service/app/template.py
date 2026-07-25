@@ -90,7 +90,9 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
     # Exclude gross from earnings for the breakdown
     earning_rows = {
         "Basic": earnings.get("basic", "0"),
+        "DA": earnings.get("da", "0"),
         "HRA": earnings.get("hra", "0"),
+        "Bonus": earnings.get("bonus", "0"),
         "Special Allowance": earnings.get("special_allowance", "0"),
     }
     

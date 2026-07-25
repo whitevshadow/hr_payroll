@@ -1,5 +1,5 @@
-/* ── Google Fonts ────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* ── Google Fonts — "Systematic Trust" design system uses Inter throughout ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -21,123 +21,118 @@
 
     --transition: 300ms ease;
 
-    /* Typography */
-    --font-sans:    "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
-    --font-display: "Plus Jakarta Sans", "Space Grotesk", "Segoe UI", sans-serif;
+    /* Typography — "Systematic Trust": Inter throughout */
+    --font-sans:    "Inter", "Segoe UI", sans-serif;
+    --font-display: "Inter", "Segoe UI", sans-serif;
     --font-mono:    "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 
-    /* ── Light "Spatial Executive" ───────────────────────────────────────── */
-    --bg-base: #EEF4FF;
-    --bg-gradient:
-      radial-gradient(circle at top right,    rgba(96,165,250,0.20), transparent 35%),
-      radial-gradient(circle at bottom left,  rgba(236,72,153,0.12), transparent 35%),
-      radial-gradient(circle at 60% 30%,      rgba(139,92,246,0.08), transparent 40%),
-      linear-gradient(180deg, #F5F8FF 0%, #EEF4FF 100%);
+    /* ── Light "Systematic Trust" ───────────────────────────────────────── */
+    --bg-base: #F8FAFC;
+    --bg-gradient: linear-gradient(180deg, #F8FAFC 0%, #F8FAFC 100%);
 
-    --orb-blue:   rgba(96,165,250,0.14);
-    --orb-purple: rgba(139,92,246,0.12);
-    --orb-pink:   rgba(236,72,153,0.12);
+    --orb-blue:   transparent;
+    --orb-purple: transparent;
+    --orb-pink:   transparent;
 
     /* Text hierarchy */
-    --text-primary:   #0F172A;
-    --text-secondary: #475569;
-    --text-muted:     #475569;
+    --text-primary:   #0B1C30;
+    --text-secondary: #404753;
+    --text-muted:     #404753;
 
-    /* Accent — Indigo #5A52E5 */
-    --accent:       #5A52E5;
-    --accent-strong:#4841CC;
-    --accent-soft:  rgba(90,82,229,0.10);
-    --accent-glow:  rgba(90,82,229,0.28);
+    /* Accent — Primary Blue #3395FF */
+    --accent:       #3395FF;
+    --accent-strong:#005FAF;
+    --accent-soft:  rgba(51,149,255,0.10);
+    --accent-glow:  rgba(51,149,255,0.28);
 
-    /* Glass surfaces — Light */
-    --glass-card-bg:    rgba(255,255,255,0.50);
-    --glass-header-bg:  rgba(255,255,255,0.72);
-    --glass-sidebar-bg: rgba(255,255,255,0.45);
-    --glass-panel-bg:   rgba(255,255,255,0.65);
-    --glass-border:     rgba(255,255,255,0.60);
-    --glass-border-subtle: rgba(200,213,230,0.40);
-    --glass-blur:       12px;
-    --glass-modal-blur: 16px;
+    /* Surfaces — Light (flat, solid, per "functional minimalism") */
+    --glass-card-bg:    #FFFFFF;
+    --glass-header-bg:  #FFFFFF;
+    --glass-sidebar-bg: #F8FAFC;
+    --glass-panel-bg:   #FFFFFF;
+    --glass-border:     #E2E8F0;
+    --glass-border-subtle: rgba(226,232,240,0.70);
+    --glass-blur:       0px;
+    --glass-modal-blur: 0px;
 
-    /* Shadows — Light */
-    --shadow-card:  0 4px 24px rgba(30,41,59,0.07), 0 1px 4px rgba(30,41,59,0.04);
-    --shadow-glass: 0 8px 32px rgba(30,41,59,0.09), 0 1px 0 rgba(255,255,255,0.8) inset;
-    --shadow-table: 0 2px 16px rgba(15,23,42,0.05);
-    --shadow-topbar:0 4px 24px rgba(30,41,59,0.08), 0 0 0 1px rgba(255,255,255,0.6);
-    --shadow-sidebar:0 8px 40px rgba(30,41,59,0.10), 0 0 0 1px rgba(255,255,255,0.5);
-    --shadow-btn:   0 6px 20px var(--accent-glow);
+    /* Shadows — Light (Tonal Layers + Ambient Shadows elevation tiers) */
+    --shadow-card:  0 2px 4px rgba(0,0,0,0.05);
+    --shadow-glass: 0 10px 20px rgba(0,0,0,0.10);
+    --shadow-table: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-topbar:0 1px 2px rgba(0,0,0,0.04);
+    --shadow-sidebar:0 4px 16px rgba(0,0,0,0.15);
+    --shadow-btn:   0 4px 12px var(--accent-glow);
 
     /* Solid surfaces — Light */
     --table-bg:     #FFFFFF;
-    --table-border: rgba(226,232,240,0.80);
+    --table-border: #E2E8F0;
 
-    /* Nav states */
-    --nav-active-bg:   rgba(255,255,255,0.75);
-    --nav-active-text: #0F172A;
-    --nav-active-border: rgba(90,82,229,0.15);
+    /* Nav states — sidebar is always dark navy, so active state reads light-on-dark */
+    --nav-active-bg:   rgba(51,149,255,0.16);
+    --nav-active-text: #FFFFFF;
+    --nav-active-border: rgba(51,149,255,0.35);
 
-    /* Search */
-    --search-bg: rgba(255,255,255,0.80);
+    /* Search / input surface */
+    --search-bg: #FFFFFF;
 
     /* Charts */
-    --chart-1:    #818CF8;
-    --chart-2:    #A78BFA;
-    --chart-3:    #94A3B8;
-    --chart-axis: #94A3B8;
-    --chart-grid: rgba(148,163,184,0.14);
+    --chart-1:    #3395FF;
+    --chart-2:    #E07800;
+    --chart-3:    #64748B;
+    --chart-axis: #717784;
+    --chart-grid: rgba(113,119,132,0.14);
   }
 
-  /* ── Dark "Fintech Command Center" ─────────────────────────────────────── */
+  /* ── Dark "Payroll Console" ────────────────────────────────────────────── */
   .dark body,
   body.dark {
-    --bg-base: #050816;
-    --bg-gradient:
-      radial-gradient(circle at top left,   rgba(168,85,247,0.22), transparent 32%),
-      radial-gradient(circle at top right,  rgba(6,182,212,0.16),  transparent 32%),
-      radial-gradient(circle at 70% 80%,    rgba(99,102,241,0.10), transparent 40%),
-      linear-gradient(180deg, #050816 0%, #0A0F1E 100%);
+    --bg-base: #0A0E1A;
+    --bg-gradient: linear-gradient(180deg, #0A0E1A 0%, #0A0E1A 100%);
 
-    --orb-blue:   rgba(6,182,212,0.18);
-    --orb-purple: rgba(168,85,247,0.18);
-    --orb-pink:   rgba(99,102,241,0.14);
+    --orb-blue:   transparent;
+    --orb-purple: transparent;
+    --orb-pink:   transparent;
 
-    --text-primary:   #E2E8F0;
+    --text-primary:   #F1F5F9;
     --text-secondary: #94A3B8;
     --text-muted:     #94A3B8;
 
-    --accent:       #8B5CF6;
-    --accent-strong:#7C3AED;
-    --accent-soft:  rgba(139,92,246,0.14);
-    --accent-glow:  rgba(139,92,246,0.30);
+    /* "Systematic Trust" Primary Blue, at full saturation for a dark backdrop. */
+    --accent:       #3B82F6;
+    --accent-strong:#2563EB;
+    --accent-soft:  rgba(59,130,246,0.16);
+    --accent-glow:  rgba(59,130,246,0.35);
 
-    --glass-card-bg:    rgba(255,255,255,0.05);
-    --glass-header-bg:  rgba(10,15,30,0.75);
-    --glass-sidebar-bg: rgba(8,12,28,0.65);
-    --glass-panel-bg:   rgba(15,23,42,0.85);
+    /* Flat solid surfaces — cards read as a distinctly lighter panel than the
+       page background, separated by a thin border rather than blur/glow. */
+    --glass-card-bg:    #121826;
+    --glass-header-bg:  #0D1220;
+    --glass-sidebar-bg: #0D1220;
+    --glass-panel-bg:   #121826;
     --glass-border:     rgba(255,255,255,0.08);
-    --glass-border-subtle: rgba(255,255,255,0.05);
-    --glass-blur:       12px;
-    --glass-modal-blur: 16px;
+    --glass-border-subtle: rgba(255,255,255,0.06);
+    --glass-blur:       0px;
+    --glass-modal-blur: 0px;
 
-    --shadow-card:  0 4px 24px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.04) inset;
-    --shadow-glass: 0 8px 32px rgba(0,0,0,0.40), 0 1px 0 rgba(255,255,255,0.06) inset;
-    --shadow-table: 0 4px 24px rgba(0,0,0,0.35);
-    --shadow-topbar:0 4px 32px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.07);
-    --shadow-sidebar:0 8px 40px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.06);
-    --shadow-btn:   0 6px 20px var(--accent-glow);
+    --shadow-card:  0 1px 2px rgba(0,0,0,0.35);
+    --shadow-glass: 0 10px 24px rgba(0,0,0,0.45);
+    --shadow-table: 0 1px 2px rgba(0,0,0,0.35);
+    --shadow-topbar:0 1px 2px rgba(0,0,0,0.35);
+    --shadow-sidebar:0 4px 16px rgba(0,0,0,0.45);
+    --shadow-btn:   0 4px 12px var(--accent-glow);
 
-    --table-bg:     #0D1424;
-    --table-border: rgba(30,41,59,0.70);
+    --table-bg:     #121826;
+    --table-border: rgba(255,255,255,0.08);
 
-    --nav-active-bg:   rgba(255,255,255,0.08);
-    --nav-active-text: #E2E8F0;
-    --nav-active-border: rgba(255,255,255,0.06);
+    --nav-active-bg:   rgba(59,130,246,0.18);
+    --nav-active-text: #FFFFFF;
+    --nav-active-border: rgba(59,130,246,0.35);
 
-    --search-bg: rgba(15,23,42,0.75);
+    --search-bg: #0F1420;
 
-    --chart-1:    #22D3EE;
-    --chart-2:    #A855F7;
-    --chart-3:    #60A5FA;
+    --chart-1:    #3B82F6;
+    --chart-2:    #E07800;
+    --chart-3:    #64748B;
     --chart-axis: #64748B;
     --chart-grid: rgba(100,116,139,0.18);
   }
@@ -287,29 +282,29 @@
     pointer-events: none;
     border-radius: inherit;
     background:
-      radial-gradient(ellipse at 70% 0%, rgba(90,82,229,0.12) 0%, transparent 55%),
-      radial-gradient(ellipse at 20% 100%, rgba(139,92,246,0.08) 0%, transparent 50%);
+      radial-gradient(ellipse at 70% 0%, rgba(51,149,255,0.14) 0%, transparent 55%),
+      radial-gradient(ellipse at 20% 100%, rgba(51,149,255,0.08) 0%, transparent 50%);
     will-change: transform;
   }
 
   .dark .sidebar-bg-gradient {
     background:
-      radial-gradient(ellipse at 70% 0%, rgba(139,92,246,0.18) 0%, transparent 55%),
-      radial-gradient(ellipse at 20% 100%, rgba(99,102,241,0.12) 0%, transparent 50%);
+      radial-gradient(ellipse at 70% 0%, rgba(76,166,255,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 20% 100%, rgba(51,149,255,0.12) 0%, transparent 50%);
   }
 
   /* ── Sidebar logo icon ──────────────────────────────────────────────────── */
   .sidebar-logo-icon {
-    background: linear-gradient(135deg, #5A52E5 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #3395FF 0%, #005FAF 100%);
     box-shadow:
-      0 4px 16px rgba(90,82,229,0.40),
+      0 4px 16px rgba(51,149,255,0.40),
       0 1px 0 rgba(255,255,255,0.25) inset;
   }
 
   .dark .sidebar-logo-icon {
-    background: linear-gradient(135deg, #6D64F7 0%, #8B5CF6 100%);
+    background: linear-gradient(135deg, #4CA6FF 0%, #3395FF 100%);
     box-shadow:
-      0 4px 20px rgba(139,92,246,0.45),
+      0 4px 20px rgba(76,166,255,0.45),
       0 1px 0 rgba(255,255,255,0.18) inset;
   }
 
@@ -326,7 +321,7 @@
   }
 
   .sidebar-icon-btn:hover {
-    background: rgba(255,255,255,0.35);
+    background: rgba(15,23,42,0.06);
     color: rgb(15 23 42);
   }
 
@@ -342,10 +337,8 @@
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.28);
-    background: rgba(255,255,255,0.20);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #E2E8F0;
+    background: #F1F5F9;
     transition:
       background-color 180ms ease,
       border-color 180ms ease,
@@ -354,9 +347,9 @@
   }
 
   .sidebar-search-bar:hover {
-    background: rgba(255,255,255,0.30);
-    border-color: rgba(255,255,255,0.40);
-    box-shadow: 0 2px 12px rgba(90,82,229,0.08);
+    background: #E9EEF5;
+    border-color: #CBD5E1;
+    box-shadow: 0 2px 12px rgba(51,149,255,0.08);
   }
 
   .dark .sidebar-search-bar {
@@ -367,25 +360,25 @@
   .dark .sidebar-search-bar:hover {
     background: rgba(255,255,255,0.07);
     border-color: rgba(255,255,255,0.12);
-    box-shadow: 0 2px 16px rgba(139,92,246,0.12);
+    box-shadow: 0 2px 16px rgba(76,166,255,0.12);
   }
 
   .sidebar-search-focused,
   .sidebar-search-bar:focus-within {
-    border-color: rgba(90,82,229,0.45);
-    background: rgba(255,255,255,0.35);
+    border-color: rgba(51,149,255,0.45);
+    background: #FFFFFF;
     box-shadow:
-      0 0 0 3px rgba(90,82,229,0.12),
-      0 4px 20px rgba(90,82,229,0.10);
+      0 0 0 3px rgba(51,149,255,0.12),
+      0 4px 20px rgba(51,149,255,0.10);
   }
 
   .dark .sidebar-search-focused,
   .dark .sidebar-search-bar:focus-within {
-    border-color: rgba(139,92,246,0.50);
+    border-color: rgba(76,166,255,0.50);
     background: rgba(255,255,255,0.06);
     box-shadow:
-      0 0 0 3px rgba(139,92,246,0.18),
-      0 4px 24px rgba(139,92,246,0.15);
+      0 0 0 3px rgba(76,166,255,0.18),
+      0 4px 24px rgba(76,166,255,0.15);
   }
 
   /* ── Sidebar keyboard shortcut badge ────────────────────────────────────── */
@@ -396,7 +389,7 @@
     padding: 0.2rem 0.4rem;
     border-radius: 6px;
     border: 1px solid rgba(203,213,225,0.60);
-    background: rgba(255,255,255,0.60);
+    background: #F1F5F9;
     font-family: var(--font-mono);
     font-size: 9px;
     color: rgb(148 163 184);
@@ -458,7 +451,7 @@
   }
 
   .nav-item-premium-idle:hover {
-    background: rgba(255,255,255,0.28);
+    background: rgba(15,23,42,0.05);
     transform: translateX(2px);
   }
 
@@ -481,21 +474,16 @@
     position: absolute;
     inset: 0;
     border-radius: 14px;
-    background: rgba(255,255,255,0.72);
-    border: 1px solid rgba(255,255,255,0.65);
-    box-shadow:
-      0 4px 20px rgba(30,41,59,0.10),
-      0 1px 4px rgba(30,41,59,0.06),
-      0 1px 0 rgba(255,255,255,0.90) inset;
+    background: var(--accent);
+    border: none;
+    box-shadow: 0 4px 14px rgba(51,149,255,0.35);
     z-index: 0;
   }
 
   .dark .nav-active-pill-bg {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow:
-      0 4px 24px rgba(0,0,0,0.25),
-      0 1px 0 rgba(255,255,255,0.06) inset;
+    background: var(--accent);
+    border: none;
+    box-shadow: 0 4px 16px rgba(76,166,255,0.40);
   }
 
   /* ── Active glow (underneath the pill) ─────────────────────────────────── */
@@ -504,22 +492,22 @@
     inset: 4px;
     border-radius: 10px;
     background: transparent;
-    box-shadow: 0 0 20px rgba(90,82,229,0.18);
+    box-shadow: 0 0 20px rgba(51,149,255,0.18);
     z-index: 0;
     pointer-events: none;
   }
 
   .dark .nav-active-glow {
-    box-shadow: 0 0 28px rgba(139,92,246,0.25);
+    box-shadow: 0 0 28px rgba(76,166,255,0.25);
   }
 
   /* ── Active icon glow effect ────────────────────────────────────────────── */
   .nav-icon-active {
-    filter: drop-shadow(0 0 6px rgba(90,82,229,0.55));
+    filter: drop-shadow(0 0 6px rgba(51,149,255,0.55));
   }
 
   .dark .nav-icon-active {
-    filter: drop-shadow(0 0 8px rgba(139,92,246,0.65));
+    filter: drop-shadow(0 0 8px rgba(76,166,255,0.65));
   }
 
   /* ── Collapsed active pill bg ───────────────────────────────────────────── */
@@ -527,14 +515,15 @@
     position: absolute;
     inset: 0;
     border-radius: 12px;
-    background: rgba(90,82,229,0.10);
-    border: 1px solid rgba(90,82,229,0.18);
+    background: var(--accent);
+    border: none;
+    box-shadow: 0 4px 14px rgba(51,149,255,0.35);
     z-index: 0;
   }
 
   .dark .nav-active-pill-bg-collapsed {
-    background: rgba(139,92,246,0.14);
-    border-color: rgba(139,92,246,0.22);
+    background: var(--accent);
+    box-shadow: 0 4px 16px rgba(76,166,255,0.40);
   }
 
   /* ── Sidebar footer divider ─────────────────────────────────────────────── */
@@ -573,7 +562,7 @@
   }
 
   .sidebar-footer-btn:hover {
-    background: rgba(255,255,255,0.30);
+    background: rgba(15,23,42,0.05);
     color: rgb(51 65 85);
   }
 
@@ -621,20 +610,20 @@
     height: 2rem;
     width: 2rem;
     border-radius: 9999px;
-    background: linear-gradient(135deg, var(--accent) 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #005FAF 100%);
     color: #FFFFFF;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.02em;
     box-shadow:
-      0 2px 8px rgba(90,82,229,0.35),
+      0 2px 8px rgba(51,149,255,0.35),
       0 1px 0 rgba(255,255,255,0.25) inset;
     flex-shrink: 0;
   }
 
   .dark .sidebar-avatar {
     box-shadow:
-      0 2px 12px rgba(139,92,246,0.45),
+      0 2px 12px rgba(76,166,255,0.45),
       0 1px 0 rgba(255,255,255,0.18) inset;
   }
 
@@ -644,8 +633,8 @@
     align-items: center;
     padding: 0.1rem 0.45rem;
     border-radius: 6px;
-    background: rgba(90,82,229,0.08);
-    border: 1px solid rgba(90,82,229,0.14);
+    background: rgba(51,149,255,0.08);
+    border: 1px solid rgba(51,149,255,0.14);
     color: var(--accent);
     font-size: 9px;
     font-weight: 700;
@@ -655,8 +644,8 @@
   }
 
   .dark .sidebar-role-badge {
-    background: rgba(139,92,246,0.12);
-    border-color: rgba(139,92,246,0.22);
+    background: rgba(76,166,255,0.12);
+    border-color: rgba(76,166,255,0.22);
     color: rgb(167 139 250);
   }
 

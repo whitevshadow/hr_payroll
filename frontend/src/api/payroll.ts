@@ -41,4 +41,31 @@ export const payrollApi = {
 
   getAudit: (params?: { event_type?: string; limit?: number }) =>
     api.get<AuditEvent[]>("/audit", { params }).then((r) => r.data),
+
+  importRegister: (cycleId: string, mode: ImportRegisterMode, rows: ImportRegisterRow[]) =>
+    api
+      .post<RunSummary>(`/payroll/cycles/${cycleId}/import-register`, { mode, rows })
+      .then((r) => r.data),
 };
+
+/** "prefilled": the sheet's deduction/net figures are stored as-is.
+ *  "compute": backend derives PF/ESI/PT/TDS and net pay from the earnings. */
+export type ImportRegisterMode = "prefilled" | "compute";
+
+export interface ImportRegisterRow {
+  employee_id: string;
+  present_days?: number | null;
+  holiday_days?: number | null;
+  wo_days?: number | null;
+  total_days: number;
+  basic: number;
+  da?: number;
+  hra?: number;
+  bonus?: number;
+  gross: number;
+  employee_esi?: number;
+  employee_pf?: number;
+  pt?: number;
+  total_deductions?: number | null;
+  net_pay?: number | null;
+}

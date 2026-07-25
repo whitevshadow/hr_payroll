@@ -47,11 +47,11 @@ function IllustrationClipboard() {
         </linearGradient>
         <linearGradient id="clipGrad" x1="26" y1="10" x2="46" y2="22" gradientUnits="userSpaceOnUse">
           <stop stopColor="#818CF8" />
-          <stop offset="1" stopColor="#5A52E5" />
+          <stop offset="1" stopColor="#3395FF" />
         </linearGradient>
         <linearGradient id="plusGrad" x1="43" y1="45" x2="61" y2="63" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#5A52E5" />
-          <stop offset="1" stopColor="#7C3AED" />
+          <stop stopColor="#3395FF" />
+          <stop offset="1" stopColor="#005FAF" />
         </linearGradient>
       </defs>
     </svg>

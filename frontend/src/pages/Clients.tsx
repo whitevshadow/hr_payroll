@@ -486,7 +486,7 @@ function ClientCredentialsPanel({ client }: { client: Client }) {
             {cred.has_password && (
               <button
                 onClick={() => setRevealingId(revealingId === cred.id ? null : cred.id)}
-                className="flex items-center gap-1 text-[11px] font-semibold text-[#5A52E5] hover:text-[#4841CC] dark:text-violet-400 transition-colors"
+                className="flex items-center gap-1 text-[11px] font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400 transition-colors"
               >
                 <Eye className="h-3 w-3" />
                 {revealingId === cred.id ? "Hide" : "Reveal"}
@@ -595,7 +595,7 @@ function ClientLocationsTab({ client }: { client: Client }) {
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-[#5A52E5]/30 bg-violet-50/40 dark:bg-violet-900/10 p-4 space-y-3"
+          className="rounded-xl border border-accent-300/60 bg-accent-50/40 dark:bg-accent-900/10 p-4 space-y-3"
         >
           <div className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">
             New Work Location
@@ -961,7 +961,7 @@ export function Clients() {
                     <button
                       title="Edit"
                       onClick={() => setEditing({ ...client })}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-[#5A52E5] hover:bg-[#5A52E5]/8 transition-colors"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-[#3395FF] hover:bg-[#3395FF]/8 transition-colors"
                     >
                       <Edit2 className="h-3.5 w-3.5" />
                     </button>

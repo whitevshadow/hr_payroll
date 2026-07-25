@@ -39,11 +39,11 @@ export function Login() {
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Left — Brand Panel */}
-      <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-accent-900 to-violet-900 p-12">
+      <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-accent-800 to-accent-900 p-12">
         {/* Background mesh */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent-500/20 blur-3xl" />
-          <div className="absolute bottom-16 -left-16 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+          <div className="absolute bottom-16 -left-16 h-72 w-72 rounded-full bg-tertiary-500/15 blur-3xl" />
           <div className="absolute top-1/2 right-1/4 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
         </div>
 
@@ -98,7 +98,7 @@ export function Login() {
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-3 lg:hidden">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-violet-600">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-accent-700">
             <Zap className="h-4 w-4 text-white" />
           </div>
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100">PeopleOS</div>
