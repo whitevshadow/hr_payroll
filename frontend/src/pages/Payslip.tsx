@@ -54,7 +54,7 @@ export function Payslip() {
       {/* The card needs a definite height (not just min-height): the iframe
           fills it as a flex item, since a percentage height cannot resolve
           against the layout's auto-height content wrapper. */}
-      <div className="card table-card overflow-hidden p-0 flex flex-col h-[calc(100vh-180px)] min-h-[600px]">
+      <div className="card table-card overflow-hidden p-0 flex flex-col h-app-content min-h-[600px]">
         {pdfQ.isLoading && <FullPageSpinner />}
         {pdfQ.isError && (
           <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">

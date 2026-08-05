@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
@@ -10,20 +10,45 @@ import { useClientContext } from "../lib/ClientContext";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { FullPageSpinner } from "../components/Spinner";
 import { formatINR } from "../lib/money";
 import { toCSV } from "../lib/csv";
-import { Users, Download, ShieldCheck } from "lucide-react";
+import { Users, Download, ShieldCheck, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
-type CompTab = "pf" | "esi" | "pt";
+type CompTab = "pf" | "esi" | "pt" | "lwf";
 
 export function Compliance() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<CompTab>("pf");
   const { selectedClientId } = useClientContext();
+  const qc = useQueryClient();
 
   const cycles = useQuery({ queryKey: qk.cycles, queryFn: () => payrollApi.listCycles() });
+
+  // Per-client statutory switches. LWF is off by default because it only
+  // applies to covered establishments (5+ employees in Maharashtra).
+  const settings = useQuery({
+    queryKey: ["compliance-settings", selectedClientId],
+    queryFn: () => complianceApi.getSettings(selectedClientId ?? undefined),
+    enabled: !!selectedClientId,
+  });
+  const setting = settings.data?.[0];
+
+  const toggleLwf = useMutation({
+    mutationFn: (enabled: boolean) =>
+      // createSetting replaces the row for (tenant, client, state), so the
+      // whole current setting must be sent back or the other switches and
+      // rates would silently revert to their defaults.
+      complianceApi.createSetting({
+        ...(setting ?? {}),
+        client_id: selectedClientId ?? undefined,
+        state: setting?.state ?? "ALL",
+        lwf_enabled: enabled,
+      } as any),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["compliance-settings"] }),
+  });
 
   const urlCycle = searchParams.get("cycle");
   const defaultCycle = cycles.data?.find((c) => c.status !== "DRAFT")?.id ?? "";
@@ -61,6 +86,7 @@ export function Compliance() {
   const filteredPf = (summary.data?.pf ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
   const filteredEsi = (summary.data?.esi ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
   const filteredPt = (summary.data?.pt ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
+  const filteredLwf = (summary.data?.lwf ?? []).filter((r: any) => filteredEmpIds.has(r.employee_id));
 
   const t = summary.data
     ? {
@@ -70,6 +96,8 @@ export function Compliance() {
         total_employee_esi: String(sum(filteredEsi, "employee_esi")),
         total_employer_esi: String(sum(filteredEsi, "employer_esi")),
         total_pt: String(sum(filteredPt, "pt_amount")),
+        total_employee_lwf: String(sum(filteredLwf, "employee_lwf")),
+        total_employer_lwf: String(sum(filteredLwf, "employer_lwf")),
         esi_eligible_count: filteredEsi.filter((r: any) => r.is_esi_eligible).length,
       }
     : undefined;
@@ -78,17 +106,12 @@ export function Compliance() {
     pf: "Provident Fund",
     esi: "ESI",
     pt: "Professional Tax",
+    lwf: "Labour Welfare Fund",
   };
 
   
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
-      </div>
-    );
+    return <NoClientSelected feature="compliance" />;
   }
 
   return (
@@ -100,7 +123,7 @@ export function Compliance() {
         <button
           className="btn-ghost"
           disabled={!summary.data}
-          onClick={() => exportCsv(tab, { pf: filteredPf, esi: filteredEsi, pt: filteredPt }, empMap)}
+          onClick={() => exportCsv(tab, { pf: filteredPf, esi: filteredEsi, pt: filteredPt, lwf: filteredLwf }, empMap)}
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -123,6 +146,30 @@ export function Compliance() {
               ))}
           </select>
         </div>
+      </div>
+
+      {/* Statutory switches */}
+      <div className="card mb-5 flex flex-wrap items-center justify-between gap-3 py-3">
+        <div>
+          <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-200">
+            Labour Welfare Fund (MLWF)
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Half-yearly contribution deducted in the June and December payroll only —
+            a flat ₹25 per employee, regardless of gross.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+          {toggleLwf.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-300"
+            checked={!!setting?.lwf_enabled}
+            disabled={settings.isLoading || toggleLwf.isPending}
+            onChange={(e) => toggleLwf.mutate(e.target.checked)}
+          />
+          {setting?.lwf_enabled ? "Enabled" : "Disabled"}
+        </label>
       </div>
 
       {/* Totals strip */}
@@ -165,7 +212,7 @@ export function Compliance() {
 
       {/* Tab switcher */}
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
-        {(["pf", "esi", "pt"] as CompTab[]).map((t) => (
+        {(["pf", "esi", "pt", "lwf"] as CompTab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -192,13 +239,16 @@ export function Compliance() {
       {summary.data && tab === "pf" && <PFTable rows={filteredPf} empMap={empMap} />}
       {summary.data && tab === "esi" && <ESITable rows={filteredEsi} empMap={empMap} />}
       {summary.data && tab === "pt" && <PTTable rows={filteredPt} empMap={empMap} />}
+      {summary.data && tab === "lwf" && (
+        <LWFTable rows={filteredLwf} empMap={empMap} enabled={!!setting?.lwf_enabled} />
+      )}
     </div>
   );
 }
 
 function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card table-card overflow-hidden p-0">
+    <div className="card table-card overflow-x-auto p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -263,7 +313,7 @@ function PFTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string>
 
 function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card table-card overflow-hidden p-0">
+    <div className="card table-card overflow-x-auto p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -315,7 +365,7 @@ function ESITable({ rows, empMap }: { rows: any[]; empMap: Record<string, string
 
 function PTTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string> }) {
   return (
-    <div className="card table-card overflow-hidden p-0">
+    <div className="card table-card overflow-x-auto p-0">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -344,6 +394,65 @@ function PTTable({ rows, empMap }: { rows: any[]; empMap: Record<string, string>
             <td className="td text-slate-700 dark:text-slate-300">Total</td>
             <td className="td" />
             <td className="td text-right font-numeric">{formatINR(sum(rows, "pt_amount"))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function LWFTable({ rows, empMap, enabled }: { rows: any[]; empMap: Record<string, string>; enabled: boolean }) {
+  if (!enabled) {
+    return (
+      <EmptyState
+        title="Labour Welfare Fund is disabled"
+        description="Turn on MLWF above to deduct it from the next payroll run for this client."
+      />
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        title="No LWF for this cycle"
+        description="MLWF is a half-yearly contribution — it is only deducted in the June and December payroll."
+      />
+    );
+  }
+  return (
+    <div className="card table-card overflow-x-auto p-0">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
+            <th className="th">Employee</th>
+            <th className="th">State</th>
+            <th className="th text-right">Employee LWF</th>
+            <th className="th text-right">Employer LWF</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+          {rows.map((r) => (
+            <tr key={r.employee_id} className="tr-hover">
+              <td className="td text-slate-700 dark:text-slate-300">
+                {empMap[r.employee_id] ?? r.employee_id.slice(0, 8)}
+              </td>
+              <td className="td">
+                <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-mono text-slate-600 dark:text-slate-400">
+                  {r.state}
+                </span>
+              </td>
+              <td className="td text-right font-numeric font-medium text-slate-800 dark:text-slate-200">
+                {formatINR(r.employee_lwf)}
+              </td>
+              <td className="td text-right font-numeric text-slate-600 dark:text-slate-400">
+                {formatINR(r.employer_lwf)}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold">
+            <td className="td text-slate-700 dark:text-slate-300">Total</td>
+            <td className="td" />
+            <td className="td text-right font-numeric">{formatINR(sum(rows, "employee_lwf"))}</td>
+            <td className="td text-right font-numeric">{formatINR(sum(rows, "employer_lwf"))}</td>
           </tr>
         </tbody>
       </table>
@@ -381,6 +490,17 @@ function exportCsv(tab: CompTab, data: any, empMap: Record<string, string>) {
         { header: "Employer ESI", value: (r: any) => r.employer_esi },
       ],
       "esi-contributions.csv"
+    );
+  } else if (tab === "lwf") {
+    toCSV(
+      data.lwf,
+      [
+        { header: "Employee", value: (r: any) => name(r.employee_id) },
+        { header: "State", value: (r: any) => r.state },
+        { header: "Employee LWF", value: (r: any) => r.employee_lwf },
+        { header: "Employer LWF", value: (r: any) => r.employer_lwf },
+      ],
+      "lwf-contributions.csv"
     );
   } else {
     toCSV(

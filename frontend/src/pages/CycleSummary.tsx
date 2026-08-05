@@ -141,7 +141,6 @@ export function CycleSummary() {
                 <th className="th w-[90px] text-right">PF</th>
                 <th className="th w-[90px] text-right">ESI</th>
                 <th className="th w-[90px] text-right">PT</th>
-                <th className="th w-[90px] text-right">TDS</th>
                 <th className="th w-[80px] text-right">LOP</th>
                 <th className="th w-[110px] text-right font-bold text-slate-700 dark:text-slate-300">
                   Net Pay
@@ -178,6 +177,8 @@ export function CycleSummary() {
                 const emp = r.breakdown_json?.employee ?? {};
                 const name = (emp as any).name || r.employee_id.slice(0, 8);
                 const isFailed = r.status === "FAILED";
+                const warnings: string[] = (r.breakdown_json as any)?.warnings ?? [];
+                const noAttendance = warnings.includes("NO_ATTENDANCE");
 
                 return (
                   <div
@@ -202,12 +203,22 @@ export function CycleSummary() {
                       <div className="flex items-center gap-2">
                         {isFailed ? (
                           <AlertTriangle className="h-3.5 w-3.5 text-danger shrink-0" />
+                        ) : noAttendance ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                         ) : (
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                         )}
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                             {name}
+                            {noAttendance && (
+                              <span
+                                className="ml-1.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                title="Daily-wage employee with no attendance recorded — paid ₹0 this cycle"
+                              >
+                                No attendance
+                              </span>
+                            )}
                           </div>
                           {(emp as any).emp_code && (
                             <div className="text-[10px] text-slate-400 font-mono">
@@ -238,10 +249,6 @@ export function CycleSummary() {
                       {formatINR(d.pt)}
                     </div>
 
-                    {/* TDS */}
-                    <div className="px-4 w-[90px] shrink-0 text-right font-numeric text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                      {formatINR(d.tds)}
-                    </div>
 
                     {/* LOP */}
                     <div className="px-4 w-[80px] shrink-0 text-right text-xs text-slate-500 dark:text-slate-400 tabular-nums">

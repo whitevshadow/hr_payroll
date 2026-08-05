@@ -9,6 +9,8 @@ import { reportingApi } from "../api/reporting";
 import { employeesApi } from "../api/employees";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState } from "../components/EmptyState";
+import { StatusBadge } from "../components/StatusBadge";
+import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import clsx from "clsx";
 
@@ -179,6 +181,7 @@ export function AdminPayslips() {
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-xs font-semibold text-slate-500">
                   <th className="p-4">Employee</th>
                   <th className="p-4">Net Pay</th>
+                  <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -198,8 +201,11 @@ export function AdminPayslips() {
                       </td>
                       <td className="p-4">
                         <span className={clsx("font-numeric font-medium", isFailed ? "text-red-500" : "text-slate-900 dark:text-slate-100")}>
-                          {isFailed ? "Failed" : `₹${Number(res.net_pay).toLocaleString()}`}
+                          {isFailed ? "Failed" : formatINR(res.net_pay)}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        <StatusBadge status={res.status} />
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">

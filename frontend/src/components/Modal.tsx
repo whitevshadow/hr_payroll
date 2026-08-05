@@ -57,7 +57,7 @@ const sizeClasses: Record<string, string> = {
   md:   "max-w-lg",
   lg:   "max-w-2xl",
   xl:   "max-w-4xl",
-  full: "max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]",
+  full: "max-w-app-full max-h-app-full",
 };
 
 // ─── Main Modal component ─────────────────────────────────────────────────────
@@ -161,7 +161,7 @@ export function Modal({
               // Glass surface
               "glass-modal",
               // Max height: leave 2rem gap at top and bottom
-              "max-h-[calc(100vh-3rem)] flex flex-col",
+              "max-h-app-modal flex flex-col",
               sizeClasses[size],
             )}
             style={{ zIndex: Z.modal }}

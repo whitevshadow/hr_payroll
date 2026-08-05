@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner, SkeletonRow } from "../components/Spinner";
 import { EmptyState } from "../components/EmptyState";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { motion } from "framer-motion";
@@ -62,13 +63,7 @@ export function Payouts() {
 
   
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
-      </div>
-    );
+    return <NoClientSelected feature="payouts" />;
   }
 
   return (

@@ -36,6 +36,7 @@ import { complianceApi } from "../api/compliance";
 import { qk, STALE_STABLE } from "../lib/queryClient";
 import { formatINR } from "../lib/money";
 import { formatINRShort, formatMonth, relativeTime, currentMonthFirst } from "../lib/format";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { StatusBadge } from "../components/StatusBadge";
 import { Spinner, Skeleton } from "../components/Spinner";
 import { getNextDeadlines } from "../data/statutory-calendar";
@@ -210,7 +211,6 @@ const EVENT_COLORS: Record<string, string> = {
   PAYROLL_CYCLE_DISBURSED: "bg-emerald-500",
   PII_ACCESSED: "bg-amber-500",
   DEPARTMENT_UPDATED: "bg-violet-500",
-  TDS_DECLARATION_SUBMITTED: "bg-blue-500",
   PAYOUT_TRANSACTION_RETRIED: "bg-orange-500",
 };
 
@@ -221,7 +221,6 @@ const EVENT_LABELS: Record<string, string> = {
   PAYROLL_CYCLE_DISBURSED: "Cycle disbursed",
   PII_ACCESSED: "PII accessed",
   DEPARTMENT_UPDATED: "Department updated",
-  TDS_DECLARATION_SUBMITTED: "TDS declaration submitted",
   PAYOUT_TRANSACTION_RETRIED: "Transaction retried",
 };
 
@@ -385,13 +384,7 @@ export function Dashboard() {
   );
 
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to view the dashboard.</p>
-      </div>
-    );
+    return <NoClientSelected feature="the dashboard" />;
   }
 
   return (

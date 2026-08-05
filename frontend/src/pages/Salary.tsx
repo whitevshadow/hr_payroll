@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { employeesApi } from "../api/employees";
@@ -6,6 +7,7 @@ import { salaryApi } from "../api/salary";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { formatINR, computeSalaryPreview } from "../lib/money";
 import { formatDate } from "../lib/format";
 import { FullPageSpinner } from "../components/Spinner";
@@ -44,10 +46,15 @@ export function Salary() {
 
   const selectedEmp = employees.data?.items.find((e) => e.id === selectedEmpId) as Employee | undefined;
 
+  // Daily-rated employees are paid from a rate card, not an annual CTC, so
+  // they are not assignable here (payroll ignores any structure they have).
+  const monthlyEmployees = (employees.data?.items ?? []).filter((e) => e.wage_type !== "DAILY");
+  const dailyCount = (employees.data?.items.length ?? 0) - monthlyEmployees.length;
+
   // Filter the employee dropdown by name / code / email; keep the currently
   // selected employee visible even when they don't match the search text.
   const q = empSearch.trim().toLowerCase();
-  const filteredEmployees = (employees.data?.items ?? []).filter(
+  const filteredEmployees = monthlyEmployees.filter(
     (e) =>
       e.id === selectedEmpId ||
       !q ||
@@ -97,13 +104,7 @@ export function Salary() {
 
   
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
-      </div>
-    );
+    return <NoClientSelected feature="salary" />;
   }
 
   return (
@@ -191,6 +192,16 @@ export function Salary() {
                   </option>
                 ))}
               </select>
+              {dailyCount > 0 && (
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  {dailyCount} daily-rated {dailyCount === 1 ? "employee is" : "employees are"} not
+                  listed — they are paid from a{" "}
+                  <Link to="/rate-cards" className="underline hover:text-slate-700 dark:hover:text-slate-200">
+                    rate card
+                  </Link>
+                  , not an annual CTC.
+                </p>
+              )}
             </div>
           </div>
 

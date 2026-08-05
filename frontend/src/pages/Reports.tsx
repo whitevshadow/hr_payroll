@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
@@ -10,8 +10,9 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { FullPageSpinner, Spinner } from "../components/Spinner";
 import { EmptyState } from "../components/EmptyState";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { formatDateTime } from "../lib/format";
-import { toastService, extractErrorMessage } from "../lib/toast";
+import { toastService } from "../lib/toast";
 import { STATUTORY_DEADLINES, daysUntil, nextOccurrence } from "../data/statutory-calendar";
 import {
   FileText,
@@ -27,7 +28,6 @@ import { employeesApi } from "../api/employees";
 import clsx from "clsx";
 
 export function Reports() {
-  const qc = useQueryClient();
   const [cycleId, setCycleId] = useState("");
   const { selectedClientId } = useClientContext();
   const [reportType, setReportType] = useState("");
@@ -58,15 +58,6 @@ export function Reports() {
     (r: any) => !activeFyName || cycleFy.get(r.cycle_id) === activeFyName,
   );
 
-  const generateMut = useMutation({
-    mutationFn: (type: string) => api.post("/reports/generate", { report_type: type, cycle_id: activeCycle || undefined }).then(r => r.data),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: qk.generatedReports({}) });
-      toastService.info(data.message ?? `${data.report_type} generation queued.`);
-    },
-    onError: (err) => toastService.error(extractErrorMessage(err)),
-  });
-
   // Stream the file through the gateway (same origin) rather than opening a
   // presigned URL straight at MinIO: the browser then only ever talks to the
   // frontend's own origin, and the object store needs no published port.
@@ -88,13 +79,7 @@ export function Reports() {
 
   
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
-      </div>
-    );
+    return <NoClientSelected feature="reports" />;
   }
 
   return (
@@ -154,41 +139,23 @@ export function Reports() {
 
           {/* Quick actions */}
           <div className="mb-4 flex flex-wrap gap-2">
-            <button
-              className="btn-ghost-sm"
-              disabled={generateMut.isPending}
-              onClick={() => generateMut.mutate("PF_ECR")}
-            >
-              <FilePlus className="h-3.5 w-3.5" /> PF ECR
-            </button>
-            <button
-              className="btn-ghost-sm"
-              disabled={generateMut.isPending}
-              onClick={() => generateMut.mutate("ESI_ECR")}
-            >
-              <FilePlus className="h-3.5 w-3.5" /> ESI ECR
-            </button>
-            <button
-              className="btn-ghost-sm"
-              disabled={generateMut.isPending}
-              onClick={() => generateMut.mutate("PT_REPORT")}
-            >
-              <FilePlus className="h-3.5 w-3.5" /> PT Report
-            </button>
-            <button
-              className="btn-ghost-sm"
-              disabled={generateMut.isPending}
-              onClick={() => generateMut.mutate("BANK_ADVICE")}
-            >
-              <FilePlus className="h-3.5 w-3.5" /> Bank Advice
-            </button>
-            <button
-              className="btn-ghost-sm"
-              disabled={generateMut.isPending}
-              onClick={() => generateMut.mutate("FORM_16")}
-            >
-              <Download className="h-3.5 w-3.5" /> Form 16
-            </button>
+            {/* Statutory report generation is not implemented: the backend
+                /reports/generate endpoint only queues a row ("arrives in V2")
+                and nothing ever produces a file. Disabled so the buttons stop
+                looking functional and stop creating orphan QUEUED rows. */}
+            {["PF ECR", "ESI ECR", "PT Report", "Bank Advice", "Form 16"].map((label) => (
+              <button
+                key={label}
+                disabled
+                title="Not available yet — statutory report generation is planned but not implemented."
+                className="btn-ghost-sm cursor-not-allowed opacity-50"
+              >
+                <FilePlus className="h-3.5 w-3.5" /> {label}
+                <span className="ml-1 rounded bg-slate-200 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                  Soon
+                </span>
+              </button>
+            ))}
           </div>
 
           <div className="card table-card overflow-hidden p-0">

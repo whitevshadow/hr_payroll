@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useClientContext } from "../lib/ClientContext";
-import { ChevronRight, CircleDollarSign, Plus, Users } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, CircleDollarSign, Plus, Users } from "lucide-react";
+import clsx from "clsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,6 +11,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { SkeletonRow } from "../components/Spinner";
 import { formatDate, formatMonth } from "../lib/format";
 import { extractErrorMessage } from "../lib/toast";
@@ -67,6 +69,14 @@ function WorkflowBadge({ status }: { status: string }) {
   );
 }
 
+/** Name a cycle after the month its period starts in, so the label can never
+ *  contradict the dates (the list had a "Payroll Aug 2026" covering July). */
+function nameForPeriod(periodStart: string): string {
+  const d = new Date(`${periodStart}T00:00:00`);
+  if (isNaN(d.getTime())) return "Payroll";
+  return `Payroll ${d.toLocaleString("en-US", { month: "long", year: "numeric" })}`;
+}
+
 function defaultPeriod() {
   const now = new Date();
   const y = now.getFullYear();
@@ -74,8 +84,14 @@ function defaultPeriod() {
   const start = `${y}-${String(m).padStart(2, "0")}-01`;
   const last = new Date(y, m, 0).getDate();
   const end = `${y}-${String(m).padStart(2, "0")}-${last}`;
-  const name = now.toLocaleString("en-US", { month: "long", year: "numeric" });
-  return { name: `Payroll ${name}`, period_start: start, period_end: end };
+  return { name: nameForPeriod(start), period_start: start, period_end: end };
+}
+
+/** Cycles whose period overlaps the one being created. Running two cycles over
+ *  the same dates computes the same month twice, so warn before it happens. */
+function overlapping(cycles: any[], start: string, end: string) {
+  if (!start || !end) return [];
+  return cycles.filter((c) => c.period_start <= end && c.period_end >= start);
 }
 
 export function Cycles() {
@@ -85,12 +101,24 @@ export function Cycles() {
   const nav = useNavigate();
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState(defaultPeriod());
+  // Once the user edits the name we stop overwriting it on date changes.
+  const [nameTouched, setNameTouched] = useState(false);
   const [formError, setFormError] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   const cycles = useQuery({
     queryKey: qk.cycles,
     queryFn: () => payrollApi.listCycles(),
   });
+
+  // The API returns cycles newest-first (ordered by created_at desc), so the
+  // most recent three are simply the head of the list. Older ones stay behind
+  // the toggle to keep the page short once a client has months of history.
+  const RECENT_COUNT = 3;
+  const allCycles = cycles.data ?? [];
+  const visibleCycles = showAll ? allCycles : allCycles.slice(0, RECENT_COUNT);
+  const hiddenCount = allCycles.length - visibleCycles.length;
+  const conflicts = overlapping(allCycles, form.period_start, form.period_end);
 
   const createMut = useMutation({
     mutationFn: () => payrollApi.createCycle(form),
@@ -104,13 +132,7 @@ export function Cycles() {
 
   
   if (!selectedClientId) {
-    return (
-      <div className="card-glass p-12 flex flex-col items-center justify-center text-center mt-6">
-        <Users className="h-12 w-12 text-slate-300 mb-4" />
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">No Client Selected</h2>
-        <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to proceed.</p>
-      </div>
-    );
+    return <NoClientSelected feature="payroll cycles" />;
   }
 
   return (
@@ -119,25 +141,34 @@ export function Cycles() {
         title="Payroll Cycles"
         subtitle="Manage and run your monthly payroll"
       >
-        <button className="btn" onClick={() => { setForm(defaultPeriod()); setShowNew(true); }}>
+        <button className="btn" onClick={() => { setForm(defaultPeriod()); setNameTouched(false); setFormError(""); setShowNew(true); }}>
           <Plus className="h-4 w-4" />
           New Cycle
         </button>
       </PageHeader>
 
-      {/* Workflow legend */}
+      {/* Workflow legend. The stepper tracks ONE cycle — the most recently
+          created — not the page as a whole, so it is labelled with that
+          cycle's name rather than presented as an overall status. */}
       <div className="card mb-5">
-        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">
-          Payroll Workflow
+        <div className="mb-3 flex flex-wrap items-baseline gap-x-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Latest cycle
+          </span>
+          {allCycles[0] && (
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              {allCycles[0].name}
+            </span>
+          )}
         </div>
-        <WorkflowBadge status={cycles.data?.[0]?.status ?? "DRAFT"} />
+        <WorkflowBadge status={allCycles[0]?.status ?? "DRAFT"} />
         <p className="text-xs text-slate-400 dark:text-slate-500">
           Cycles progress through: Draft → Locked → Computing → Computed → Approved → Disbursed
         </p>
       </div>
 
       {/* Cycles table */}
-      <div className="card table-card overflow-hidden p-0">
+      <div className="card table-card overflow-x-auto p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
@@ -151,7 +182,7 @@ export function Cycles() {
             {cycles.isLoading &&
               Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} cols={4} />)}
             {!cycles.isLoading &&
-              cycles.data?.map((c, idx) => (
+              visibleCycles.map((c, idx) => (
                 <motion.tr
                   key={c.id}
                   initial={{ opacity: 0 }}
@@ -181,6 +212,28 @@ export function Cycles() {
                   </td>
                 </motion.tr>
               ))}
+            {/* Older cycles stay collapsed until asked for. */}
+            {!cycles.isLoading && allCycles.length > RECENT_COUNT && (
+              <tr>
+                <td colSpan={4} className="p-0">
+                  <button
+                    onClick={() => setShowAll((v) => !v)}
+                    aria-expanded={showAll}
+                    className="flex w-full items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-accent-600 hover:text-accent-700 hover:bg-slate-50/60 dark:text-accent-400 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    {showAll
+                      ? "Show less"
+                      : `Show ${hiddenCount} older ${hiddenCount === 1 ? "cycle" : "cycles"}`}
+                    <ChevronDown
+                      className={clsx(
+                        "h-4 w-4 transition-transform duration-200",
+                        showAll && "rotate-180"
+                      )}
+                    />
+                  </button>
+                </td>
+              </tr>
+            )}
             {!cycles.isLoading && cycles.data?.length === 0 && (
               <tr>
                 <td colSpan={4}>
@@ -205,13 +258,17 @@ export function Cycles() {
           <div>
             <label className="label" htmlFor="c-name">Cycle Name</label>
             <input id="c-name" className="input" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              onChange={(e) => { setNameTouched(true); setForm({ ...form, name: e.target.value }); }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label" htmlFor="c-start">Period Start</label>
               <input id="c-start" className="input" type="date" value={form.period_start}
-                onChange={(e) => setForm({ ...form, period_start: e.target.value })} />
+                onChange={(e) => setForm((f) => ({
+                  ...f,
+                  period_start: e.target.value,
+                  name: nameTouched ? f.name : nameForPeriod(e.target.value),
+                }))} />
             </div>
             <div>
               <label className="label" htmlFor="c-end">Period End</label>
@@ -219,6 +276,19 @@ export function Cycles() {
                 onChange={(e) => setForm({ ...form, period_end: e.target.value })} />
             </div>
           </div>
+          {/* Overlap guard: creating a second cycle over the same dates is the
+              usual cause of duplicate "Payroll July" rows that compute the
+              same month twice. Warn, but let the user proceed deliberately. */}
+          {conflicts.length > 0 && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/40 dark:bg-amber-900/15">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <div className="text-[12.5px] text-amber-800 dark:text-amber-300">
+                This period overlaps {conflicts.length === 1 ? "an existing cycle" : `${conflicts.length} existing cycles`}:{" "}
+                <strong>{conflicts.map((c) => c.name).join(", ")}</strong>. Running
+                both computes the same month twice — check you aren't duplicating one.
+              </div>
+            </div>
+          )}
         </div>
         {formError && <div className="alert-danger mt-4">{formError}</div>}
         <ModalFooter

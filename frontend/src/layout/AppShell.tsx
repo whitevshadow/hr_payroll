@@ -18,7 +18,6 @@ import {
   CalendarClock,
   Banknote,
   CreditCard,
-  FileText,
   ShieldCheck,
   Receipt,
   BarChart3,
@@ -41,6 +40,8 @@ import {
   PanelLeftOpen,
   Briefcase,
   Landmark,
+  MapPin,
+  Coins,
 } from "lucide-react";
 import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
@@ -113,6 +114,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
       { to: "/clients",     label: "Clients",     icon: Briefcase,  hrOnly: true },
       { to: "/employees",   label: "Employees",   icon: Users,     hrOnly: true },
       { to: "/departments", label: "Departments", icon: Building2,  hrOnly: true },
+      { to: "/locations",   label: "Locations",   icon: MapPin,     hrOnly: true },
     ],
   },
   {
@@ -121,6 +123,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     items: [
       { to: "/attendance", label: "Attendance", icon: CalendarClock, hrOnly: true },
       { to: "/salary",     label: "Salary",     icon: Banknote,      hrOnly: true },
+      { to: "/rate-cards", label: "Rate Cards", icon: Coins,         hrOnly: true },
     ],
   },
   {
@@ -130,7 +133,6 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
       { to: "/cycles",  label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
       { to: "/payouts", label: "Payouts",        icon: CreditCard,       hrOnly: true },
       { to: "/payslips", label: "Payslips",      icon: Receipt,          hrOnly: true },
-      { to: "/tds",     label: "TDS",            icon: FileText,         hrOnly: true },
     ],
   },
   {
@@ -942,14 +944,15 @@ function TopBar({
     "/":            "Dashboard",
     "/employees":   "Employees",
     "/departments": "Departments",
+    "/locations":   "Locations",
     "/salary":      "Salary",
+    "/rate-cards":  "Daily Rate Cards",
     "/attendance":  "Attendance",
     "/cycles":      "Payroll Cycles",
     "/payouts":     "Payouts",
     "/payslips":    "Payslips",
     "/compliance":  "Compliance",
     "/statutory-portals": "Statutory Filings",
-    "/tds":         "TDS",
     "/reports":     "Reports",
     "/audit":       "Audit Log",
     "/clients":     "Clients",
@@ -1075,7 +1078,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <span className="orb orb-pink"   />
       </div>
 
-      <div className="app-content flex h-screen overflow-hidden">
+      <div className="app-content flex h-app-screen overflow-hidden">
         {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
         <motion.div
           className="hidden lg:flex shrink-0 flex-col p-3"

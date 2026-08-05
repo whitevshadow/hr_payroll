@@ -1,5 +1,6 @@
 import api from "../lib/api";
 import type {
+  DailyRateCard,
   Department,
   Employee,
   EmployeeCreate,
@@ -7,12 +8,15 @@ import type {
   EmployeeUpdate,
 } from "../types";
 
+export type DailyRateCardInput = Omit<DailyRateCard, "id" | "client_id">;
+
 export interface EmployeeListParams {
   page?: number;
   page_size?: number;
   search?: string;
   status?: string;
   client_id?: string;
+  department_id?: string;
 }
 
 export const employeesApi = {
@@ -39,6 +43,16 @@ export const employeesApi = {
   /** Permanently delete an employee. */
   delete: (id: string) =>
     api.delete(`/employees/${id}`).then((r) => r.data),
+
+  /** Daily-wage rate cards for the active client. */
+  rateCards: () =>
+    api.get<DailyRateCard[]>("/rate-cards").then((r) => r.data),
+
+  createRateCard: (body: DailyRateCardInput) =>
+    api.post<DailyRateCard>("/rate-cards", body).then((r) => r.data),
+
+  updateRateCard: (id: string, body: DailyRateCardInput) =>
+    api.patch<DailyRateCard>(`/rate-cards/${id}`, body).then((r) => r.data),
 
   /** List all departments in the current tenant. */
   departments: () =>
@@ -96,6 +110,9 @@ export interface BulkImportRow {
   state?: string;
   city?: string;
   branch?: string;
+  // Daily-wage columns: wage_type "DAILY" + the client rate card's name
+  wage_type?: string;
+  rate_card?: string;
 }
 
 export interface RowResult {

@@ -20,7 +20,6 @@ import {
   CreditCard,
   FileText,
   ShieldCheck,
-  Receipt,
   BarChart3,
   ClipboardList,
   CircleDollarSign,
@@ -120,15 +119,6 @@ function useStaticCommands(navigate: ReturnType<typeof useNavigate>): CommandIte
         iconColor: "text-blue-600",
         action: () => navigate("/compliance"),
         keywords: ["pf", "esi", "pt", "statutory"],
-      },
-      {
-        id: "nav-tds",
-        group: "Navigate",
-        label: "TDS",
-        icon: Receipt,
-        iconColor: "text-orange-500",
-        action: () => navigate("/tds"),
-        keywords: ["tax", "income", "declaration"],
       },
       {
         id: "nav-reports",

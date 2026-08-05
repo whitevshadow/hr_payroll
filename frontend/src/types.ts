@@ -38,6 +38,23 @@ export interface Employee {
   branch: string | null;
   client_id: string | null;
   reporting_manager_id: string | null;
+  // Daily-wage configuration: DAILY employees are paid from a client rate card.
+  wage_type?: "MONTHLY" | "DAILY";
+  daily_rate_card_id?: string | null;
+  daily_rate_card?: DailyRateCard | null;   // resolved, read-only
+}
+
+/** Client-level MONTHLY wage components shared by daily-rated employees.
+ *  Payroll derives the day rate per cycle as monthly / days in that month. */
+export interface DailyRateCard {
+  id: string;
+  client_id: string | null;
+  name: string;
+  monthly_basic: string;
+  monthly_da: string;
+  monthly_hra: string;
+  bonus_pct: string;
+  is_active: boolean;
 }
 export interface Location {
   id: string;
@@ -295,6 +312,16 @@ export interface BreakdownJson {
   attendance: BreakdownAttendance;
   tds_trace?: Record<string, unknown>;
   net_pay: string;
+  // Daily-wage results only
+  wage_type?: "DAILY";
+  daily_rates?: {
+    card_name?: string;
+    basic: string; da: string; hra: string;   // derived per cycle
+    bonus_pct: string;
+    days_in_month?: string;
+    monthly_basic?: string; monthly_da?: string; monthly_hra?: string;
+  };
+  warnings?: string[];
 }
 
 export interface PayrollResult {

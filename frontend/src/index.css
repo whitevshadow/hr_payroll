@@ -8,6 +8,14 @@
 
 @layer base {
   :root {
+    /* Whole-UI zoom factor — see the `zoom` rule on html below.
+       1 = original size, 1.15 = 15% larger. */
+    --ui-scale: 1.15;
+    /* Viewport units corrected for the zoom, so full-height/width elements
+       still match the physical screen instead of overflowing by the scale. */
+    --app-vh: calc(100vh / var(--ui-scale));
+    --app-vw: calc(100vw / var(--ui-scale));
+
     --sidebar-width: 260px;
     --sidebar-collapsed-width: 72px;
     --topbar-height: 64px;
@@ -147,6 +155,16 @@
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
     font-feature-settings: "cv11", "ss01";
+
+    /* ── Whole-UI scale ───────────────────────────────────────────────────
+       Scales text, icons and spacing together. Change --ui-scale (or set it
+       to 1) to adjust or disable — everything else derives from it.
+
+       Viewport units are NOT affected by zoom: `100vh` inside a zoomed
+       element still resolves to the full viewport and is then scaled, so it
+       would render 15% taller than the screen. Anything sized in vh/vw must
+       use --app-vh / --app-vw instead (see .h-app-screen, .max-h-app etc.). */
+    zoom: var(--ui-scale);
   }
 
   body {
@@ -191,7 +209,7 @@
   /* ── Spatial background ─────────────────────────────────────────────────── */
   .app-shell {
     position: relative;
-    min-height: 100vh;
+    min-height: var(--app-vh);
     background-color: var(--bg-base);
     background-image: var(--bg-gradient);
     background-attachment: fixed;
@@ -1037,10 +1055,10 @@
 
   .command-palette {
     position: fixed;
-    top: 14vh;
+    top: calc(var(--app-vh) * 0.14);
     left: 50%;
     z-index: 1600; /* Z.cmdPalette */
-    width: min(640px, calc(100vw - 2rem));
+    width: min(640px, calc(var(--app-vw) - 2rem));
     border-radius: var(--radius-xl);
     border: 1px solid var(--glass-border);
     background: var(--glass-panel-bg);
@@ -1084,6 +1102,19 @@
 
 /* ── Utilities ───────────────────────────────────────────────────────────────  */
 @layer utilities {
+  /* Zoom-corrected viewport sizing. Use these instead of h-screen /
+     100vh / 100vw anywhere, so full-height panes match the physical
+     screen under the --ui-scale zoom rather than overflowing by it. */
+  .h-app-screen     { height: var(--app-vh); }
+  .min-h-app-screen { min-height: var(--app-vh); }
+  .max-h-app-screen { max-height: var(--app-vh); }
+  /* Full height minus a fixed chrome allowance (page header, padding). */
+  .h-app-content    { height: calc(var(--app-vh) - 180px); }
+  /* Modal/dialog max heights: viewport minus a breathing gap. */
+  .max-h-app-modal  { max-height: calc(var(--app-vh) - 3rem); }
+  .max-h-app-full   { max-height: calc(var(--app-vh) - 2rem); }
+  .max-w-app-full   { max-width: calc(var(--app-vw) - 2rem); }
+
   .text-gradient {
     background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     -webkit-background-clip: text;

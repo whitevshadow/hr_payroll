@@ -11,6 +11,8 @@ import { Dashboard } from "./pages/Dashboard";
 import { Employees } from "./pages/Employees";
 import { EmployeeDetail } from "./pages/EmployeeDetail";
 import { Departments } from "./pages/Departments";
+import { Locations } from "./pages/Locations";
+import { RateCards } from "./pages/RateCards";
 import { Salary } from "./pages/Salary";
 import { Attendance } from "./pages/Attendance";
 import { Cycles } from "./pages/Cycles";
@@ -18,7 +20,6 @@ import { CycleDetail } from "./pages/CycleDetail";
 import { CycleSummary } from "./pages/CycleSummary";
 import { Compliance } from "./pages/Compliance";
 import { StatutoryPortals } from "./pages/StatutoryPortals";
-import { TDS } from "./pages/TDS";
 import { Payouts } from "./pages/Payouts";
 import { Reports } from "./pages/Reports";
 import { Payslip } from "./pages/Payslip";
@@ -83,18 +84,19 @@ export default function App() {
       <Route path="/employees" element={<Shell><HrRoute><Employees /></HrRoute></Shell>} />
       <Route path="/employees/:id" element={<Shell><HrRoute><EmployeeDetail /></HrRoute></Shell>} />
       <Route path="/departments" element={<Shell><HrRoute><Departments /></HrRoute></Shell>} />
+      <Route path="/locations" element={<Shell><HrRoute><Locations /></HrRoute></Shell>} />
       <Route path="/clients" element={<Shell><HrRoute><Clients /></HrRoute></Shell>} />
       <Route path="/clients/:id" element={<Shell><HrRoute><ClientDashboard /></HrRoute></Shell>} />
       <Route path="/financial-years" element={<Shell><HrRoute><FinancialYears /></HrRoute></Shell>} />
 
       <Route path="/salary" element={<Shell><HrRoute><Salary /></HrRoute></Shell>} />
+      <Route path="/rate-cards" element={<Shell><HrRoute><RateCards /></HrRoute></Shell>} />
       <Route path="/attendance" element={<Shell><HrRoute><Attendance /></HrRoute></Shell>} />
       <Route path="/cycles" element={<Shell><HrRoute><Cycles /></HrRoute></Shell>} />
       <Route path="/cycles/:cycleId" element={<Shell><HrRoute><CycleDetail /></HrRoute></Shell>} />
       <Route path="/cycles/:cycleId/summary" element={<Shell><HrRoute><CycleSummary /></HrRoute></Shell>} />
       <Route path="/compliance" element={<Shell><HrRoute><Compliance /></HrRoute></Shell>} />
       <Route path="/statutory-portals" element={<Shell><HrRoute><StatutoryPortals /></HrRoute></Shell>} />
-      <Route path="/tds" element={<Shell><HrRoute><TDS /></HrRoute></Shell>} />
       <Route path="/payouts" element={<Shell><HrRoute><Payouts /></HrRoute></Shell>} />
       <Route path="/reports" element={<Shell><HrRoute><Reports /></HrRoute></Shell>} />
       <Route path="/payslips" element={<Shell><HrRoute><AdminPayslips /></HrRoute></Shell>} />

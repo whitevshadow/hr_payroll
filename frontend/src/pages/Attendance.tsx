@@ -17,6 +17,7 @@ import { employeesApi } from "../api/employees";
 import { qk, STALE_STABLE, STALE_OPERATIONAL } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { currentMonthValue, monthToFirst, formatDateTime } from "../lib/format";
+import { NoClientSelected } from "../components/NoClientSelected";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { useAuth } from "../lib/auth";
 import { hasRole, isEmployeeOnly } from "../lib/roles";
@@ -858,11 +859,7 @@ export function Attendance() {
       </PageHeader>
 
       {!selectedClientId ? (
-        <div className="card-glass p-12 flex flex-col items-center justify-center text-center">
-          <Users className="h-12 w-12 text-slate-300 mb-4" />
-          <h2 className="text-lg font-bold text-slate-800">No Client Selected</h2>
-          <p className="text-slate-500 mt-2 max-w-sm">Please select a client from the top navigation bar to view or manage attendance.</p>
-        </div>
+        <NoClientSelected feature="attendance" />
       ) : (
         <>
           {/* ── Locked banner ────────────────────────────────────────────────── */}

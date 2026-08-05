@@ -37,7 +37,7 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-app-screen bg-slate-50 dark:bg-slate-950">
       {/* Left — Brand Panel */}
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-accent-800 to-accent-900 p-12">
         {/* Background mesh */}
@@ -74,7 +74,7 @@ export function Login() {
           <div className="grid grid-cols-2 gap-4">
             {[
               { label: "Payroll Accuracy", value: "99.9%" },
-              { label: "Compliance Ready", value: "PF · ESI · TDS" },
+              { label: "Compliance Ready", value: "PF · ESI · PT" },
               { label: "Processing Time", value: "< 30 min" },
               { label: "Multi-tenant", value: "Enterprise" },
             ].map((stat) => (

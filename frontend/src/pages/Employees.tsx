@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Edit2, User, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle, CheckCircle2, Edit2, User, MoreHorizontal } from "lucide-react";
 import { employeesApi } from "../api/employees";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
@@ -37,6 +37,8 @@ function validate(f: Partial<Employee>): string | null {
     return "PAN must be in the format ABCDE1234F";
   if (f.bank_ifsc && !f.bank_ifsc.includes("X") && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank_ifsc.toUpperCase()))
     return "IFSC must be in the format ABCD0123456";
+  if (f.wage_type === "DAILY" && !f.daily_rate_card_id)
+    return "Daily-wage employees need a rate card";
   return null;
 }
 
@@ -116,7 +118,7 @@ function RowActionsMenu({
               onClick={() => { setOpen(false); onDelete(); }}
               className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
+              <Trash2 className="h-3.5 w-3.5" /> Remove
             </button>
           </motion.div>
         </>
@@ -176,6 +178,13 @@ export function Employees() {
     staleTime: STALE_STABLE,
   });
 
+  // Scoped to the active client by the x-client-id header the API layer sends.
+  const rateCards = useQuery({
+    queryKey: ["rate-cards", selectedClientId],
+    queryFn: () => employeesApi.rateCards(),
+    staleTime: STALE_STABLE,
+  });
+
   const list = useQuery({
     queryKey: qk.employees({ search: search || undefined, page, page_size: PAGE_SIZE, client_id: selectedClientId || undefined, status: statusFilter, department_id: deptFilter || undefined }),
     queryFn: () => employeesApi.list({ search: search || undefined, page, page_size: PAGE_SIZE, client_id: selectedClientId || undefined, status: statusFilter, department_id: deptFilter || undefined }),
@@ -203,6 +212,21 @@ export function Employees() {
       setFormError("");
     },
     onError: (err) => setFormError(extractErrorMessage(err)),
+  });
+
+  // Deleting an employee is permanent AND leaves their payroll, attendance and
+  // contribution rows orphaned in the other services (no FKs across services).
+  // Separating keeps the history intact and excludes them from future runs, so
+  // it is offered as the primary action.
+  const separateMut = useMutation({
+    mutationFn: (id: string) => employeesApi.update(id, { status: "SEPARATED" } as any),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Employee marked as separated.");
+      setConfirmDelete(null);
+      setDeleteError("");
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
 
   const deleteMut = useMutation({
@@ -517,6 +541,7 @@ export function Employees() {
           departments={depts.data ?? []}
           locations={locs.data ?? []}
           clients={clients.data?.items ?? []}
+          rateCards={rateCards.data ?? []}
           activeEmployees={allActiveEmployees.data?.items ?? []}
           onClose={() => { setEditing(null); setFormError(""); }}
           onSave={() => saveMut.mutate(editing)}
@@ -531,28 +556,53 @@ export function Employees() {
         <Modal
           open
           onClose={() => setConfirmDelete(null)}
-          title="Delete Employee"
+          title="Remove Employee"
           size="sm"
         >
           <div className="space-y-3">
-            <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800/40 p-3">
-              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[13px] text-slate-600 dark:text-slate-300">
+              How should <strong>{confirmDelete.first_name} {confirmDelete.last_name}</strong>{" "}
+              ({confirmDelete.emp_code}) be removed?
+            </p>
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800/40 dark:bg-emerald-900/15">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <div className="text-[12.5px] text-emerald-800 dark:text-emerald-300">
+                <strong>Mark as separated</strong> (recommended) — keeps the employee's
+                payslips and payroll history intact and excludes them from future runs.
+                Reversible.
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800/40 dark:bg-red-900/15">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
               <div className="text-[12.5px] text-red-700 dark:text-red-300">
-                <strong>{confirmDelete.first_name} {confirmDelete.last_name}</strong> ({confirmDelete.emp_code}) will be
-                permanently deleted. This cannot be undone. Consider setting the
-                status to INACTIVE or SEPARATED instead if you want to keep the record.
+                <strong>Delete permanently</strong> — cannot be undone, and leaves their
+                payroll results, attendance and statutory contributions orphaned in the
+                other services.
               </div>
             </div>
             {deleteError && (
               <div className="alert-danger text-sm whitespace-pre-wrap">{deleteError}</div>
             )}
           </div>
-          <ModalFooter
-            onClose={() => setConfirmDelete(null)}
-            onSave={() => deleteMut.mutate(confirmDelete.id)}
-            saving={deleteMut.isPending}
-            saveLabel="Delete Employee"
-          />
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+            <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              disabled={deleteMut.isPending || separateMut.isPending}
+              onClick={() => deleteMut.mutate(confirmDelete.id)}
+            >
+              {deleteMut.isPending ? "Deleting…" : "Delete permanently"}
+            </button>
+            <button
+              className="btn"
+              disabled={deleteMut.isPending || separateMut.isPending}
+              onClick={() => separateMut.mutate(confirmDelete.id)}
+            >
+              {separateMut.isPending ? "Saving…" : "Mark as separated"}
+            </button>
+          </div>
         </Modal>
       )}
 
@@ -572,12 +622,13 @@ export function Employees() {
 }
 
 function EmployeeModal({
-  value, departments, locations, clients, activeEmployees, onClose, onSave, saving, error, onChange,
+  value, departments, locations, clients, rateCards, activeEmployees, onClose, onSave, saving, error, onChange,
 }: {
   value: Partial<Employee>;
   departments: Department[];
   locations: import("../types").Location[];
   clients: import("../types").Client[];
+  rateCards: import("../types").DailyRateCard[];
   activeEmployees: Employee[];
   onClose: () => void;
   onSave: () => void;
@@ -674,6 +725,38 @@ function EmployeeModal({
           <input id="f-join" className="input" type="date" value={value.joining_date ?? ""}
             onChange={(e) => set("joining_date", e.target.value || null)} />
         </div>
+        {/* ── Wage configuration ─────────────────────────────────────────── */}
+        <div>
+          <label className="label" htmlFor="f-wage-type">Wage Type</label>
+          <select id="f-wage-type" className="input" value={value.wage_type ?? "MONTHLY"}
+            onChange={(e) => set("wage_type", e.target.value)}>
+            <option value="MONTHLY">Monthly (salary structure)</option>
+            <option value="DAILY">Daily rated</option>
+          </select>
+        </div>
+        {value.wage_type === "DAILY" && (
+          <div>
+            <label className="label" htmlFor="f-rate-card">Rate Card *</label>
+            <select id="f-rate-card" className="input" value={value.daily_rate_card_id ?? ""}
+              onChange={(e) => set("daily_rate_card_id", e.target.value || null)}>
+              <option value="">— Select Rate Card —</option>
+              {rateCards.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} (₹{c.monthly_basic}+{c.monthly_da}+{c.monthly_hra}/month)
+                </option>
+              ))}
+            </select>
+            {rateCards.length === 0 && (
+              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                No rate cards for this client yet —{" "}
+                <Link to="/rate-cards" className="underline font-semibold hover:text-amber-700 dark:hover:text-amber-300">
+                  create one
+                </Link>{" "}
+                before adding daily-wage employees.
+              </p>
+            )}
+          </div>
+        )}
         {/* The client is chosen by the required "Client *" field at the top of
             this form. A second control bound to the same client_id (with the
             same #f-client id) was removed: duplicate DOM ids break label

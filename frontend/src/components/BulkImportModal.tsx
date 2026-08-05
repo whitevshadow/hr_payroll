@@ -30,11 +30,16 @@ const STEPS = ["Download Template", "Upload File", "Preview & Validate", "Import
 const MANDATORY_HEADERS = [
   "Name", "Mobile", "Aadhaar Number",
   "Department", "Work Location", "Date of Joining",
-  "Employment Type", "Basic Salary (Annual CTC)",
+  "Employment Type",
 ];
+// "Basic Salary (Annual CTC)" leads the optional block so ALL_HEADERS keeps its
+// original column order — the template's sample rows are positional, and the
+// header styling picks mandatory vs optional by index.
 const OPTIONAL_HEADERS = [
+  "Basic Salary (Annual CTC)",
   "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "Bank Account", "IFSC Code",
   "Gender", "Date of Birth", "State", "City", "Branch",
+  "Wage Type", "Rate Card",
 ];
 const ALL_HEADERS = [...MANDATORY_HEADERS, ...OPTIONAL_HEADERS];
 
@@ -62,11 +67,19 @@ function downloadTemplate() {
       "Rahul Sharma", "9876543210", "123456789012",
       "Engineering", "Pune", "2026-06-01", "Full Time", "540000",
       "E010", "rahul@company.com", "Developer", "ABCDE1234F", "", "12345678901", "HDFC0001234", "", "", "Maharashtra", "Mumbai", "",
+      "", "",
     ],
     [
       "Priya Patil", "9876543211", "987654321098",
       "HR", "Mumbai", "2026-06-01", "Full Time", "420000",
       "", "priya@company.com", "Executive", "", "", "", "", "Female", "", "Maharashtra", "Mumbai", "",
+      "", "",
+    ],
+    [
+      "Sanubai Kadale", "9876543212", "456789012345",
+      "Production", "Chakan", "2026-06-01", "Contract", "",
+      "", "", "Helper", "", "", "", "", "Female", "", "Maharashtra", "Pune", "",
+      "DAILY", "Chakan Helper 2026",
     ],
   ];
 
@@ -102,9 +115,15 @@ function downloadTemplate() {
     ["  Aadhaar Number  : Exactly 12 digits"],
     ["  Date of Joining : YYYY-MM-DD (e.g. 2026-06-01) or DD-MM-YYYY"],
     ["  Employment Type : Full Time / Part Time / Contract"],
-    ["  Basic Salary    : Annual CTC in INR, numbers only (e.g. 540000)"],
+    ["  Basic Salary    : Optional. Annual CTC in INR, numbers only (e.g. 540000). When present, a salary"],
+    ["                    structure is created automatically. Leave blank for daily-wage employees, or when"],
+    ["                    salaries are assigned later from the Salary page."],
     ["  PAN Number      : 10-char alphanumeric (e.g. ABCDE1234F)"],
     ["  IFSC Code       : 11-char (e.g. HDFC0001234)"],
+    ["  Wage Type       : MONTHLY (default) or DAILY"],
+    ["  Rate Card       : Name of an existing rate card for this client — required when Wage Type is DAILY."],
+    ["                    Per-day rates (Basic / DA / HRA, bonus %, leave %) live on the rate card, so"],
+    ["                    every worker on it shares the same rates. Create rate cards before importing."],
     [""],
     ["NOTES"],
     ["  • Duplicate Employee Codes or Emails will be skipped."],
@@ -161,6 +180,11 @@ function parseFile(file: File): Promise<ParsedRow[]> {
         const header = (raw[0] as string[]).map((h) => String(h).trim().toLowerCase());
         const colIdx = (target: string): number =>
           header.findIndex((h) => h.includes(target.toLowerCase().split(" ")[0]));
+        // Exact match (ignoring case/spaces/punctuation) — needed where the
+        // first-word heuristic collides, e.g. "Daily Basic" vs "Daily DA".
+        const normHdr = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+        const colExact = (target: string): number =>
+          header.findIndex((h) => normHdr(h) === normHdr(target));
 
         const COL: Record<string, number> = {
           emp_code:       Math.max(colIdx("employee code"), colIdx("emp code"), colIdx("emp_code")),
@@ -183,6 +207,8 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           state:          colIdx("state"),
           city:           colIdx("city"),
           branch:         colIdx("branch"),
+          wage_type:      colExact("wage type"),
+          rate_card:      colExact("rate card"),
         };
 
         const get = (r: string[], key: string): string =>
@@ -207,6 +233,8 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           const pan      = get(r, "pan_number").toUpperCase();
           const ifsc     = get(r, "bank_ifsc").toUpperCase();
           const aadhaar  = get(r, "aadhaar_number").replace(/\D/g, "");
+          const wageType = get(r, "wage_type").toUpperCase() || undefined;
+          const rateCard = get(r, "rate_card") || undefined;
 
           const errors: string[] = [];
 
@@ -220,6 +248,10 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           if (salary !== undefined && salary <= 0) errors.push("Basic Salary must be positive number");
           if (pan && !PAN_RE.test(pan))  errors.push(`Invalid PAN: ${pan}`);
           if (ifsc && !IFSC_RE.test(ifsc)) errors.push(`Invalid IFSC: ${ifsc}`);
+          if (wageType && wageType !== "MONTHLY" && wageType !== "DAILY")
+            errors.push(`Wage Type must be MONTHLY or DAILY (got "${wageType}")`);
+          if (wageType === "DAILY" && !rateCard)
+            errors.push("Rate Card is required for DAILY wage rows");
 
           // Intra-file duplicate check
           if (empCode && seenCodes.has(empCode.toLowerCase())) {
@@ -256,6 +288,8 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             state: get(r, "state") || undefined,
             city: get(r, "city") || undefined,
             branch: get(r, "branch") || undefined,
+            wage_type: wageType,
+            rate_card: rateCard,
           });
         }
         resolve(parsed);
@@ -381,7 +415,8 @@ export function BulkImportModal({ onClose, onImported }: Props) {
       );
       const salaryNeeded = salaryRows.filter((r) => {
         const src = validRows[r.row_index];
-        return src && src.basic_salary && src.basic_salary > 0;
+        // Daily wagers are paid from their per-day rates, not a CTC structure.
+        return src && src.wage_type !== "DAILY" && src.basic_salary && src.basic_salary > 0;
       });
 
       if (salaryNeeded.length > 0) {
@@ -647,7 +682,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                           <tr key={row._rowNum} className={clsx("tr-hover", !row._isValid && "bg-red-50/30 dark:bg-red-900/5")}>
                             <td className="td pl-4 text-[var(--text-muted)]">{row._rowNum + 1}</td>
                             <td className="td font-mono">{row.emp_code || <span className="text-red-400">—</span>}</td>
-                            <td className="td">{`${row.first_name} ${row.last_name}`.trim() || <span className="text-red-400">—</span>}</td>
+                            <td className="td">{row.name?.trim() || <span className="text-red-400">—</span>}</td>
                             <td className="td text-[10.5px] text-[var(--text-muted)] max-w-[140px] truncate">{row.email ?? "—"}</td>
                             <td className="td text-[var(--text-muted)]">{row.department ?? "—"}</td>
                             <td className="td font-numeric text-[var(--text-secondary)]">

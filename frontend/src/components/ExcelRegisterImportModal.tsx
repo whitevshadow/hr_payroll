@@ -7,7 +7,7 @@
  * Two modes:
  *   "prefilled" — every figure (incl. deductions & net) comes from the sheet.
  *   "compute"   — only earnings/attendance come from the sheet; the backend
- *                 computes PF/ESI/PT/TDS and net pay. For employees with no
+ *                 computes PF/ESI/PT and net pay. For employees with no
  *                 CTC/salary structure in the system.
  *
  *   Step 1 — Choose mode + download pre-filled template
@@ -122,7 +122,7 @@ function downloadTemplate(mode: ImportRegisterMode, cycleName: string, employees
     ["PAYROLL REGISTER IMPORT — INSTRUCTIONS"],
     [""],
     [`Cycle: ${cycleName}`],
-    [`Mode: ${mode === "prefilled" ? "Pre-calculated register (all figures from this sheet)" : "Earnings only (system computes PF/ESI/PT/TDS and net pay)"}`],
+    [`Mode: ${mode === "prefilled" ? "Pre-calculated register (all figures from this sheet)" : "Earnings only (system computes PF/ESI/PT and net pay)"}`],
     [""],
     ["  • Employee names are pre-filled — fill in only the numeric cells."],
     ["  • Amounts are monthly figures in INR. Blank cells are treated as 0."],
@@ -134,7 +134,7 @@ function downloadTemplate(mode: ImportRegisterMode, cycleName: string, employees
         ]
       : [
           ["  • Leave Gross Wages blank to auto-fill it as Basic + DA + HRA + Bonus."],
-          ["  • Do NOT add deduction columns — PF/ESI/PT/TDS are computed by the system."],
+          ["  • Do NOT add deduction columns — PF/ESI/PT are computed by the system."],
         ]),
     ["  • Delete the rows of employees who are not part of this cycle."],
   ];
@@ -478,7 +478,7 @@ export function ExcelRegisterImportModal({ cycle, onClose, onImported }: Props) 
                       value: "compute" as const,
                       icon: Calculator,
                       title: "System calculates deductions",
-                      desc: "Fill in only days and earnings (Basic / DA / HRA / Bonus). PF, ESI, PT, TDS and net pay are computed automatically — no CTC setup needed.",
+                      desc: "Fill in only days and earnings (Basic / DA / HRA / Bonus). PF, ESI, PT and net pay are computed automatically — no CTC setup needed.",
                     },
                   ]).map((opt) => (
                     <button
@@ -591,7 +591,7 @@ export function ExcelRegisterImportModal({ cycle, onClose, onImported }: Props) 
                 {mode === "compute" && (
                   <div className="flex items-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 px-3 py-2.5 text-[12px] text-blue-700 dark:text-blue-300">
                     <Calculator className="h-4 w-4 shrink-0" />
-                    PF, ESI, PT, TDS and net pay will be computed by the system from these earnings on import.
+                    PF, ESI, PT and net pay will be computed by the system from these earnings on import.
                   </div>
                 )}
 

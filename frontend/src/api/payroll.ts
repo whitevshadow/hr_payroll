@@ -49,7 +49,7 @@ export const payrollApi = {
 };
 
 /** "prefilled": the sheet's deduction/net figures are stored as-is.
- *  "compute": backend derives PF/ESI/PT/TDS and net pay from the earnings. */
+ *  "compute": backend derives PF/ESI/PT and net pay from the earnings. */
 export type ImportRegisterMode = "prefilled" | "compute";
 
 export interface ImportRegisterRow {
