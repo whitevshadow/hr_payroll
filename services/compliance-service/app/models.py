@@ -72,6 +72,10 @@ class ESIContribution(TenantAwareBase):
     is_esi_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
     employee_esi: Mapped[Decimal] = mapped_column(M, default=0)
     employer_esi: Mapped[Decimal] = mapped_column(M, default=0)
+    # "YYYY-MM" wage month (when the caller supplies year); lets eligibility
+    # honour the ESI contribution-period rule by querying earlier months of
+    # the same Apr–Sep / Oct–Mar period. Null on legacy rows.
+    wage_month: Mapped[str | None] = mapped_column(String(7), nullable=True)
 
 
 class PTDeduction(TenantAwareBase):

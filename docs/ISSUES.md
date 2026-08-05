@@ -112,3 +112,15 @@ then `docker compose up --build` and walk the README's definition-of-done flow.
   crashes mid-way) cannot be re-run, since `COMPUTING` is not in `RUNNABLE`. Needs a
   heartbeat/timeout design to distinguish "running" from "stranded".
 - Statutory constants remain flagged `# VERIFY against current government notification`.
+- **PF ceiling proration for daily-rated wages is deliberately not implemented.**
+  EPFO practice prorates the ₹15,000 monthly ceiling by paid days for partial
+  months. It was built and then removed: at current daily-wage levels (~₹6,750
+  PF wages for a 16-day month) the ceiling never binds, so proration cannot
+  change any figure, and it cost three request fields plus a branch. Reinstate
+  (in `compliance-service` `/compute`, alongside `ceiling_on`) if a daily-rated
+  employee's earned Basic+DA ever approaches the ceiling.
+- **LWF is still a stub** returning a flat ₹10/₹20 (`compute_lwf`). Maharashtra
+  LWF is half-yearly (June and December, ₹12 employee / ₹36 employer) and daily
+  wagers are squarely covered, so this matters once LWF is enabled for a client.
+- **Overtime is not modelled** for daily-rated employees; client registers carry
+  a separate OT sheet.

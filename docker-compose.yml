@@ -59,7 +59,6 @@ services:
     environment:
       <<: *common-env
       DB_SCHEMA: salary_schema
-      TDS_URL: http://tds-service:4006
     depends_on: *depends-on-db
 
   attendance-service:
@@ -80,15 +79,6 @@ services:
       DB_SCHEMA: compliance_schema
     depends_on: *depends-on-db
 
-  tds-service:
-    build:
-      <<: *service-build
-      args: { SERVICE: tds-service, PORT: "4006" }
-    environment:
-      <<: *common-env
-      DB_SCHEMA: tds_schema
-    depends_on: *depends-on-db
-
   payroll-service:
     build:
       <<: *service-build
@@ -101,7 +91,6 @@ services:
       EMPLOYEE_URL: http://employee-service:4002
       SALARY_URL: http://salary-service:4003
       ATTENDANCE_URL: http://attendance-service:4004
-      TDS_URL: http://tds-service:4006
       COMPLIANCE_URL: http://compliance-service:4007
       PAYOUT_URL: http://payout-service:4008
       REPORTING_URL: http://reporting-service:4009
@@ -293,7 +282,6 @@ services:
       SALARY_URL: http://salary-service:4003
       ATTENDANCE_URL: http://attendance-service:4004
       PAYROLL_URL: http://payroll-service:4005
-      TDS_URL: http://tds-service:4006
       COMPLIANCE_URL: http://compliance-service:4007
       PAYOUT_URL: http://payout-service:4008
       REPORTING_URL: http://reporting-service:4009
@@ -307,7 +295,6 @@ services:
       - salary-service
       - attendance-service
       - compliance-service
-      - tds-service
       - payroll-service
       - payout-service
       - reporting-service

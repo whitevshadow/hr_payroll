@@ -50,3 +50,26 @@ PT_SLABS: dict[str, dict] = {
     },
 }
 PT_DEFAULT: dict = {"regular": Decimal("200"), "february": Decimal("200")}
+
+
+# ── Labour Welfare Fund ───────────────────────────────────────────────────────
+# LWF is contributed half-yearly (not monthly) in most states: the whole
+# amount is deducted in the salary of the months listed in "months".
+#   slabs: (monthly_wage_upto, employee_share, employer_share) — first match wins
+#   default: (employee, employer) applied above the last slab
+# Statutory defaults. VERIFY against current state notification — LWF rates and
+# slabs are revised periodically and differ per state.
+LWF_RULES: dict[str, dict] = {
+    # Maharashtra Labour Welfare Fund Act 1953: deducted in the June and
+    # December payroll, remitted by 15 July / 15 January.
+    #
+    # Flat Rs 25 per employee with no wage slab, matching the client's wage
+    # register: every worker on it is charged 25 regardless of gross (Rs 4,448
+    # and Rs 14,824 both pay 25). The employer share is not tracked because the
+    # register does not carry one; it does not affect net pay either way.
+    "Maharashtra": {
+        "months": (6, 12),
+        "slabs": [],
+        "default": (Decimal("25"), Decimal("0")),
+    },
+}

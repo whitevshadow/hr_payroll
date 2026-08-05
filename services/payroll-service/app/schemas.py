@@ -65,7 +65,7 @@ class ImportRegisterRow(BaseModel):
 
     In "prefilled" mode every figure comes from the sheet, so
     total_deductions and net_pay are required. In "compute" mode only the
-    earnings/attendance side is taken from the sheet; PF/ESI/PT/TDS and net
+    earnings/attendance side is taken from the sheet; PF/ESI/PT and net
     pay are computed server-side and the deduction fields here are ignored.
     """
 

@@ -502,7 +502,7 @@ async def generate_report(
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
-    """Generate generic or statutory reports (BANK_ADVICE, PF_ECR, ESI_ECR, PT_REPORT, TDS_REPORT)."""
+    """Generate generic or statutory reports (BANK_ADVICE, PF_ECR, ESI_ECR, PT_REPORT)."""
     # For now, this is a stub. It creates a queued request.
     cycle_id = body.cycle_id or uuid.uuid4()
     row = GeneratedReport(

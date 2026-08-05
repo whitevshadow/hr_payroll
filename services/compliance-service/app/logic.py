@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from hr_shared import money
 
-from .settings import PT_DEFAULT, PT_SLABS
+from .settings import LWF_RULES, PT_DEFAULT, PT_SLABS
 
 
 def compute_pf(
@@ -48,9 +48,13 @@ def compute_esi(
     employee_rate: Decimal = Decimal("0.75"),
     employer_rate: Decimal = Decimal("3.25"),
     threshold: Decimal = Decimal("21000"),
+    covered_override: bool | None = None,
 ) -> dict:
+    """covered_override, when not None, replaces the threshold check — the
+    caller has already resolved eligibility (ESI contribution-period lock:
+    coverage persists to period end even if wages cross the ceiling)."""
     gross = Decimal(monthly_gross)
-    eligible = gross <= threshold
+    eligible = covered_override if covered_override is not None else gross <= threshold
     employee_esi = money(gross * (employee_rate / Decimal("100"))) if eligible else money(0)
     employer_esi = money(gross * (employer_rate / Decimal("100"))) if eligible else money(0)
     return {
@@ -85,13 +89,40 @@ def compute_pt(
     return {"state": state, "pt_amount": money(amount)}
 
 
-def compute_lwf(state: str) -> dict:
-    # LWF is typically a fixed amount per state per month or six months.
-    # Stubbing with a fixed amount for demonstration.
-    employee_lwf = money(Decimal("10"))
-    employer_lwf = money(Decimal("20"))
+def compute_lwf(
+    state: str,
+    month: int | None = None,
+    monthly_gross: Decimal | None = None,
+) -> dict:
+    """Labour Welfare Fund for the given wage month.
+
+    LWF is a half-yearly contribution, not a monthly one: the full amount is
+    deducted only in the contribution months for the state (June and December
+    in Maharashtra) and is nil in every other month. The share is picked from
+    the state's wage slabs; the employer's share is a separate figure (3x the
+    employee's in Maharashtra), not a rate.
+
+    Callers that pass no month (legacy) get the above-slab amount so behaviour
+    stays deterministic rather than silently nil.
+    """
+    rules = LWF_RULES.get(state)
+    if rules is None:
+        return {"state": state, "employee_lwf": money(0), "employer_lwf": money(0)}
+
+    if month is not None and month not in rules["months"]:
+        # Not a contribution month for this state.
+        return {"state": state, "employee_lwf": money(0), "employer_lwf": money(0)}
+
+    employee, employer = rules["default"]
+    if monthly_gross is not None:
+        gross = Decimal(monthly_gross)
+        for limit, emp_share, empr_share in rules.get("slabs", []):
+            if gross <= limit:
+                employee, employer = emp_share, empr_share
+                break
+
     return {
         "state": state,
-        "employee_lwf": employee_lwf,
-        "employer_lwf": employer_lwf,
+        "employee_lwf": money(employee),
+        "employer_lwf": money(employer),
     }

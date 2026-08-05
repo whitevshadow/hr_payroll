@@ -2,8 +2,9 @@
 
 The import path must do the identical DRAFT -> LOCKED -> COMPUTING ->
 COMPUTED transition as run_cycle, write one PayrollResult per row, and in
-"compute" mode derive PF/ESI/PT/TDS via the compliance/tds services instead
-of taking them from the sheet.
+"compute" mode derive PF/ESI/PT via compliance-service instead of taking
+them from the sheet. Income tax is not deducted (tds-service is
+disconnected from the platform).
 """
 from __future__ import annotations
 
@@ -116,10 +117,6 @@ def _stub_services(monkeypatch):
 
     monkeypatch.setattr(svc_client, "compute_compliance", _compliance)
 
-    async def _tds(http, token, payload, client_id=None):
-        return {"monthly_tds": "500", "tax_trace": {"regime": "new"}}
-
-    monkeypatch.setattr(svc_client, "compute_tds", _tds)
     return compliance_payloads
 
 
@@ -210,20 +207,21 @@ async def test_compute_mode_derives_deductions(
     summary = await orchestrator.import_register(session, CTX, "token", cyc, rows, "compute")
 
     assert summary["status"] == "COMPUTED"
-    # Statutory bases: PF wages = Basic + DA; ESI wages = gross minus the
-    # bonus head; PT gets the state and gender for slab/exemption rules.
+    # Client wage-register bases (same convention as the daily-wage path):
+    # PF wages = gross minus HRA, ESI wages = gross minus the bonus head;
+    # PT gets the state and gender for slab/exemption rules.
     (payload,) = _stub_services
-    assert payload["basic"] == "13500.00"        # 12000 + 1500 DA
+    assert payload["basic"] == "14000.00"        # 12000 + 1500 DA + 500 bonus
     assert payload["esi_gross"] == "19500.00"    # 20000 - 500 bonus
     assert payload["state"] == "Maharashtra"
     assert "gender" in payload
     result = await session.scalar(select(PayrollResult))
-    # 1800 PF + 150 ESI + 200 PT + 500 TDS from the stubbed services.
-    assert result.total_deductions == Decimal("2650.00")
-    assert result.net_pay == Decimal("17350.00")
+    # 1800 PF + 150 ESI + 200 PT from the stubbed services; no TDS.
+    assert result.total_deductions == Decimal("2150.00")
+    assert result.net_pay == Decimal("17850.00")
     bd = result.breakdown_json
     assert bd["deductions"]["employee_pf"] == "1800.00"
-    assert bd["deductions"]["tds"] == "500.00"
+    assert bd["deductions"]["tds"] == "0.00"
     assert bd["employer_contrib"]["employer_epf"] == "550.00"
     assert bd["import_mode"] == "compute"
 

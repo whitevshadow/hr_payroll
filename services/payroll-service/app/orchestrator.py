@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import logging
 import uuid
 from decimal import Decimal
@@ -67,6 +68,9 @@ async def _compute_for_employee(
     http, token: str, cycle: PayrollCycle, emp: dict, client_id: str | None = None
 ) -> dict:
     """Pull from every service and aggregate. Returns the result dict."""
+    if (emp.get("wage_type") or "MONTHLY").upper() == "DAILY":
+        return await _compute_for_daily_employee(http, token, cycle, emp, client_id)
+
     employee_id = emp["id"]
 
     salary = await client.get_salary_breakdown(http, token, employee_id, client_id)
@@ -111,23 +115,18 @@ async def _compute_for_employee(
     employee_pf = money(comp["employee_pf"])
     employee_esi = money(comp["employee_esi"])
     pt_amount = money(comp["pt_amount"])
+    # LWF is half-yearly: compliance-service returns 0 outside the state's
+    # contribution months, so this line is simply nil for ten months a year.
+    employee_lwf = money(comp.get("employee_lwf", 0))
 
-    # TDS
-    tds = await client.compute_tds(
-        http,
-        token,
-        {
-            "employee_id": employee_id,
-            "cycle_id": str(cycle.id),
-            "monthly_gross": str(monthly_gross),
-        },
-        client_id,
-    )
-    monthly_tds = money(tds["monthly_tds"])
+    # Income tax (TDS) is not deducted: tds-service is disconnected from the
+    # platform. The head is kept at zero so payslips and downstream consumers
+    # keep their shape.
+    monthly_tds = money(0)
 
     other = money(0)
     total_deductions = money(
-        employee_pf + employee_esi + pt_amount + monthly_tds + lop_deduction + other
+        employee_pf + employee_esi + pt_amount + employee_lwf + lop_deduction + other
     )
     net_pay = money(monthly_gross - total_deductions)
 
@@ -152,6 +151,7 @@ async def _compute_for_employee(
             "employee_pf": str(employee_pf),
             "employee_esi": str(employee_esi),
             "pt": str(pt_amount),
+            "lwf": str(employee_lwf),
             "tds": str(monthly_tds),
             "lop": str(lop_deduction),
             "other": str(other),
@@ -160,17 +160,180 @@ async def _compute_for_employee(
             "employer_eps": str(money(comp["employer_eps"])),
             "employer_epf": str(money(comp["employer_epf"])),
             "employer_esi": str(money(comp["employer_esi"])),
+            "employer_lwf": str(money(comp.get("employer_lwf", 0))),
         },
         "attendance": {
             "total_days": total_days,
             "payable_days": str(payable_days),
             "lop_days": str(lop_days),
         },
-        "tds_trace": tds.get("tax_trace", {}),
+        "tds_trace": {},
         "net_pay": str(net_pay),
     }
     return {
         "gross": monthly_gross,
+        "total_deductions": total_deductions,
+        "net_pay": net_pay,
+        "breakdown": breakdown,
+    }
+
+
+async def _compute_for_daily_employee(
+    http, token: str, cycle: PayrollCycle, emp: dict, client_id: str | None = None
+) -> dict:
+    """Daily-rated employees: pay = per-day component rates × paid days.
+
+    Register conventions (client wage sheets): the rate card holds monthly
+    wages and the day rate is derived as monthly / days in the cycle's month;
+    bonus accrues as a percentage of earned Basic+DA; PF wages are gross minus
+    HRA and ESI wages are gross minus bonus. Paid days are the attendance
+    summary's payable days (present + weekly offs + paid holidays). No
+    SalaryStructure and no LOP concept —
+    days not worked are simply not paid, so missing attendance means zero
+    pay (flagged NO_ATTENDANCE), never a full-month fallback.
+    """
+    employee_id = emp["id"]
+    period_days = (cycle.period_end - cycle.period_start).days + 1
+
+    card = emp.get("daily_rate_card")
+    if not card:
+        # Fails this employee's row only; run_cycle isolates per-employee errors.
+        raise ValueError("DAILY wage employee has no rate card assigned")
+
+    # The rate card holds MONTHLY wages; the day rate is re-derived for every
+    # cycle as monthly / calendar days in that month. This is the client's own
+    # convention — the same Rs 9,705 basic yields 9705/31 = 313.06 in May and
+    # 9705/30 = 323.50 in June — and it makes a full month's attendance pay
+    # exactly the monthly wage regardless of month length.
+    #
+    # The divisor is the calendar length of the month the period starts in, not
+    # the attendance record's total_days (which is user-entered and may hold
+    # working days) and not the period length (a cycle may span months).
+    days_in_month = Decimal(calendar.monthrange(cycle.period_start.year, cycle.period_start.month)[1])
+    rate_basic = money(Decimal(str(card.get("monthly_basic") or 0)) / days_in_month)
+    rate_da = money(Decimal(str(card.get("monthly_da") or 0)) / days_in_month)
+    rate_hra = money(Decimal(str(card.get("monthly_hra") or 0)) / days_in_month)
+    bonus_pct = Decimal(str(card.get("bonus_pct") or "0"))
+
+    att = await client.get_attendance(
+        http, token, employee_id, _month_str(cycle.period_start), client_id
+    )
+    warnings: list[str] = []
+    if att:
+        total_days = int(att["total_days"])
+        paid_days = Decimal(str(att["payable_days"]))
+    else:
+        total_days = period_days
+        paid_days = Decimal("0")
+        warnings.append("NO_ATTENDANCE")
+
+    basic = money(rate_basic * paid_days)
+    da = money(rate_da * paid_days)
+    hra = money(rate_hra * paid_days)
+    bonus = money((basic + da) * bonus_pct / Decimal("100"))
+    gross = money(basic + da + hra + bonus)
+    # Client wage-register convention, verified against every row of the
+    # source register: PF wages are gross minus HRA (i.e. Basic + DA + bonus)
+    # and ESI wages are gross minus bonus (i.e. Basic + DA + HRA).
+    pf_wage_base = money(basic + da + bonus)
+    esi_wage_base = money(basic + da + hra)
+
+    if paid_days > 0:
+        comp = await client.compute_compliance(
+            http,
+            token,
+            {
+                "employee_id": employee_id,
+                "cycle_id": str(cycle.id),
+                "client_id": str(cycle.client_id) if cycle.client_id else None,
+                "basic": str(pf_wage_base),
+                "monthly_gross": str(gross),
+                "esi_gross": str(esi_wage_base),
+                "state": emp.get("state") or "ALL",
+                "gender": emp.get("gender"),
+                "month": cycle.period_start.month,
+                # Enables the ESI contribution-period rule — essential for
+                # daily wagers whose gross fluctuates around the ceiling.
+                "year": cycle.period_start.year,
+                "ceiling_on": settings.pf_ceiling_enabled,
+            },
+            client_id,
+        )
+        employee_pf = money(comp["employee_pf"])
+        employee_esi = money(comp["employee_esi"])
+        pt_amount = money(comp["pt_amount"])
+        employee_lwf = money(comp.get("employee_lwf", 0))
+        employer_contrib = {
+            "employer_eps": str(money(comp["employer_eps"])),
+            "employer_epf": str(money(comp["employer_epf"])),
+            "employer_esi": str(money(comp["employer_esi"])),
+            "employer_lwf": str(money(comp.get("employer_lwf", 0))),
+        }
+    else:
+        # No paid days: nothing is earned, so no statutory deduction applies —
+        # including LWF, which is only charged against a month with wages.
+        employee_pf = employee_esi = pt_amount = employee_lwf = money(0)
+        employer_contrib = {
+            "employer_eps": "0.00", "employer_epf": "0.00", "employer_esi": "0.00",
+            "employer_lwf": "0.00",
+        }
+
+    # No income tax: tds-service is disconnected from the platform.
+    monthly_tds = money(0)
+    tds_trace: dict = {}
+
+    total_deductions = money(employee_pf + employee_esi + pt_amount + employee_lwf)
+    net_pay = money(gross - total_deductions)
+
+    attendance = {
+        "total_days": total_days,
+        "paid_days": str(paid_days),
+        "lop_days": "0",
+    }
+    if att:
+        attendance["present_days"] = str(att.get("present_days") or "0")
+        attendance["payable_days"] = str(att["payable_days"])
+
+    breakdown = {
+        "employee": _employee_block(emp),
+        "wage_type": "DAILY",
+        "daily_rates": {
+            "card_name": card.get("name"),
+            # Derived: monthly wage / days_in_month (see above).
+            "basic": str(rate_basic),
+            "da": str(rate_da),
+            "hra": str(rate_hra),
+            "bonus_pct": str(bonus_pct),
+            "days_in_month": str(days_in_month),
+            "monthly_basic": str(money(card.get("monthly_basic") or 0)),
+            "monthly_da": str(money(card.get("monthly_da") or 0)),
+            "monthly_hra": str(money(card.get("monthly_hra") or 0)),
+        },
+        "earnings": {
+            "basic": str(basic),
+            "da": str(da),
+            "hra": str(hra),
+            "bonus": str(bonus),
+            "gross": str(gross),
+        },
+        "deductions": {
+            "employee_pf": str(employee_pf),
+            "employee_esi": str(employee_esi),
+            "pt": str(pt_amount),
+            "lwf": str(employee_lwf),
+            "tds": str(monthly_tds),
+            "lop": "0.00",
+            "other": "0.00",
+        },
+        "employer_contrib": employer_contrib,
+        "attendance": attendance,
+        "tds_trace": tds_trace,
+        "net_pay": str(net_pay),
+    }
+    if warnings:
+        breakdown["warnings"] = warnings
+    return {
+        "gross": gross,
         "total_deductions": total_deductions,
         "net_pay": net_pay,
         "breakdown": breakdown,
@@ -196,9 +359,10 @@ async def _result_from_register_row(
     """Build a PayrollResult-shaped dict from one imported register row.
 
     "prefilled": the sheet's deduction/net figures are authoritative.
-    "compute": PF/ESI/PT/TDS and net pay are derived from the sheet's
-    earnings via compliance-service and tds-service — the same calls
-    run_cycle makes, minus the salary-service CTC lookup.
+    "compute": PF/ESI/PT and net pay are derived from the sheet's earnings
+    via compliance-service — the same calls run_cycle makes, minus the
+    salary-service CTC lookup. Income tax is not deducted (tds-service is
+    disconnected from the platform).
     """
     client_id = str(cycle.client_id) if cycle.client_id else None
     basic = money(row.basic)
@@ -222,10 +386,10 @@ async def _result_from_register_row(
                 "employee_id": emp["id"],
                 "cycle_id": str(cycle.id),
                 "client_id": client_id,
-                # PF wages are statutorily Basic + DA (bonus/HRA excluded).
-                "basic": str(money(basic + da)),
+                # Same register convention as the daily-wage path: PF wages are
+                # gross minus HRA, ESI wages are gross minus bonus.
+                "basic": str(money(basic + da + bonus)),
                 "monthly_gross": str(gross),
-                # ESI wages exclude the bonus head of the register's gross.
                 "esi_gross": str(money(gross - bonus)),
                 "state": emp.get("state") or "ALL",
                 "gender": emp.get("gender"),
@@ -237,30 +401,26 @@ async def _result_from_register_row(
         employee_pf = money(comp["employee_pf"])
         employee_esi = money(comp["employee_esi"])
         pt_amount = money(comp["pt_amount"])
-        tds = await client.compute_tds(
-            http,
-            token,
-            {
-                "employee_id": emp["id"],
-                "cycle_id": str(cycle.id),
-                "monthly_gross": str(gross),
-            },
-            client_id,
-        )
-        monthly_tds = money(tds["monthly_tds"])
-        tds_trace = tds.get("tax_trace", {})
+        employee_lwf = money(comp.get("employee_lwf", 0))
+        # No income tax: tds-service is disconnected from the platform.
+        monthly_tds = money(0)
         other = money(0)
-        total_deductions = money(employee_pf + employee_esi + pt_amount + monthly_tds)
+        total_deductions = money(employee_pf + employee_esi + pt_amount + employee_lwf)
         net_pay = money(gross - total_deductions)
         employer_contrib = {
             "employer_eps": str(money(comp["employer_eps"])),
             "employer_epf": str(money(comp["employer_epf"])),
             "employer_esi": str(money(comp["employer_esi"])),
+            "employer_lwf": str(money(comp.get("employer_lwf", 0))),
         }
     else:
         employee_pf = money(row.employee_pf)
         employee_esi = money(row.employee_esi)
         pt_amount = money(row.pt)
+        # Prefilled: the sheet's Total Ded is authoritative, so any LWF it
+        # includes falls into the "other" residual below rather than being
+        # computed separately.
+        employee_lwf = money(0)
         monthly_tds = money(0)
         total_deductions = money(row.total_deductions)
         net_pay = money(row.net_pay)
@@ -295,6 +455,7 @@ async def _result_from_register_row(
             "employee_pf": str(employee_pf),
             "employee_esi": str(employee_esi),
             "pt": str(pt_amount),
+            "lwf": str(employee_lwf),
             "tds": str(monthly_tds),
             "lop": "0",
             "other": str(other),

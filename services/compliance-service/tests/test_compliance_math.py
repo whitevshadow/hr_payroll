@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from app.logic import compute_esi, compute_pf, compute_pt
+from app.logic import compute_esi, compute_lwf, compute_pf, compute_pt
 
 
 def D(x):
@@ -78,3 +78,73 @@ def test_pt_without_gross_keeps_legacy_flat_amount():
     # Callers that don't send monthly_gross still get the top-slab amount.
     assert compute_pt("Maharashtra", 5, None)["pt_amount"] == D("200.00")
     assert compute_pt("UnknownState", 5, D("5000"))["pt_amount"] == D("200.00")
+
+
+def test_esi_covered_override_true_keeps_contributions_above_ceiling():
+    # Contribution-period lock: covered earlier in the period, wages have
+    # since crossed the ceiling — contributions must continue.
+    esi = compute_esi(D("25000"), covered_override=True)
+    assert esi["is_esi_eligible"] is True
+    assert esi["employee_esi"] == D("187.50")          # 25000 * 0.75%
+    assert esi["employer_esi"] == D("812.50")          # 25000 * 3.25%
+
+
+def test_esi_covered_override_false_blocks_contributions_below_ceiling():
+    esi = compute_esi(D("15000"), covered_override=False)
+    assert esi["is_esi_eligible"] is False
+    assert esi["employee_esi"] == D("0.00")
+
+
+def test_esi_covered_override_none_falls_back_to_threshold():
+    assert compute_esi(D("15000"), covered_override=None)["is_esi_eligible"] is True
+    assert compute_esi(D("25000"), covered_override=None)["is_esi_eligible"] is False
+
+
+def test_esi_period_start_month_boundaries():
+    from app.routes import _esi_period_start_month
+    assert _esi_period_start_month(2026, 4) == "2026-04"    # period opens
+    assert _esi_period_start_month(2026, 9) == "2026-04"    # period closes
+    assert _esi_period_start_month(2026, 10) == "2026-10"
+    assert _esi_period_start_month(2026, 12) == "2026-10"
+    assert _esi_period_start_month(2027, 1) == "2026-10"    # spans new year
+    assert _esi_period_start_month(2027, 3) == "2026-10"
+
+
+# ── MLWF (Maharashtra Labour Welfare Fund) ────────────────────────────────────
+
+def test_mlwf_only_charged_in_june_and_december():
+    # Half-yearly: nil in the other ten months.
+    for month in (1, 2, 3, 4, 5, 7, 8, 9, 10, 11):
+        r = compute_lwf("Maharashtra", month, D("15000"))
+        assert r["employee_lwf"] == D("0.00"), f"month {month} should be nil"
+    for month in (6, 12):
+        r = compute_lwf("Maharashtra", month, D("15000"))
+        assert r["employee_lwf"] == D("25.00"), f"month {month} should charge"
+
+
+def test_mlwf_is_flat_regardless_of_wage():
+    """The client's wage register charges every worker Rs 25 — the lowest paid
+    (Rs 4,448 gross) and the highest (Rs 14,824) alike, with no slab."""
+    for gross in ("4448", "7906", "12354", "14824", "50000"):
+        r = compute_lwf("Maharashtra", 6, D(gross))
+        assert r["employee_lwf"] == D("25.00"), f"gross {gross}"
+        assert r["employer_lwf"] == D("0.00")
+
+
+def test_mlwf_register_total_reconciles():
+    # Register total row: MLWF 175 across the 7 employees.
+    total = sum(compute_lwf("Maharashtra", 6, D(g))["employee_lwf"]
+                for g in ("7906", "12847", "13835", "13343", "12354", "14824", "4448"))
+    assert total == D("175.00")
+
+
+def test_mlwf_unknown_state_is_nil():
+    r = compute_lwf("Karnataka", 6, D("15000"))
+    assert r["employee_lwf"] == D("0.00")
+    assert r["employer_lwf"] == D("0.00")
+
+
+def test_mlwf_without_month_keeps_deterministic_amount():
+    # Legacy callers that pass no month still get a real figure, not silence.
+    r = compute_lwf("Maharashtra")
+    assert r["employee_lwf"] == D("25.00")

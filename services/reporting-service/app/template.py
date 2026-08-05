@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from html import escape
 
 from hr_shared import mask_bank_account as _mask_bank_account
@@ -83,8 +84,11 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
     attendance = breakdown.get("attendance", {})
 
     gross_earnings = earnings.get("gross", "0")
+    # Decimal, not float: summing the money strings as floats printed binary
+    # artifacts onto the PDF (e.g. "703.7800000000001").
     total_deductions = str(
-        sum(float(deductions.get(k, "0")) for k in deductions if k != "gross")
+        sum((Decimal(str(deductions.get(k, "0"))) for k in deductions if k != "gross"), Decimal("0"))
+        .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     )
     
     # Exclude gross from earnings for the breakdown
@@ -95,11 +99,30 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
         "Bonus": earnings.get("bonus", "0"),
         "Special Allowance": earnings.get("special_allowance", "0"),
     }
+
+    # Daily-rated payslips show the register-style "rate/day × paid days"
+    # against each per-day component.
+    if breakdown.get("wage_type") == "DAILY":
+        rates = breakdown.get("daily_rates", {})
+        paid_days = attendance.get("paid_days", "0")
+        # The day rate is derived per cycle (monthly wage / days in month), so
+        # show the divisor — it explains why the same wage gives a different
+        # rate in a 30- vs 31-day month.
+        dim = rates.get("days_in_month")
+        for label, rate_key in (("Basic", "basic"), ("DA", "da"), ("HRA", "hra")):
+            rate = rates.get(rate_key)
+            if rate and float(rate) > 0 and label in earning_rows:
+                suffix = f"₹{rate}/day × {paid_days} days"
+                if dim:
+                    suffix += f" (monthly ÷ {dim})"
+                earning_rows[f"{label} ({suffix})"] = earning_rows.pop(label)
     
     deduction_rows = {
         "Provident Fund (PF)": deductions.get("employee_pf", "0"),
         "ESI": deductions.get("employee_esi", "0"),
         "Professional Tax (PT)": deductions.get("pt", "0"),
+        # Half-yearly: present only in the state's contribution months.
+        "Labour Welfare Fund (LWF)": deductions.get("lwf", "0"),
         "TDS": deductions.get("tds", "0"),
         "Loss of Pay (LOP)": deductions.get("lop", "0"),
         "Other": deductions.get("other", "0"),
@@ -308,7 +331,7 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
       </tr>
       <tr>
         <td class="lbl">Total Days</td><td class="val">{_txt(attendance.get('total_days'))}</td>
-        <td class="lbl">Payable Days</td><td class="val">{_txt(attendance.get('payable_days'))} (LOP: {_txt(attendance.get('lop_days'), '0')})</td>
+        <td class="lbl">Payable Days</td><td class="val">{_txt(attendance.get('payable_days', attendance.get('paid_days')))} (LOP: {_txt(attendance.get('lop_days'), '0')})</td>
       </tr>
     </table>
   </div>

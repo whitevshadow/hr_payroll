@@ -127,17 +127,6 @@ async def compute_compliance(client, token: str, payload: dict, client_id: str |
     )
 
 
-async def compute_tds(client, token: str, payload: dict, client_id: str | None = None) -> dict:
-    return await _post(
-        client,
-        "tds-service",
-        f"{settings.tds_url}/api/v1/tds/compute",
-        token,
-        payload,
-        client_id,
-    )
-
-
 async def create_payout_batch(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,

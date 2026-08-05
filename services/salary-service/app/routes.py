@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from hr_shared import RequestContext, create_access_token
+from fastapi import APIRouter, Depends, HTTPException
+from hr_shared import RequestContext
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import logging
-import httpx
 
 from .deps import get_context, get_client_context, get_session, runtime
 from .logic import compute_breakdown
@@ -176,7 +174,6 @@ async def _build_structure(
 @router.post("/structures", response_model=StructureOut, status_code=201)
 async def create_structure(
     body: StructureCreate,
-    background_tasks: BackgroundTasks,
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
@@ -192,14 +189,12 @@ async def create_structure(
     await session.commit()
     await session.refresh(structure)
     out = await _to_out(structure)
-    background_tasks.add_task(_notify_tds, ctx, out)
     return out
 
 
 @router.post("/structures/bulk", response_model=StructureBulkCreateOut, status_code=201)
 async def create_structures_bulk(
     body: StructureBulkCreate,
-    background_tasks: BackgroundTasks,
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
@@ -224,7 +219,6 @@ async def create_structures_bulk(
         await session.refresh(structure)
         structure_out = await _to_out(structure)
         out.append(structure_out)
-        background_tasks.add_task(_notify_tds, ctx, structure_out)
 
     return StructureBulkCreateOut(total=len(body.structures), created=len(out), structures=out)
 
@@ -269,7 +263,6 @@ async def get_structure_history(
 async def revise_structure(
     structure_id: uuid.UUID,
     body: StructureRevise,
-    background_tasks: BackgroundTasks,
     ctx: RequestContext = Depends(get_client_context),
     session: AsyncSession = Depends(get_session),
 ):
@@ -289,54 +282,6 @@ async def revise_structure(
     await session.commit()
     await session.refresh(structure)
     out = await _to_out(structure)
-    background_tasks.add_task(_notify_tds, ctx, out)
     return out
 
 
-async def _notify_tds(ctx: RequestContext, structure_out: StructureOut) -> None:
-    """Notify TDS service of salary changes so it auto-computes tax.
-
-    This is a fire-and-forget call — if TDS is down, salary still succeeds.
-    """
-    logger = logging.getLogger(__name__)
-    bd = structure_out.breakdown
-    payload = {
-        "employee_id": str(structure_out.employee_id),
-        "ctc": str(structure_out.ctc),
-        "basic_monthly": str(bd.basic),
-        "hra_monthly": str(bd.hra),
-        "is_metro": bd.is_metro,
-    }
-    # The auto-compute endpoint requires a JWT bearer + x-client-id (it derives
-    # tenant from the verified token). A bare x-tenant-id/x-user-id header call
-    # was rejected with 401 and silently swallowed, so TDS was never populated.
-    # Mint a short-lived token carrying the caller's identity and forward the
-    # client scope.
-    token = create_access_token(
-        user_id=ctx.user_id,
-        tenant_id=ctx.tenant_id,
-        roles=ctx.roles,
-        secret=settings.jwt_secret,
-        algorithm=settings.jwt_algorithm,
-        minutes=5,
-        email=ctx.email,
-    )
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "x-client-id": str(ctx.client_id) if ctx.client_id else "",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.post(
-                f"{settings.tds_url}/api/v1/tds/auto-compute",
-                json=payload,
-                headers=headers,
-            )
-            if resp.status_code < 300:
-                logger.info(f"TDS auto-compute success for {structure_out.employee_id}")
-            else:
-                logger.warning(
-                    f"TDS auto-compute returned {resp.status_code} for {structure_out.employee_id}: {resp.text[:200]}"
-                )
-    except Exception as exc:
-        logger.warning(f"TDS auto-compute failed (non-blocking) for {structure_out.employee_id}: {exc}")

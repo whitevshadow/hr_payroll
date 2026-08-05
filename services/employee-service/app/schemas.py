@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 # ── Department Schemas ────────────────────────────────────────────────────────
@@ -92,6 +93,10 @@ class EmployeeBase(BaseModel):
     # V2 additions
     user_id: uuid.UUID | None = None
     reporting_manager_id: uuid.UUID | None = None
+    # Daily-wage configuration: DAILY employees are paid from a client-level
+    # rate card (see models.DailyRateCard).
+    wage_type: str = "MONTHLY"
+    daily_rate_card_id: uuid.UUID | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -107,6 +112,19 @@ class EmployeeBase(BaseModel):
     @classmethod
     def normalize_ifsc(cls, v: str | None) -> str | None:
         return v.strip().upper() if v else v
+
+    @field_validator("wage_type", mode="before")
+    @classmethod
+    def normalize_wage_type(cls, v: str | None) -> str | None:
+        return v.strip().upper() if isinstance(v, str) else v
+
+    @model_validator(mode="after")
+    def validate_daily_wage(self) -> "EmployeeBase":
+        if self.wage_type not in ("MONTHLY", "DAILY"):
+            raise ValueError("wage_type must be MONTHLY or DAILY")
+        if self.wage_type == "DAILY" and self.daily_rate_card_id is None:
+            raise ValueError("daily_rate_card_id is required for DAILY wage employees")
+        return self
 
 
 class EmployeeCreate(EmployeeBase):
@@ -140,6 +158,8 @@ class EmployeeUpdate(BaseModel):
     client_id: uuid.UUID | None = None
     user_id: uuid.UUID | None = None
     reporting_manager_id: uuid.UUID | None = None
+    wage_type: str | None = None
+    daily_rate_card_id: uuid.UUID | None = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -156,10 +176,53 @@ class EmployeeUpdate(BaseModel):
     def normalize_ifsc(cls, v: str | None) -> str | None:
         return v.strip().upper() if v else v
 
+    @field_validator("wage_type", mode="before")
+    @classmethod
+    def normalize_wage_type(cls, v: str | None) -> str | None:
+        return v.strip().upper() if isinstance(v, str) else v
+
+
+# ── Daily Rate Cards ──────────────────────────────────────────────────────────
+
+class DailyRateCardCreate(BaseModel):
+    client_id: uuid.UUID | None = None
+    name: str
+    monthly_basic: Decimal
+    monthly_da: Decimal = Decimal("0")
+    monthly_hra: Decimal = Decimal("0")
+    bonus_pct: Decimal = Decimal("0")
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def validate_rates(self) -> "DailyRateCardCreate":
+        if not self.name.strip():
+            raise ValueError("name is required")
+        if self.monthly_basic <= 0:
+            raise ValueError("monthly_basic must be > 0")
+        for f in ("monthly_da", "monthly_hra", "bonus_pct"):
+            if getattr(self, f) < 0:
+                raise ValueError(f"{f} cannot be negative")
+        return self
+
+
+class DailyRateCardOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    client_id: uuid.UUID | None = None
+    name: str
+    monthly_basic: Decimal
+    monthly_da: Decimal
+    monthly_hra: Decimal
+    bonus_pct: Decimal
+    is_active: bool = True
+
 
 class EmployeeOut(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
+    # Resolved from daily_rate_card_id so payroll gets rates without an
+    # extra service call.
+    daily_rate_card: DailyRateCardOut | None = None
 
 
 class EmployeePage(BaseModel):
@@ -185,6 +248,9 @@ class BulkImportRow(BaseModel):
     employment_type: str | None = None
     salary_structure: str | None = None   # template name
     basic_salary: float | None = None
+    # Daily-wage columns: wage_type "DAILY" + the client rate card's name
+    wage_type: str | None = None
+    rate_card: str | None = None
     # PII
     pan_number: str | None = None
     uan_number: str | None = None

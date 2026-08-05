@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from hr_shared import EncryptedString, TenantAwareBase
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -39,6 +40,31 @@ class Location(TenantAwareBase):
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 
+class DailyRateCard(TenantAwareBase):
+    """Client-level MONTHLY wage components, shared by every daily-rated
+    employee assigned to the card.
+
+    Monthly rather than per-day because that is the client's source figure:
+    their register derives the day rate as monthly / calendar days in that
+    month, so the same wage yields 9705/31 = 313.06 in May and 9705/30 =
+    323.50 in June. Storing a fixed per-day rate silently underpays or
+    overpays whenever the month length changes; storing the monthly amount
+    lets payroll re-derive the correct rate for each cycle. A full month's
+    attendance therefore always pays exactly the monthly wage."""
+    __tablename__ = "daily_rate_cards"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "client_id", "name", name="uq_rate_card_name"),
+    )
+
+    client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    monthly_basic: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    monthly_da: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    monthly_hra: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    bonus_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0)   # % of earned Basic+DA
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
 class Employee(TenantAwareBase):
     __tablename__ = "employees"
     __table_args__ = (
@@ -57,6 +83,15 @@ class Employee(TenantAwareBase):
     gender: Mapped[str | None] = mapped_column(String(10))
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     employment_type: Mapped[str | None] = mapped_column(String(30))  # FULL_TIME|PART_TIME|CONTRACT
+
+    # Daily-wage configuration. A DAILY employee is paid from a client-level
+    # DailyRateCard shared by every worker on that card; MONTHLY employees are
+    # paid from their SalaryStructure instead.
+    wage_type: Mapped[str] = mapped_column(String(10), default="MONTHLY")  # MONTHLY|DAILY
+    daily_rate_card_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("daily_rate_cards.id", ondelete="SET NULL"), nullable=True
+    )
+    daily_rate_card: Mapped[DailyRateCard | None] = relationship(lazy="selectin")
 
     # DPDP Act 2023 s.8(4): PII fields encrypted at rest via Fernet.
     pan_number: Mapped[str | None] = mapped_column(EncryptedString)

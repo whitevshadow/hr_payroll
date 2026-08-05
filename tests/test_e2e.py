@@ -113,7 +113,8 @@ def test_full_cycle():
     assert D(bd["earnings"]["hra"]) == D("20000.00")              # metro 50% of basic
     assert D(bd["deductions"]["employee_pf"]) == D("1800.00")     # 12% of 15000
     assert D(bd["deductions"]["employee_esi"]) == D("0.00")       # gross > 21000
-    assert D(bd["deductions"]["tds"]) == D("4550.00")
+    # Income tax is not deducted: tds-service is disconnected.
+    assert D(bd["deductions"]["tds"]) == D("0.00")
     assert D(bd["deductions"]["pt"]) in (D("200.00"), D("300.00"))
     assert D(bd["deductions"]["lop"]) == D("0.00")
 

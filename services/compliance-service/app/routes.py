@@ -27,6 +27,51 @@ from .schemas import (
 router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
 
 
+def _esi_period_start_month(year: int, month: int) -> str:
+    """First month ("YYYY-MM") of the ESI contribution period containing
+    (year, month): April–September → April of that year; October–March →
+    October (of the previous year for Jan–Mar)."""
+    if 4 <= month <= 9:
+        return f"{year:04d}-04"
+    if month >= 10:
+        return f"{year:04d}-10"
+    return f"{year - 1:04d}-10"
+
+
+async def _resolve_esi_coverage(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    body: ComputeRequest,
+    esi_wages: Decimal,
+    wage_limit: Decimal,
+) -> bool | None:
+    """Resolve ESI coverage for this wage month, or None when the request
+    carries no year (legacy month-by-month behaviour).
+
+    ESI Act s.2(9) proviso: an employee covered at any point of a contribution
+    period stays covered until the period ends, even once wages cross the
+    ceiling. That history already lives in esi_contributions, so coverage is
+    derived by asking whether any earlier month of the same period was
+    eligible — no separate lock state to keep in step. Recomputes are
+    self-correcting: /compute deletes this cycle's row before recomputing,
+    and earlier months are read as plain data.
+    """
+    if body.year is None:
+        return None
+    if esi_wages <= wage_limit:
+        return True
+    covered_earlier = await session.scalar(
+        select(ESIContribution.id).where(
+            ESIContribution.tenant_id == tenant_id,
+            ESIContribution.employee_id == body.employee_id,
+            ESIContribution.is_esi_eligible.is_(True),
+            ESIContribution.wage_month >= _esi_period_start_month(body.year, body.month),
+            ESIContribution.wage_month < f"{body.year:04d}-{body.month:02d}",
+        ).limit(1)
+    )
+    return covered_earlier is not None
+
+
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 @router.get("/settings", response_model=list[ComplianceSettingOut])
@@ -143,14 +188,22 @@ async def compute(
 
     esi = {}
     if settings_obj.esi_enabled:
+        esi_wages = Decimal(body.esi_gross if body.esi_gross is not None else body.monthly_gross)
+        covered = await _resolve_esi_coverage(
+            session, ctx.tenant_id, body, esi_wages, settings_obj.esi_wage_limit
+        )
         esi = compute_esi(
-            monthly_gross=body.esi_gross if body.esi_gross is not None else body.monthly_gross,
+            monthly_gross=esi_wages,
             employee_rate=settings_obj.esi_employee_rate,
             employer_rate=settings_obj.esi_employer_rate,
             threshold=settings_obj.esi_wage_limit,
+            covered_override=covered,
         )
-        session.add(ESIContribution(tenant_id=ctx.tenant_id, employee_id=body.employee_id,
-                                    cycle_id=body.cycle_id, **esi))
+        session.add(ESIContribution(
+            tenant_id=ctx.tenant_id, employee_id=body.employee_id, cycle_id=body.cycle_id,
+            wage_month=f"{body.year:04d}-{body.month:02d}" if body.year else None,
+            **esi,
+        ))
     else:
         esi = {"gross_wages": Decimal("0"), "is_esi_eligible": False, "employee_esi": Decimal("0"), "employer_esi": Decimal("0")}
 
@@ -164,9 +217,13 @@ async def compute(
 
     lwf = {}
     if settings_obj.lwf_enabled:
-        lwf = compute_lwf(body.state)
+        lwf = compute_lwf(body.state, body.month, body.monthly_gross)
         session.add(LWFContribution(tenant_id=ctx.tenant_id, employee_id=body.employee_id,
                                     cycle_id=body.cycle_id, **lwf))
+        # `state` is stored on the LWF row but must not reach ComputeResponse:
+        # compute_pt already supplies it, and spreading both raises
+        # "got multiple values for keyword argument 'state'".
+        lwf = {k: v for k, v in lwf.items() if k != "state"}
     else:
         lwf = {"employee_lwf": Decimal("0"), "employer_lwf": Decimal("0")}
 

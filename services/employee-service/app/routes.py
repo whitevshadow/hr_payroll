@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .deps import get_context, get_client_context, get_session, runtime
 from .models import (
+    DailyRateCard,
     Department,
     Employee,
     FinancialYear,
@@ -22,6 +23,8 @@ from .models import (
 from .schemas import (
     BulkImportRequest,
     BulkImportResult,
+    DailyRateCardCreate,
+    DailyRateCardOut,
     DepartmentCreate,
     DepartmentOut,
     EmployeeCreate,
@@ -173,6 +176,84 @@ async def update_department(
 
 # ── Employees ─────────────────────────────────────────────────────────────────
 
+# ── Daily Rate Cards ─────────────────────────────────────────────────────────
+
+@router.get("/rate-cards", response_model=list[DailyRateCardOut])
+async def list_rate_cards(
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+    include_inactive: bool = False,
+):
+    q = select(DailyRateCard).where(
+        DailyRateCard.tenant_id == ctx.tenant_id,
+        DailyRateCard.client_id == ctx.client_id,
+    )
+    if not include_inactive:
+        q = q.where(DailyRateCard.is_active.is_(True))
+    rows = await session.scalars(q.order_by(DailyRateCard.name))
+    return list(rows)
+
+
+@router.post("/rate-cards", response_model=DailyRateCardOut, status_code=201)
+async def create_rate_card(
+    body: DailyRateCardCreate,
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    dup = await session.scalar(
+        select(DailyRateCard).where(
+            DailyRateCard.tenant_id == ctx.tenant_id,
+            DailyRateCard.client_id == ctx.client_id,
+            DailyRateCard.name == body.name.strip(),
+        )
+    )
+    if dup:
+        raise HTTPException(status_code=409, detail="A rate card with this name already exists")
+    card = DailyRateCard(
+        tenant_id=ctx.tenant_id,
+        client_id=ctx.client_id,
+        name=body.name.strip(),
+        monthly_basic=body.monthly_basic,
+        monthly_da=body.monthly_da,
+        monthly_hra=body.monthly_hra,
+        bonus_pct=body.bonus_pct,
+        is_active=body.is_active,
+    )
+    session.add(card)
+    await audit_log(session, tenant_id=ctx.tenant_id, event_type="RATE_CARD_CREATED",
+                    entity_type="daily_rate_card", entity_id=body.name.strip(),
+                    payload={"name": body.name.strip(), "monthly_basic": str(body.monthly_basic)},
+                    actor_id=ctx.user_id)
+    await session.commit()
+    await session.refresh(card)
+    return card
+
+
+@router.patch("/rate-cards/{card_id}", response_model=DailyRateCardOut)
+async def update_rate_card(
+    card_id: uuid.UUID,
+    body: DailyRateCardCreate,
+    ctx: RequestContext = Depends(_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    card = await session.get(DailyRateCard, card_id)
+    if not card or card.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="Rate card not found")
+    card.name = body.name.strip()
+    card.monthly_basic = body.monthly_basic
+    card.monthly_da = body.monthly_da
+    card.monthly_hra = body.monthly_hra
+    card.bonus_pct = body.bonus_pct
+    card.is_active = body.is_active
+    await audit_log(session, tenant_id=ctx.tenant_id, event_type="RATE_CARD_UPDATED",
+                    entity_type="daily_rate_card", entity_id=str(card_id),
+                    payload={"name": card.name, "monthly_basic": str(card.monthly_basic)},
+                    actor_id=ctx.user_id)
+    await session.commit()
+    await session.refresh(card)
+    return card
+
+
 @router.post("/employees/bulk-import", response_model=BulkImportResult, status_code=200)
 async def bulk_import_employees(
     body: BulkImportRequest,
@@ -236,6 +317,16 @@ async def bulk_import_employees(
     loc_rows = await session.scalars(select(Location).where(Location.tenant_id == ctx.tenant_id, Location.client_id == ctx.client_id))
     loc_map: dict[str, Location] = {l.location_name.lower(): l for l in loc_rows}
 
+    # 3b. Pre-load daily rate cards (for wage_type DAILY rows)
+    card_rows = await session.scalars(
+        select(DailyRateCard).where(
+            DailyRateCard.tenant_id == ctx.tenant_id,
+            DailyRateCard.client_id == ctx.client_id,
+            DailyRateCard.is_active.is_(True),
+        )
+    )
+    card_map: dict[str, DailyRateCard] = {c.name.lower(): c for c in card_rows}
+
     # 4. Per-row validation
     results: list[RowResult] = []
     seen_codes: set[str] = set()
@@ -286,6 +377,16 @@ async def bulk_import_employees(
         row = row.model_copy(update={"aadhaar_number": aadhaar_clean})
         if row.basic_salary is not None and row.basic_salary <= 0:
             results.append(_err(idx, row, "Basic Salary must be positive")); continue
+        wage_type = (row.wage_type or "MONTHLY").strip().upper()
+        if wage_type not in ("MONTHLY", "DAILY"):
+            results.append(_err(idx, row, f"Invalid wage_type: {row.wage_type} (MONTHLY or DAILY)")); continue
+        rate_card_id = None
+        if wage_type == "DAILY":
+            card = card_map.get((row.rate_card or "").strip().lower())
+            if not card:
+                results.append(_err(idx, row, f"Rate Card not found for this client: \"{row.rate_card or ''}\"")); continue
+            rate_card_id = card.id
+        row = row.model_copy(update={"wage_type": wage_type})
         if code and code.lower() in existing_codes:
             emp_id = existing_codes[code.lower()]
             results.append(RowResult(row_index=idx, emp_code=code, name=f"{fname} {lname}",
@@ -317,7 +418,8 @@ async def bulk_import_employees(
         seen_codes.add(code.lower())
         if email:
             seen_emails.add(email)
-        pending_emps.append({"idx": idx, "row": row, "code": code, "fname": fname, "lname": lname, "email": email})
+        pending_emps.append({"idx": idx, "row": row, "code": code, "fname": fname, "lname": lname,
+                             "email": email, "rate_card_id": rate_card_id})
 
     # 5. Auto-create missing departments
     needed_depts: set[str] = set()
@@ -366,6 +468,8 @@ async def bulk_import_employees(
                 branch=row.branch,
                 joining_date=row.joining_date,
                 status="ACTIVE",
+                wage_type=row.wage_type or "MONTHLY",
+                daily_rate_card_id=p["rate_card_id"],
             )
             session.add(emp)
             await session.flush()
