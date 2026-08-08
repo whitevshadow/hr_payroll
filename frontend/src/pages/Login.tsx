@@ -12,8 +12,12 @@ import { Zap, Mail, Lock, Building2, AlertCircle, ArrowRight } from "lucide-reac
 export function Login() {
   const { isAuthenticated } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("admin@demo.com");
-  const [password, setPassword] = useState("Admin@123");
+  // Empty, not the seed script's demo credentials: pre-filling them means a
+  // real deployment's login box already contains a password, and editing only
+  // the email submits the stale one — which fails as "Invalid email or
+  // password" with no hint that the password field was never actually changed.
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
