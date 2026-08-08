@@ -39,22 +39,27 @@ async def register(
     body: RegisterRequest, session: AsyncSession = Depends(get_session)
 ) -> TokenResponse:
     """Bootstrap a tenant + its first admin user."""
+    email = body.email.lower()
+
+    # Scan every tenant, and do it before the tenant row is created. This check
+    # previously filtered on the freshly generated tenant_id, which by
+    # construction has no rows, so it never fired: a repeat registration
+    # silently created a second tenant for the same address. login() rejects an
+    # email that resolves to more than one tenant rather than matching an
+    # arbitrary row, so that second registration locked the address out of
+    # password login permanently.
+    existing = await session.scalar(select(User).where(User.email == email))
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
     # A tenant row is scoped to itself: tenant_id == its own id.
     tenant_id = uuid.uuid4()
     tenant = Tenant(id=tenant_id, tenant_id=tenant_id, name=body.tenant_name)
     session.add(tenant)
 
-    existing = await session.scalar(
-        select(User).where(
-            User.tenant_id == tenant_id, User.email == body.email.lower()
-        )
-    )
-    if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
-
     user = User(
         tenant_id=tenant_id,
-        email=body.email.lower(),
+        email=email,
         password_hash=hash_password(body.password),
         is_active=True,
     )
