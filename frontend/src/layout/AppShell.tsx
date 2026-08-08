@@ -27,6 +27,7 @@ import {
   Sun,
   Search,
   LogOut,
+  KeyRound,
   Zap,
   CheckCircle2,
   X,
@@ -427,6 +428,15 @@ function Sidebar({
                 <span className="sidebar-role-badge">{role}</span>
               </div>
             </div>
+            {/* Account (change password) */}
+            <motion.button
+              onClick={() => nav("/account")}
+              className="sidebar-icon-btn opacity-0 group-hover:opacity-100 text-slate-400 hover:text-accent-500 dark:hover:text-accent-400"
+              whileHover={{ scale: 1.1 }}
+              title="Account & password"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+            </motion.button>
             {/* Logout */}
             <motion.button
               onClick={handleLogout}

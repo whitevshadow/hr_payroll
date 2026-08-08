@@ -24,6 +24,21 @@ class LoginRequest(BaseModel):
     tenant_id: uuid.UUID | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    """Rotate your own password. Proving the current one stops a borrowed
+    session (an unlocked laptop, a stolen token) from locking the owner out."""
+
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class SetPasswordRequest(BaseModel):
+    """Admin reset of another user's password — no current password needed,
+    since the point is that nobody knows it."""
+
+    new_password: str = Field(min_length=8)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -28,6 +28,7 @@ import { Clients } from "./pages/Clients";
 import { FinancialYears } from "./pages/FinancialYears";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { AdminPayslips } from "./pages/AdminPayslips";
+import { Account } from "./pages/Account";
 
 function Shell({ children }: { children: React.ReactElement }) {
   const location = useLocation();
@@ -104,6 +105,9 @@ export default function App() {
 
       {/* Payslip View (accessible to authenticated users) */}
       <Route path="/payslips/:cycleId/:employeeId" element={<Shell><Payslip /></Shell>} />
+
+      {/* Every signed-in user manages their own password, whatever their role. */}
+      <Route path="/account" element={<Shell><Account /></Shell>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

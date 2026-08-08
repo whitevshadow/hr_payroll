@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from hr_shared import RequestContext, create_access_token
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
@@ -10,7 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .deps import get_context, get_session
 from .models import Role, Tenant, User
-from .schemas import LoginRequest, MeResponse, RegisterRequest, TokenResponse
+from .schemas import (
+    ChangePasswordRequest,
+    LoginRequest,
+    MeResponse,
+    RegisterRequest,
+    SetPasswordRequest,
+    TokenResponse,
+)
 from .security import hash_password, verify_password
 from .settings import settings
 
@@ -127,6 +134,58 @@ async def me(
         email=user.email,
         roles=[r.role_name for r in user.roles],
     )
+
+
+@router.post("/users/me/password", status_code=204)
+async def change_own_password(
+    body: ChangePasswordRequest,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Change your own password, proving the current one first.
+
+    Note the token caveat: JWTs here are stateless and carry no revocation
+    list, so sessions issued before the change keep working until they expire
+    (ACCESS_TOKEN_MINUTES). Changing the password stops *new* logins with the
+    old one; it does not boot out an existing session.
+    """
+    user = await session.get(User, ctx.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(body.current_password, user.password_hash):
+        # Same wording as login: never confirm which half was wrong.
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if verify_password(body.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=422, detail="New password must differ from the current one"
+        )
+    user.password_hash = hash_password(body.new_password)
+    await session.commit()
+    return Response(status_code=204)
+
+
+@router.post("/users/{user_id}/password", status_code=204)
+async def admin_set_password(
+    user_id: uuid.UUID,
+    body: SetPasswordRequest,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Admin-only reset of another user's password within the caller's tenant.
+
+    The recovery path when someone is locked out — previously the only remedy
+    was creating a replacement user, because nothing could rewrite a hash.
+    """
+    if not any(r in ADMIN_ROLES for r in ctx.roles):
+        raise HTTPException(status_code=403, detail="Requires admin role")
+    user = await session.get(User, user_id)
+    # Tenant check folded into the 404 so an admin cannot probe for user ids
+    # belonging to other tenants.
+    if not user or user.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password_hash = hash_password(body.new_password)
+    await session.commit()
+    return Response(status_code=204)
 
 
 class CreateUserRequest(BaseModel):
