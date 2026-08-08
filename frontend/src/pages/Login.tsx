@@ -7,7 +7,35 @@ import api from "../lib/api";
 import { setToken } from "../lib/auth";
 import { queryClient } from "../lib/queryClient";
 import { ME_QUERY_KEY } from "../lib/auth";
-import { Zap, Mail, Lock, Building2, AlertCircle, ArrowRight } from "lucide-react";
+import { Zap, Mail, Lock, Building2, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+
+/** Turn a failed sign-in into something the user can act on.
+ *
+ * The API answers a bad email and a bad password with the same 401 on purpose
+ * (see auth-service routes.login): distinguishing them would let anyone test
+ * which addresses have accounts here. So the credentials case stays deliberately
+ * vague, and the cases that *are* safe to name — a disabled account, a network
+ * failure, a server fault — get told apart instead. */
+function describeLoginError(err: unknown): string {
+  const e = err as any;
+  if (e?.code === "ERR_NETWORK" || !e?.response) {
+    return "Couldn't reach the server. Check your connection and try again.";
+  }
+  const status = e.response.status as number;
+  const detail = extractErrorMessage(err);
+  if (status === 401) {
+    return "That email and password don't match. Check both and try again.";
+  }
+  if (status === 403) {
+    return /disabled/i.test(detail)
+      ? "This account has been disabled. Ask your administrator to re-enable it."
+      : detail;
+  }
+  if (status === 422) return "Enter a valid email address and your password.";
+  if (status === 429) return "Too many attempts. Wait a moment and try again.";
+  if (status >= 500) return "The server hit a problem. Try again in a moment.";
+  return detail || "Sign in failed. Try again.";
+}
 
 export function Login() {
   const { isAuthenticated } = useAuth();
@@ -20,24 +48,45 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const [touched, setTouched] = useState(false);
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
+  const emailInvalid = touched && !/^\S+@\S+\.\S+$/.test(email.trim());
+  const passwordMissing = touched && password.length === 0;
+  // Pasting a credential very easily picks up a surrounding space. The server
+  // compares the password byte-for-byte, so this reads as "wrong password" with
+  // nothing on screen to show why.
+  const padded = password !== password.trim() && password.trim().length > 0;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
+    setTouched(true);
     setError("");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim()) || password.length === 0) return;
+
+    setBusy(true);
     try {
-      const { data } = await api.post<{ access_token: string }>("/auth/login", { email, password });
+      const { data } = await api.post<{ access_token: string }>("/auth/login", {
+        email: email.trim(),
+        password,
+      });
       setToken(data.access_token);
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       nav("/");
     } catch (err) {
-      const msg = extractErrorMessage(err);
-      setError(msg === "Invalid credentials" ? "Invalid email or password." : msg);
+      setError(describeLoginError(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Caps Lock is the single most common reason a correct password is typed
+   *  wrong, and the masked field gives no clue. Read it off any key event. */
+  function trackCapsLock(e: React.KeyboardEvent<HTMLInputElement>) {
+    setCapsLock(e.getModifierState?.("CapsLock") ?? false);
   }
 
   return (
@@ -137,9 +186,16 @@ export function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                   placeholder="you@company.com"
-                  required
+                  autoFocus
+                  aria-invalid={emailInvalid}
+                  aria-describedby={emailInvalid ? "email-error" : undefined}
                 />
               </div>
+              {emailInvalid && (
+                <p id="email-error" className="mt-1.5 text-xs text-danger">
+                  {email.trim() ? "That doesn't look like an email address." : "Enter your email address."}
+                </p>
+              )}
             </div>
 
             <div>
@@ -148,15 +204,47 @@ export function Login() {
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   id="password"
-                  className="input pl-9"
-                  type="password"
+                  className="input pl-9 pr-11"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyUp={trackCapsLock}
+                  onKeyDown={trackCapsLock}
+                  onBlur={() => setCapsLock(false)}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  required
+                  aria-invalid={passwordMissing}
+                  aria-describedby={passwordMissing ? "password-error" : undefined}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+
+              {passwordMissing && (
+                <p id="password-error" className="mt-1.5 text-xs text-danger">
+                  Enter your password.
+                </p>
+              )}
+              {capsLock && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-warning-dark dark:text-warning">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Caps Lock is on.
+                </p>
+              )}
+              {padded && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-warning-dark dark:text-warning">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Your password starts or ends with a space — check it pasted cleanly.
+                </p>
+              )}
             </div>
 
             {error && (
