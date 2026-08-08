@@ -4,15 +4,21 @@ FROM python:3.11-slim
 
 ARG SERVICE
 ARG PORT=4000
+
+# PIP_* settings: `docker compose build` builds every service at once, so a
+# deploy opens a dozen concurrent PyPI download streams. pip's defaults (5
+# retries, 15s timeout) give up easily under that load and fail the whole
+# deployment on a transient read timeout. Coolify rebuilds with --no-cache, so
+# there is no layer cache to fall back on and every deploy re-runs these.
+#
+# Keep every comment ABOVE this instruction, never inside the line
+# continuation. Deploy platforms (Coolify among them) rewrite this file with
+# line-based parsers to inject ARG and --mount=type=secret directives, and a
+# comment between continued lines is what those parsers trip over.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     SERVICE=${SERVICE} \
     PORT=${PORT} \
-    # `docker compose build` builds every service at once, so a deploy opens a
-    # dozen concurrent PyPI download streams. pip's defaults (5 retries, 15s
-    # timeout) give up easily under that load and fail the whole deployment on
-    # a transient read timeout. Coolify rebuilds with --no-cache, so there is
-    # no layer cache to fall back on and every deploy re-runs these installs.
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_RETRIES=10 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
