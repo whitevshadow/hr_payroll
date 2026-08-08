@@ -42,9 +42,12 @@ services:
     environment:
       <<: *common-env
       DB_SCHEMA: auth_schema
-      # Optional first-run admin. Unset (the default) => no account is created
-      # and you register the first tenant through the UI. See .env.example.
-      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      # First-run admin, created on an empty database so every deployment has a
+      # way in with no configuration. Leaving the password unset generates a
+      # strong one and prints it to this service's log on the boot that creates
+      # the account — a fixed password here would be a published credential,
+      # since this repository is public. See .env.example.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       BOOTSTRAP_ADMIN_TENANT: ${BOOTSTRAP_ADMIN_TENANT:-Default Organization}
       # Public signup. Closed once the first tenant exists; set true for SaaS.
