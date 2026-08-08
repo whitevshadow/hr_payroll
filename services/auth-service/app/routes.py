@@ -248,6 +248,72 @@ async def list_users(
     ]
 
 
+async def _another_active_admin_exists(
+    session: AsyncSession, tenant_id: uuid.UUID, excluding_user_id: uuid.UUID
+) -> bool:
+    """Is there still an active admin in this tenant besides ``excluding_user_id``?
+
+    Guards the one-way door. With public registration closed and user creation
+    itself admin-only, a tenant that loses its last admin cannot be recovered
+    through the API at all — it needs direct database access, which a managed
+    deployment may simply not have.
+    """
+    rows = await session.scalars(
+        select(User).where(
+            User.tenant_id == tenant_id,
+            User.id != excluding_user_id,
+            User.is_active.is_(True),
+        )
+    )
+    return any(
+        any(r.role_name in ADMIN_ROLES for r in u.roles) for u in rows
+    )
+
+
+class UpdateRolesRequest(BaseModel):
+    roles: list[str]
+
+
+@router.put("/users/{user_id}/roles")
+async def update_user_roles(
+    user_id: uuid.UUID,
+    body: UpdateRolesRequest,
+    ctx: RequestContext = Depends(get_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Admin-only: replace a user's roles within the caller's tenant."""
+    if not any(r in ADMIN_ROLES for r in ctx.roles):
+        raise HTTPException(status_code=403, detail="Requires admin role")
+    bad = [r for r in body.roles if r not in VALID_ROLES]
+    if bad:
+        raise HTTPException(status_code=422, detail=f"Invalid roles: {bad}")
+    if not body.roles:
+        raise HTTPException(status_code=422, detail="A user needs at least one role")
+
+    user = await session.get(User, user_id)
+    if not user or user.tenant_id != ctx.tenant_id:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    losing_admin = any(
+        r.role_name in ADMIN_ROLES for r in user.roles
+    ) and not any(r in ADMIN_ROLES for r in body.roles)
+    if losing_admin and not await _another_active_admin_exists(
+        session, ctx.tenant_id, user_id
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This is the last admin — grant another user an admin role first.",
+        )
+
+    for existing_role in list(user.roles):
+        await session.delete(existing_role)
+    await session.flush()
+    for role_name in body.roles:
+        session.add(Role(tenant_id=ctx.tenant_id, user_id=user.id, role_name=role_name))
+    await session.commit()
+    return {"user_id": str(user.id), "email": user.email, "roles": body.roles}
+
+
 @router.delete("/users/{user_id}")
 async def deactivate_user(
     user_id: uuid.UUID,
@@ -259,6 +325,13 @@ async def deactivate_user(
     user = await session.get(User, user_id)
     if not user or user.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="User not found")
+    if any(r.role_name in ADMIN_ROLES for r in user.roles) and not (
+        await _another_active_admin_exists(session, ctx.tenant_id, user_id)
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This is the last admin — grant another user an admin role first.",
+        )
     user.is_active = False
     await session.commit()
     return {"detail": "User deactivated"}

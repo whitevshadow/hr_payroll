@@ -29,6 +29,7 @@ import { FinancialYears } from "./pages/FinancialYears";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { AdminPayslips } from "./pages/AdminPayslips";
 import { Account } from "./pages/Account";
+import { Settings } from "./pages/Settings";
 
 function Shell({ children }: { children: React.ReactElement }) {
   const location = useLocation();
@@ -108,6 +109,10 @@ export default function App() {
 
       {/* Every signed-in user manages their own password, whatever their role. */}
       <Route path="/account" element={<Shell><Account /></Shell>} />
+
+      {/* User + role administration. The page renders its own 403 for
+          non-admins, and auth-service enforces the same check server-side. */}
+      <Route path="/settings" element={<Shell><Settings /></Shell>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

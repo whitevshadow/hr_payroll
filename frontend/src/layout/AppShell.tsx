@@ -149,6 +149,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Admin",
     items: [
       { to: "/audit", label: "Audit Log",   icon: ClipboardList, adminOnly: true },
+      { to: "/settings", label: "Users & Roles", icon: ShieldCheck, adminOnly: true },
     ],
   },
 ];
@@ -965,6 +966,8 @@ function TopBar({
     "/statutory-portals": "Statutory Filings",
     "/reports":     "Reports",
     "/audit":       "Audit Log",
+    "/settings":    "Users & Roles",
+    "/account":     "Account",
     "/clients":     "Clients",
     "/leave":       "Leave Policies",
     "/leave-management": "Leave Management",
