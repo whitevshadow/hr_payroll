@@ -296,12 +296,12 @@ export function Settings() {
             </div>
           )}
         </div>
-        <ModalFooter>
-          <button className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-          <button className="btn" onClick={() => createMut.mutate()} disabled={createMut.isPending}>
-            {createMut.isPending ? "Creating…" : "Create user"}
-          </button>
-        </ModalFooter>
+        <ModalFooter
+          onClose={() => setCreating(false)}
+          onSave={() => createMut.mutate()}
+          saving={createMut.isPending}
+          saveLabel="Create user"
+        />
       </Modal>
 
       {/* ── Edit roles ──────────────────────────────────────────────────── */}
@@ -319,12 +319,13 @@ export function Settings() {
             </div>
           )}
         </div>
-        <ModalFooter>
-          <button className="btn-ghost" onClick={() => setEditingRoles(null)}>Cancel</button>
-          <button className="btn" onClick={() => rolesMut.mutate()} disabled={rolesMut.isPending}>
-            {rolesMut.isPending ? "Saving…" : "Save roles"}
-          </button>
-        </ModalFooter>
+        <ModalFooter
+          onClose={() => setEditingRoles(null)}
+          onSave={() => rolesMut.mutate()}
+          saving={rolesMut.isPending}
+          saveLabel="Save roles"
+          disabled={draftRoles.length === 0}
+        />
       </Modal>
 
       {/* ── Reset password ──────────────────────────────────────────────── */}
@@ -346,12 +347,13 @@ export function Settings() {
             </div>
           )}
         </div>
-        <ModalFooter>
-          <button className="btn-ghost" onClick={() => setResetting(null)}>Cancel</button>
-          <button className="btn" onClick={() => resetMut.mutate()} disabled={resetMut.isPending}>
-            {resetMut.isPending ? "Saving…" : "Set password"}
-          </button>
-        </ModalFooter>
+        <ModalFooter
+          onClose={() => setResetting(null)}
+          onSave={() => resetMut.mutate()}
+          saving={resetMut.isPending}
+          saveLabel="Set password"
+          disabled={resetPw.length < MIN_PASSWORD}
+        />
       </Modal>
     </div>
   );
