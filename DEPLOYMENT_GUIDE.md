@@ -16,6 +16,7 @@
 7. [Troubleshooting Connectivity Problems](#7-troubleshooting-connectivity-problems)
 8. [Updating / Redeploying After a Code Change](#8-updating--redeploying-after-a-code-change)
 9. [Scaling Beyond One Server](#9-scaling-beyond-one-server)
+10. [Deploying on Coolify](#10-deploying-on-coolify)
 
 ---
 
@@ -317,3 +318,142 @@ here so it's not a surprise):
 
 None of this is needed to get the app running correctly for real users on one reasonably-sized
 server — it's only relevant once traffic/load genuinely outgrows that.
+
+---
+
+## 10. Deploying on Coolify
+
+The stack deploys on [Coolify](https://coolify.io) (v4.1.x) as-is using its **Docker Compose**
+buildpack — no separate Coolify-specific compose file is needed. A few things are easy to get wrong
+because Coolify layers its own env-var handling, domain routing, and healthcheck rollup on top of
+plain `docker compose`, and this project's compose file leans on patterns (bind-mounted init SQL,
+a one-shot provisioning job, `${VAR:?message}` required-var syntax) that interact with those layers
+in non-obvious ways.
+
+### 10.1 Application settings
+
+| Field | Value |
+|---|---|
+| **Build Pack** | Docker Compose |
+| **Base Directory** | `/` |
+| **Docker Compose Location** | `/docker-compose.yml` |
+| **Preserve Repository During Deployment** | **On.** `postgres` bind-mounts `./scripts/init-db.sql` from the checked-out repo (`docker-compose.yml`'s `volumes:` entry) — it isn't baked into an image. If Coolify prunes the source checkout after building images (its default for buildpacks that don't need the tree at runtime), that bind-mount source disappears and Docker silently creates an empty directory at that path instead of the file, which quietly breaks database init. Leave this on so the file exists when Postgres starts. |
+
+### 10.2 Required environment variables
+
+Set these under the application's **Environment Variables** tab — they mirror `.env.example` and are
+consumed by `docker-compose.yml`'s `${VAR:?...}` interpolations:
+
+- `JWT_SECRET`, `FIELD_ENCRYPTION_KEY` — generate with the commands at the top of `.env.example`.
+- `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — MinIO root credentials, used only by `minio` and
+  `minio-init`.
+- `MINIO_SERVICE_ACCESS_KEY`, `MINIO_SERVICE_SECRET_KEY` — the least-privilege service account
+  `minio-init` provisions; this is what `blobstore-service` actually authenticates with.
+- `MINIO_PUBLIC_ENDPOINT` — set to your real domain + port (no scheme, e.g.
+  `objects.yourdomain.com:443`) once you're off `localhost`; presigned URLs embed this verbatim.
+- `MINIO_CORS_ALLOW_ORIGIN` — set to the frontend's real origin if it differs from
+  `http://localhost:4050`.
+
+`POSTGRES_USER` / `POSTGRES_PASSWORD` / `DATABASE_URL` do **not** need to be set here — they're
+hardcoded in `docker-compose.yml` (see the §6 checklist item about keeping them in sync if you ever
+change them).
+
+**Optional, and what makes the deployment immediately usable** — the first-run admin account:
+
+- `BOOTSTRAP_ADMIN_EMAIL` — must be a real, valid address. Reserved domains (`.local`, `.internal`,
+  `.test`) are **rejected**: the login endpoint validates with pydantic's `EmailStr`, so an address it
+  won't accept would produce an account that exists but can never sign in. Use something like
+  `admin@yourcompany.com`.
+- `BOOTSTRAP_ADMIN_PASSWORD` — minimum 8 characters. Pick your own; there is deliberately no default.
+- `BOOTSTRAP_ADMIN_TENANT` — optional display name for the organization (defaults to
+  `Default Organization`).
+
+With both the email and the password set, `auth-service` creates that tenant and admin on startup —
+granted `ORG_ADMIN`, `HR_MANAGER`, and `PAYROLL_ADMIN` — so you can log in at the frontend domain the
+moment the deploy finishes, with no `scripts/seed.py` step. See [§10.5](#105-the-first-run-admin-account)
+for the details and caveats.
+
+Coolify's "Show Deployable Compose" preview can render unset `${VAR:?message}` interpolations
+oddly (showing the error message as a literal value, or leaving the raw `${...}` syntax
+unresolved) — that's a quirk of Coolify's preview renderer, not what actually reaches the
+containers. What matters is that all six variables above are actually populated in the
+Environment Variables tab before deploying; if any are missing, the affected service fails
+pydantic validation at boot and the container exits immediately.
+
+### 10.3 Domains
+
+Generate a domain for **`frontend`** only — that's the sole public entrypoint (nginx proxies
+`/api/` to `gateway` internally over the compose network; see §2). Optionally generate one for
+**`gateway`** too if you need direct API access from outside the app. Leave every other
+service — `postgres`, `minio`, `minio-init`, and all 11 backend services — without a generated
+domain. They're intentionally not published to the host in plain `docker compose` either (§3); routing
+Coolify's proxy to them adds attack surface for no benefit and most don't expose anything meaningful
+for HTTP routing anyway.
+
+If you do put `frontend` and `gateway` on separate domains instead of the default same-origin nginx
+proxy, follow the cross-domain steps in [§6](#6-production-hardening-checklist): add the real origin to
+`CORSMiddleware` in `services/gateway/app/main.py`, rebuild the frontend with
+`VITE_API_BASE=https://your-gateway-domain/api/v1`, and update `MINIO_CORS_ALLOW_ORIGIN`.
+
+### 10.4 The `minio-init` container is *supposed* to exit
+
+`minio-init` is a one-shot job (`restart: "no"` in `docker-compose.yml`) that provisions the
+blobstore's IAM user and then exits 0. That's correct, expected behavior, not a crash — but Coolify's
+per-application healthcheck rollup has historically (see
+[coollabsio/coolify#6591](https://github.com/coollabsio/coolify/issues/6591)) reported the *whole*
+application as "Exited" the moment a one-shot container like this completes, even though every other
+service is still running fine. If you see the top-level status flip to "Exited" right after a
+successful deploy, check `docker compose ps` (or the per-container status in Coolify's Deployments
+tab) before assuming the deploy failed — if `minio-init` shows `Exited (0)` and everything else shows
+`Up`/`healthy`, the deploy is fine.
+
+Coolify supports a service-level `exclude_from_hc: true` key to exclude a one-shot job like this from
+the rollup, but it's a Coolify-only extension that plain `docker compose` rejects outright (it's not
+part of the Compose Spec) — adding it to the git-tracked `docker-compose.yml` would break the
+`docker compose up -d --build` workflow described in [§1](#1-tldr) for anyone deploying without
+Coolify. If the "Exited" rollup bothers you, add `exclude_from_hc: true` under `minio-init` in
+Coolify's own **Docker Compose Content (raw)** editor in the dashboard instead — that edit lives only
+in Coolify's copy of the compose file, not in the repo.
+
+### 10.5 The first-run admin account
+
+`scripts/seed.py` (§4.4) creates a demo admin with the publicly-known password `Admin@123`, and it
+has to be run from a host that can reach the gateway — awkward on Coolify, and not something you want
+pointed at a production deployment. Instead, `auth-service` provisions the initial admin itself at
+startup from the two environment variables in [§10.2](#102-required-environment-variables).
+
+How it behaves:
+
+- **Opt-in.** With `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` unset, nothing is created and
+  you register the first tenant through the UI exactly as before. Local `docker compose up` is
+  unaffected.
+- **Idempotent.** It checks for the address across *every* tenant before inserting, so redeploys and
+  container restarts don't create duplicates. This matters more than it looks: `login` rejects an
+  email that resolves to more than one tenant (see `services/auth-service/app/routes.py`), so a
+  duplicate would lock that address out permanently rather than just being untidy.
+- **Not a password reset.** Changing `BOOTSTRAP_ADMIN_PASSWORD` later does *not* rotate the existing
+  account's password — the account already exists, so provisioning is skipped. Rotate through the app,
+  or delete the user first.
+- **Never fatal.** A bad value is logged and skipped rather than crashing `auth-service`, because a
+  container that won't boot takes the entire platform's authentication down with it.
+
+Check the `auth-service` logs after deploying — it says exactly which branch it took
+(`Provisioned bootstrap admin …`, `… already exists — nothing to do.`, or an `ERROR` explaining why it
+was skipped).
+
+Treat these two variables as the credentials they are: set them in Coolify's Environment Variables
+tab (mark the password **secret**), not in a committed file. Consider clearing them from the
+environment once the account exists, since they serve no purpose after first boot.
+
+### 10.6 Restart policy
+
+`docker-compose.yml` sets `restart: unless-stopped` explicitly on every long-running service (the one
+exception being `minio-init`, which is meant to run once). This is set in the file itself rather than
+relied upon as a Coolify default, so the stack behaves the same whether it's deployed through Coolify
+or run with a bare `docker compose up -d` on any other host.
+
+### 10.7 After deploying
+
+Log in at your Coolify-issued `frontend` domain with the bootstrap admin credentials, then run the
+same smoke test as [§5](#5-verifying-it-actually-works-smoke-test) against that domain instead of
+`localhost:4050`.

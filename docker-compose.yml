@@ -33,6 +33,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   auth-service:
     build:
@@ -41,7 +42,13 @@ services:
     environment:
       <<: *common-env
       DB_SCHEMA: auth_schema
+      # Optional first-run admin. Unset (the default) => no account is created
+      # and you register the first tenant through the UI. See .env.example.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_TENANT: ${BOOTSTRAP_ADMIN_TENANT:-Default Organization}
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   employee-service:
     build:
@@ -51,6 +58,7 @@ services:
       <<: *common-env
       DB_SCHEMA: employee_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   salary-service:
     build:
@@ -60,6 +68,7 @@ services:
       <<: *common-env
       DB_SCHEMA: salary_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   attendance-service:
     build:
@@ -69,6 +78,7 @@ services:
       <<: *common-env
       DB_SCHEMA: attendance_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   compliance-service:
     build:
@@ -78,6 +88,7 @@ services:
       <<: *common-env
       DB_SCHEMA: compliance_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   payroll-service:
     build:
@@ -97,6 +108,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
 
   payout-service:
     build:
@@ -106,6 +118,7 @@ services:
       <<: *common-env
       DB_SCHEMA: payout_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   reporting-service:
     build:
@@ -118,6 +131,7 @@ services:
       BLOBSTORE_URL: http://blobstore-service:4010
       REPORTS_DIR: /app/reports
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   blobstore-service:
     build:
@@ -142,6 +156,7 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -167,6 +182,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   # Runs once: creates the blobstore-svc IAM user with a least-privilege policy.
   # Application containers never receive MINIO_ROOT_USER / MINIO_ROOT_PASSWORD.
@@ -270,6 +286,7 @@ services:
       # Shares employee_schema so that client_id FK from employees resolves.
       DB_SCHEMA: employee_schema
     depends_on: *depends-on-db
+    restart: unless-stopped
 
   gateway:
     build:
@@ -300,6 +317,7 @@ services:
       - reporting-service
       - blobstore-service
       - client-service
+    restart: unless-stopped
 
   frontend:
     build:
@@ -311,6 +329,7 @@ services:
       - "4050:80"    # nginx serves on :80 inside; exposed as 4050 outside
     depends_on:
       - gateway
+    restart: unless-stopped
 
 volumes:
   pgdata:
