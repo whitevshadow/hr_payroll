@@ -12,5 +12,11 @@ class Settings(BaseServiceSettings):
     bootstrap_admin_password: str = ""
     bootstrap_admin_tenant: str = "Default Organization"
 
+    # Public tenant signup via POST /auth/register. Closed by default, but
+    # self-opening on an empty instance: the *first* registration is always
+    # allowed so a fresh deployment can bootstrap itself, and every later one is
+    # refused. Set true to run as an open multi-tenant SaaS.
+    allow_public_registration: bool = False
+
 
 settings = Settings()

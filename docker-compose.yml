@@ -47,6 +47,8 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       BOOTSTRAP_ADMIN_TENANT: ${BOOTSTRAP_ADMIN_TENANT:-Default Organization}
+      # Public signup. Closed once the first tenant exists; set true for SaaS.
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-false}
     depends_on: *depends-on-db
     restart: unless-stopped
 

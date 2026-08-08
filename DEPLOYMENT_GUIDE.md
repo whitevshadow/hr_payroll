@@ -445,14 +445,37 @@ Treat these two variables as the credentials they are: set them in Coolify's Env
 tab (mark the password **secret**), not in a committed file. Consider clearing them from the
 environment once the account exists, since they serve no purpose after first boot.
 
-### 10.6 Restart policy
+### 10.6 Public registration is closed by default
+
+`POST /api/v1/auth/register` is unauthenticated — it has to be, since it is how the very first tenant
+comes into existence. On a public domain that would otherwise mean anyone who finds the URL can create
+their own tenant inside your deployment.
+
+`ALLOW_PUBLIC_REGISTRATION` (default `false`) closes it, without making a fresh deployment
+un-bootstrappable:
+
+- **`false`** — the first registration on an empty instance succeeds; every later one is refused with
+  `403 Registration is closed.` The gate is checked before the address is looked at, so a closed
+  instance can't be used to probe which emails are registered.
+- **`true`** — open signup, for running this as a genuine multi-tenant SaaS.
+
+If you set `BOOTSTRAP_ADMIN_EMAIL`/`_PASSWORD` ([§10.5](#105-the-first-run-admin-account)), the
+startup provisioning creates that first tenant, which closes registration on its own — the two
+features compose without extra configuration.
+
+Note that one email address cannot own more than one tenant through `/register`. `login` refuses an
+email that resolves to multiple tenants rather than picking one arbitrarily, so allowing that would
+lock the address out of password login entirely. Add further users to an existing tenant with
+`POST /api/v1/auth/users` (admin-only) instead.
+
+### 10.7 Restart policy
 
 `docker-compose.yml` sets `restart: unless-stopped` explicitly on every long-running service (the one
 exception being `minio-init`, which is meant to run once). This is set in the file itself rather than
 relied upon as a Coolify default, so the stack behaves the same whether it's deployed through Coolify
 or run with a bare `docker compose up -d` on any other host.
 
-### 10.7 After deploying
+### 10.8 After deploying
 
 Log in at your Coolify-issued `frontend` domain with the bootstrap admin credentials, then run the
 same smoke test as [§5](#5-verifying-it-actually-works-smoke-test) against that domain instead of

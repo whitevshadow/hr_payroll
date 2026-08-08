@@ -41,6 +41,15 @@ async def register(
     """Bootstrap a tenant + its first admin user."""
     email = body.email.lower()
 
+    # Gate before touching the email, so a closed instance cannot be used to
+    # probe which addresses are registered.
+    if not settings.allow_public_registration:
+        if await session.scalar(select(Tenant.id).limit(1)) is not None:
+            raise HTTPException(
+                status_code=403,
+                detail="Registration is closed. Ask an administrator for an account.",
+            )
+
     # Scan every tenant, and do it before the tenant row is created. This check
     # previously filtered on the freshly generated tenant_id, which by
     # construction has no rows, so it never fired: a repeat registration
