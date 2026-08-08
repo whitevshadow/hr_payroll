@@ -28,6 +28,13 @@ router = APIRouter(prefix="/api/v1/salary", tags=["salary"])
 
 _ADMIN = runtime.require_roles("SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN")
 
+# Same roles as _ADMIN, but resolved through get_client_context so the salary
+# structure endpoints keep requiring a valid x-client-id alongside the role
+# check. Defining a person's pay is the most sensitive write in this service.
+_ADMIN_CLIENT = runtime.require_roles(
+    "SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN", get_ctx=get_client_context
+)
+
 # ── Templates ─────────────────────────────────────────────────────────────────
 
 @router.get("/templates", response_model=list[SalaryTemplateOut])
@@ -174,7 +181,7 @@ async def _build_structure(
 @router.post("/structures", response_model=StructureOut, status_code=201)
 async def create_structure(
     body: StructureCreate,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_ADMIN_CLIENT),
     session: AsyncSession = Depends(get_session),
 ):
     structure = await _build_structure(
@@ -195,7 +202,7 @@ async def create_structure(
 @router.post("/structures/bulk", response_model=StructureBulkCreateOut, status_code=201)
 async def create_structures_bulk(
     body: StructureBulkCreate,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_ADMIN_CLIENT),
     session: AsyncSession = Depends(get_session),
 ):
     structures: list[SalaryStructure] = []
@@ -263,7 +270,7 @@ async def get_structure_history(
 async def revise_structure(
     structure_id: uuid.UUID,
     body: StructureRevise,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_ADMIN_CLIENT),
     session: AsyncSession = Depends(get_session),
 ):
     old = await session.get(SalaryStructure, structure_id)

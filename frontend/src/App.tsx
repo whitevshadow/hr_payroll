@@ -4,7 +4,7 @@ import { ClientProvider } from "./lib/ClientContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
-import { canViewAudit } from "./lib/roles";
+import { canViewAudit, hasRole } from "./lib/roles";
 import { EmptyState } from "./components/EmptyState";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
@@ -57,10 +57,20 @@ function Forbidden() {
   );
 }
 
-/** Gate a route for HR+ roles. */
+/** Gate a route for HR+ roles.
+ *
+ * This was previously a pass-through ("for now, all authenticated users are
+ * admin"), so every HR and payroll screen was reachable by anyone signed in.
+ * It is a convenience gate only — each service re-checks roles on its own
+ * endpoints, which is the boundary that actually holds. */
 function HrRoute({ children }: { children: React.ReactElement }) {
-  // If there are specific roles, check them here.
-  // For now, all authenticated users are admin.
+  const { user, isLoading } = useAuth();
+  // Wait for /auth/me rather than bouncing a legitimate HR user to 403 on a
+  // hard refresh, when roles are not loaded yet.
+  if (isLoading) return null;
+  if (!hasRole(user, "SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN", "HR_MANAGER")) {
+    return <Forbidden />;
+  }
   return children;
 }
 

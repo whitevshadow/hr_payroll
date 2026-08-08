@@ -9,11 +9,18 @@ from hr_shared import RequestContext, money
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .deps import get_context, get_client_context, get_session
+from .deps import get_context, get_client_context, get_session, runtime
 from .models import PayoutBatch, PayoutTransaction
 from .schemas import BatchCreate, BatchCreateResponse, BatchOut, TxnOut
 
 router = APIRouter(prefix="/api/v1/payouts", tags=["payouts"])
+
+# This service moves money. Creating a batch and retrying a transaction are
+# admin-only; HR_MANAGER is excluded, matching payroll approval. Resolved
+# through get_client_context so the x-client-id requirement is preserved.
+_ADMIN = runtime.require_roles(
+    "SUPER_ADMIN", "ORG_ADMIN", "PAYROLL_ADMIN", get_ctx=get_client_context
+)
 
 
 def _idempotency_key(tenant_id, cycle_id, employee_id, net_pay, bank_account) -> str:
@@ -30,7 +37,7 @@ def _bank_reference() -> str:
 @router.post("/batches", response_model=BatchCreateResponse, status_code=201)
 async def create_batch(
     body: BatchCreate,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_ADMIN),
     session: AsyncSession = Depends(get_session),
 ):
     """Simulated disbursement: mark every transaction SUCCESS.
@@ -130,7 +137,7 @@ async def get_transactions(
 @router.post("/transactions/{transaction_id}/retry", response_model=TxnOut)
 async def retry_transaction(
     transaction_id: uuid.UUID,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_ADMIN),
     session: AsyncSession = Depends(get_session),
 ):
     """Simulated retry: re-marks a FAILED transaction as SUCCESS.

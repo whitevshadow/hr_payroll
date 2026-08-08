@@ -29,6 +29,16 @@ router = APIRouter(prefix="/api/v1", tags=["payroll"])
 # Approve & audit are admin-only — HR_MANAGER is excluded per the role spec.
 _admin_only = runtime.require_roles("ORG_ADMIN", "PAYROLL_ADMIN", "SUPER_ADMIN")
 
+# Preparing a cycle (create, run) is an HR operation; authorising one
+# (approve, import-register) stays admin-only above. Keeping the two apart is
+# the separation of duties that makes approval mean something — whoever runs
+# the numbers should not also be the one who signs them off.
+# Built on get_client_context so these keep requiring a valid x-client-id.
+_payroll_ops = runtime.require_roles(
+    "ORG_ADMIN", "PAYROLL_ADMIN", "SUPER_ADMIN", "HR_MANAGER",
+    get_ctx=get_client_context,
+)
+
 
 def _bearer(request: Request) -> str:
     auth = request.headers.get("authorization", "")
@@ -47,7 +57,7 @@ async def _load_cycle(session, tenant_id, cycle_id) -> PayrollCycle:
 @router.post("/payroll/cycles", response_model=CycleOut, status_code=201)
 async def create_cycle(
     body: CycleCreate,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_payroll_ops),
     session: AsyncSession = Depends(get_session),
 ):
     cycle = PayrollCycle(
@@ -97,7 +107,7 @@ async def get_cycle(
 async def run_cycle(
     cycle_id: uuid.UUID,
     request: Request,
-    ctx: RequestContext = Depends(get_client_context),
+    ctx: RequestContext = Depends(_payroll_ops),
     session: AsyncSession = Depends(get_session),
 ):
     cycle = await _load_cycle(session, ctx.tenant_id, cycle_id)
