@@ -57,6 +57,14 @@ class DailyRateCard(TenantAwareBase):
     )
 
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    # The department whose workers this card pays. Nullable at the DB level only
+    # so the migration can land on deployments that already hold cards; the API
+    # requires it on every create/update, and the UI flags unassigned legacy
+    # cards until someone edits them. A department can own several cards (e.g.
+    # "Helper" and "Operator" both under Production).
+    department_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     monthly_basic: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     monthly_da: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)

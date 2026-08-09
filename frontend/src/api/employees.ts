@@ -8,7 +8,11 @@ import type {
   EmployeeUpdate,
 } from "../types";
 
-export type DailyRateCardInput = Omit<DailyRateCard, "id" | "client_id">;
+/** Department is optional on a card read back from the API (legacy rows) but
+ *  mandatory on write, so the compiler catches a save that omits it. */
+export type DailyRateCardInput = Omit<DailyRateCard, "id" | "client_id" | "department_id"> & {
+  department_id: string;
+};
 
 export interface EmployeeListParams {
   page?: number;
