@@ -5,7 +5,6 @@ import {
 import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import * as XLSX from "xlsx";
 import {
   Calendar, Download, Upload, Lock, Unlock, CheckCircle2,
   AlertCircle, AlertTriangle, Users, Percent, FileSpreadsheet,
@@ -151,10 +150,24 @@ function KPICard({ icon: Icon, label, value, sub, color = "#3395FF" }: {
 // object is opaque to it, so exit animations never fire when placed outside.
 const DROPDOWN_APPROX_H = ATT_CODES.length * 30 + 12; // ~11 items × 30px + padding
 
+// `onChange` used to be an inline arrow built per cell per render, which made
+// the memo() below a no-op: every one of the (employees x days) cells — 6,000+
+// on a full month — re-rendered, remounted its AnimatePresence and re-created
+// its portal on every single grid state change. It now takes the row/day it
+// belongs to and calls one stable handler, so only the clicked cell re-renders.
 const CodeCell = memo(function CodeCell({
-  code, disabled, onChange,
-}: { code: AttCode; disabled: boolean; onChange: (c: AttCode) => void }) {
+  code, disabled, employeeId, dayIndex, onChange,
+}: {
+  code: AttCode;
+  disabled: boolean;
+  employeeId: string;
+  dayIndex: number;
+  onChange: (employeeId: string, dayIndex: number, c: AttCode) => void;
+}) {
   const [open, setOpen] = useState(false);
+  // Keeps the portal mounted through the exit animation, so the portal itself
+  // only exists while this cell's dropdown is actually on screen.
+  const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, openUp: false });
   const btnRef = useRef<HTMLButtonElement>(null);
   const meta = CODE_META[code];
@@ -171,6 +184,7 @@ const CodeCell = memo(function CodeCell({
         openUp,
       });
     }
+    setMounted(true);
     setOpen(true);
   }
 
@@ -181,7 +195,7 @@ const CodeCell = memo(function CodeCell({
   // AnimatePresence lives INSIDE the portal so Framer Motion can track the
   // motion.div key correctly and play entry/exit animations.
   const dropdown = (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => setMounted(false)}>
       {open && (
         <>
           <div className="fixed inset-0 z-[1199]" onClick={() => setOpen(false)} />
@@ -192,14 +206,14 @@ const CodeCell = memo(function CodeCell({
             exit={{ opacity: 0, y: pos.openUp ? -4 : 4, scale: 0.95 }}
             transition={{ duration: 0.12 }}
             style={{ top: pos.top, left: pos.left }}
-            className="fixed z-[1200] rounded-xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] backdrop-blur-xl shadow-2xl p-1 w-36"
+            className="fixed z-[1200] rounded-xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] shadow-2xl p-1 w-36"
           >
             {ATT_CODES.map((c) => {
               const m = CODE_META[c];
               return (
                 <button
                   key={c}
-                  onClick={() => { onChange(c); setOpen(false); }}
+                  onClick={() => { onChange(employeeId, dayIndex, c); setOpen(false); }}
                   className={clsx(
                     "w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-left hover:bg-[var(--accent-soft)] transition-colors",
                     c === code && "bg-[var(--accent-soft)]",
@@ -226,15 +240,17 @@ const CodeCell = memo(function CodeCell({
         disabled={disabled}
         title={meta.label}
         className={clsx(
-          "w-12 h-8 rounded-md text-xs font-bold transition-all border",
+          "w-12 h-8 rounded-md text-xs font-bold border",
+          "transition-[background-color,border-color,color,opacity] duration-150",
           meta.bg, meta.darkBg, meta.color,
           disabled ? "opacity-60 cursor-not-allowed border-transparent" : "cursor-pointer hover:opacity-80 border-transparent hover:border-current/20",
         )}
       >
         {meta.shortLabel}
       </button>
-      {/* Portal renders permanently; AnimatePresence inside manages show/hide */}
-      {portalRoot ? createPortal(dropdown, portalRoot) : dropdown}
+      {/* Only portalled while open (or animating closed) — a closed cell costs
+          nothing. Previously every cell held a live portal into #popover-root. */}
+      {mounted && (portalRoot ? createPortal(dropdown, portalRoot) : dropdown)}
     </div>
   );
 });
@@ -273,7 +289,7 @@ function ConfirmModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] backdrop-blur-xl shadow-2xl p-6"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] shadow-2xl p-6"
       >
         <h3 className="font-display font-bold text-lg text-[var(--text-primary)]">{title}</h3>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">{description}</p>
@@ -346,7 +362,7 @@ function UploadPreviewModal({
         initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 280, damping: 28 }}
-        className="relative z-10 w-full max-w-2xl max-h-[80vh] flex flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] backdrop-blur-xl shadow-2xl"
+        className="relative z-10 w-full max-w-2xl max-h-[80vh] flex flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] shadow-2xl"
       >
         <div className="flex items-center justify-between p-5 border-b border-[var(--glass-border)]">
           <h3 className="font-display font-bold text-lg text-[var(--text-primary)]">Upload Preview — {getMonthLabel(month)}</h3>
@@ -533,6 +549,31 @@ export function Attendance() {
     [gridRows, q],
   );
 
+  // Stable across renders (setGridRows is stable), so CodeCell's memo holds.
+  const handleCellChange = useCallback(
+    (employeeId: string, dayIndex: number, newCode: AttCode) => {
+      setGridRows((rs) =>
+        rs.map((r) =>
+          r.employee_id === employeeId
+            ? { ...r, dirty: true, days: r.days.map((d, j) => (j === dayIndex ? newCode : d)) }
+            : r
+        )
+      );
+    },
+    []
+  );
+
+  // Weekend flags depend only on the month, not on any grid state. Computing
+  // them inline meant a `new Date()` plus two `month.split()` calls per cell,
+  // per render — thousands of throwaway allocations on every keystroke.
+  const weekendByDay = useMemo(() => {
+    const [yy, mm] = month.split("-").map(Number);
+    return Array.from({ length: getDaysInMonth(month) }, (_, i) => {
+      const day = new Date(yy, mm - 1, i + 1).getDay();
+      return day === 0 || day === 6;
+    });
+  }, [month]);
+
   // KPI values
   const totalEmp = employees.length;
   const recordedEmp = summaryRows.length;
@@ -689,7 +730,11 @@ export function Attendance() {
   }
 
   // ── Excel template download ────────────────────────────────────────────────
-  function downloadTemplate() {
+  // `xlsx` is ~10x the size of this page. Both the template download and the
+  // upload parse are user-initiated, so the library is fetched on first use
+  // rather than shipped with the Attendance chunk.
+  async function downloadTemplate() {
+    const XLSX = await import("xlsx");
     const [y, m] = month.split("-").map(Number);
     const days = getDaysInMonth(month);
 
@@ -757,8 +802,9 @@ export function Attendance() {
     e.target.value = "";
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(ev.target!.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -918,12 +964,10 @@ export function Attendance() {
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
             )}
           >
+            {/* CSS, no layoutId — a FLIP transition here forced a synchronous
+                reflow of the entire attendance grid on every tab click. */}
             {activeTab === id && (
-              <motion.div
-                layoutId="att-tab"
-                className="absolute inset-0 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/20"
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
+              <span className="absolute inset-0 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/20 row-in" />
             )}
             <Icon className="relative h-3.5 w-3.5" />
             <span className="relative">{label}</span>
@@ -1098,11 +1142,11 @@ export function Attendance() {
                     <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
                       <table className="w-full text-xs border-collapse">
                         <thead className="sticky top-0 z-20">
-                          <tr className="bg-[var(--glass-panel-bg)] backdrop-blur-sm border-b border-[var(--glass-border)]">
-                            <th className="th sticky left-0 z-30 bg-[var(--glass-panel-bg)] backdrop-blur-sm min-w-[110px] text-left border-r border-[var(--glass-border)]">
+                          <tr className="bg-[var(--glass-panel-bg)] border-b border-[var(--glass-border)]">
+                            <th className="th sticky left-0 z-30 bg-[var(--glass-panel-bg)] min-w-[110px] text-left border-r border-[var(--glass-border)]">
                               Code
                             </th>
-                            <th className="th sticky left-[110px] z-30 bg-[var(--glass-panel-bg)] backdrop-blur-sm min-w-[160px] text-left border-r border-[var(--glass-border)]">
+                            <th className="th sticky left-[110px] z-30 bg-[var(--glass-panel-bg)] min-w-[160px] text-left border-r border-[var(--glass-border)]">
                               Employee
                             </th>
                             {/* Day columns */}
@@ -1140,27 +1184,17 @@ export function Attendance() {
                                   {row.name}
                                 </td>
                                 {/* Day cells */}
-                                {row.days.map((code, di) => {
-                                  const d = new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]) - 1, di + 1);
-                                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                                  return (
-                                    <td key={di} className={clsx("p-0.5 text-center", isWeekend && "bg-slate-50/60 dark:bg-slate-900/30")}>
-                                      <CodeCell
-                                        code={code}
-                                        disabled={!canEdit}
-                                        onChange={(newCode) => {
-                                          setGridRows((rs) =>
-                                            rs.map((r) =>
-                                              r.employee_id === row.employee_id
-                                                ? { ...r, dirty: true, days: r.days.map((d, j) => j === di ? newCode : d) }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                      />
-                                    </td>
-                                  );
-                                })}
+                                {row.days.map((code, di) => (
+                                  <td key={di} className={clsx("p-0.5 text-center", weekendByDay[di] && "bg-slate-50/60 dark:bg-slate-900/30")}>
+                                    <CodeCell
+                                      code={code}
+                                      disabled={!canEdit}
+                                      employeeId={row.employee_id}
+                                      dayIndex={di}
+                                      onChange={handleCellChange}
+                                    />
+                                  </td>
+                                ))}
                                 {/* Summary */}
                                 <td className="td text-right font-numeric font-semibold text-emerald-600 dark:text-emerald-400 border-l border-[var(--glass-border-subtle)]">
                                   {s.present}

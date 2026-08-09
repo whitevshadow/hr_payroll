@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
 import { ClientProvider } from "./lib/ClientContext";
@@ -6,30 +7,39 @@ import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { useAuth } from "./lib/auth";
 import { canViewAudit, hasRole } from "./lib/roles";
 import { EmptyState } from "./components/EmptyState";
+import { FullPageSpinner } from "./components/Spinner";
 import { Login } from "./pages/Login";
-import { Dashboard } from "./pages/Dashboard";
-import { Employees } from "./pages/Employees";
-import { EmployeeDetail } from "./pages/EmployeeDetail";
-import { Departments } from "./pages/Departments";
-import { Locations } from "./pages/Locations";
-import { RateCards } from "./pages/RateCards";
-import { Salary } from "./pages/Salary";
-import { Attendance } from "./pages/Attendance";
-import { Cycles } from "./pages/Cycles";
-import { CycleDetail } from "./pages/CycleDetail";
-import { CycleSummary } from "./pages/CycleSummary";
-import { Compliance } from "./pages/Compliance";
-import { StatutoryPortals } from "./pages/StatutoryPortals";
-import { Payouts } from "./pages/Payouts";
-import { Reports } from "./pages/Reports";
-import { Payslip } from "./pages/Payslip";
-import { AuditLog } from "./pages/AuditLog";
-import { Clients } from "./pages/Clients";
-import { FinancialYears } from "./pages/FinancialYears";
-import { ClientDashboard } from "./pages/ClientDashboard";
-import { AdminPayslips } from "./pages/AdminPayslips";
-import { Account } from "./pages/Account";
-import { Settings } from "./pages/Settings";
+
+/* Every page below is code-split.
+ *
+ * These were static imports, which put all 25 pages plus their heaviest
+ * dependencies — `xlsx` (Attendance + the two import modals) and `recharts`
+ * (Dashboard, ClientDashboard) — into the single entry chunk. Every user paid
+ * to parse all of it before the login form could paint, whatever they had
+ * permission to open. Login stays eager because it is the first paint. */
+const Dashboard       = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
+const Employees       = lazy(() => import("./pages/Employees").then(m => ({ default: m.Employees })));
+const EmployeeDetail  = lazy(() => import("./pages/EmployeeDetail").then(m => ({ default: m.EmployeeDetail })));
+const Departments     = lazy(() => import("./pages/Departments").then(m => ({ default: m.Departments })));
+const Locations       = lazy(() => import("./pages/Locations").then(m => ({ default: m.Locations })));
+const RateCards       = lazy(() => import("./pages/RateCards").then(m => ({ default: m.RateCards })));
+const Salary          = lazy(() => import("./pages/Salary").then(m => ({ default: m.Salary })));
+const Attendance      = lazy(() => import("./pages/Attendance").then(m => ({ default: m.Attendance })));
+const Cycles          = lazy(() => import("./pages/Cycles").then(m => ({ default: m.Cycles })));
+const CycleDetail     = lazy(() => import("./pages/CycleDetail").then(m => ({ default: m.CycleDetail })));
+const CycleSummary    = lazy(() => import("./pages/CycleSummary").then(m => ({ default: m.CycleSummary })));
+const Compliance      = lazy(() => import("./pages/Compliance").then(m => ({ default: m.Compliance })));
+const StatutoryPortals= lazy(() => import("./pages/StatutoryPortals").then(m => ({ default: m.StatutoryPortals })));
+const Payouts         = lazy(() => import("./pages/Payouts").then(m => ({ default: m.Payouts })));
+const Reports         = lazy(() => import("./pages/Reports").then(m => ({ default: m.Reports })));
+const Payslip         = lazy(() => import("./pages/Payslip").then(m => ({ default: m.Payslip })));
+const AuditLog        = lazy(() => import("./pages/AuditLog").then(m => ({ default: m.AuditLog })));
+const Clients         = lazy(() => import("./pages/Clients").then(m => ({ default: m.Clients })));
+const FinancialYears  = lazy(() => import("./pages/FinancialYears").then(m => ({ default: m.FinancialYears })));
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard").then(m => ({ default: m.ClientDashboard })));
+const AdminPayslips   = lazy(() => import("./pages/AdminPayslips").then(m => ({ default: m.AdminPayslips })));
+const Account         = lazy(() => import("./pages/Account").then(m => ({ default: m.Account })));
+const Settings        = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
 
 function Shell({ children }: { children: React.ReactElement }) {
   const location = useLocation();
@@ -39,7 +49,11 @@ function Shell({ children }: { children: React.ReactElement }) {
         <AppShell>
           {/* A page that throws must not take the whole app down to a blank
               screen. Keyed on the path so navigating away clears the error. */}
-          <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>
+          <ErrorBoundary resetKey={location.pathname}>
+            {/* Inside the shell, so a chunk fetch shows a spinner in the
+                content area rather than blanking the sidebar and topbar. */}
+            <Suspense fallback={<FullPageSpinner />}>{children}</Suspense>
+          </ErrorBoundary>
         </AppShell>
       </ClientProvider>
     </ProtectedRoute>

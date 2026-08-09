@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { complianceApi } from "../api/compliance";
 import { employeesApi } from "../api/employees";
@@ -194,18 +193,12 @@ export function Compliance() {
               isText: true,
             },
           ].map((item, i) => (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="card p-3"
-            >
+            <div key={item.label} className="card card-in p-3">
               <div className="kpi-label">{item.label}</div>
               <div className={clsx("mt-1 text-sm font-semibold font-numeric", item.color)}>
                 {(item as any).isText ? item.value : formatINR(item.value)}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

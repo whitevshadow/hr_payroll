@@ -13,7 +13,6 @@ import { EmptyState } from "../components/EmptyState";
 import { NoClientSelected } from "../components/NoClientSelected";
 import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
-import { motion } from "framer-motion";
 import clsx from "clsx";
 
 export function Payouts() {
@@ -130,13 +129,7 @@ export function Payouts() {
               bg: "bg-blue-50 dark:bg-blue-900/30",
             },
           ].map((kpi, i) => (
-            <motion.div
-              key={kpi.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="card flex items-center gap-4"
-            >
+            <div key={kpi.label} className="card card-in flex items-center gap-4">
               <div className={clsx("flex h-10 w-10 items-center justify-center rounded-xl", kpi.bg)}>
                 <kpi.icon className={clsx("h-5 w-5", kpi.color)} />
               </div>
@@ -146,7 +139,7 @@ export function Payouts() {
                   {kpi.value}
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
@@ -183,13 +176,10 @@ export function Payouts() {
               </tr>
             )}
             {txns.map((t, idx) => (
-              <motion.tr
+              <tr
                 key={t.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: idx * 0.02 }}
                 className={clsx(
-                  "tr-hover",
+                  "tr-hover row-in",
                   (t.status === "FAILED" || t.status === "MANUAL_REVIEW") &&
                     "bg-danger-light/20 dark:bg-danger/5"
                 )}
@@ -225,7 +215,7 @@ export function Payouts() {
                     </button>
                   )}
                 </td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>

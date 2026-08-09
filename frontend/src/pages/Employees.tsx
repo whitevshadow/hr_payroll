@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,11 +12,17 @@ import { StatusBadge } from "../components/StatusBadge";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
 import { SkeletonRow } from "../components/Spinner";
-import { BulkImportModal } from "../components/BulkImportModal";
 import { extractErrorMessage, toastService as toast } from "../lib/toast";
 import { useClientContext } from "../lib/ClientContext";
 import type { Employee, Department } from "../types";
 import clsx from "clsx";
+
+// Pulls in `xlsx`, which is larger than the rest of this page combined. It is
+// only reachable behind the "Bulk import" button, so it should not be part of
+// the Employees chunk that everyone downloads.
+const BulkImportModal = lazy(() =>
+  import("../components/BulkImportModal").then((m) => ({ default: m.BulkImportModal }))
+);
 
 const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
@@ -70,6 +76,9 @@ function RowActionsMenu({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // Keeps the portal alive just long enough for the exit animation, so a row
+  // with a closed menu holds no portal at all.
+  const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -82,13 +91,14 @@ function RowActionsMenu({
         left: Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8),
       });
     }
+    setMounted(true);
     setOpen(true);
   }
 
   const portalRoot = typeof document !== "undefined" ? document.getElementById("popover-root") : null;
 
   const menu = (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => setMounted(false)}>
       {open && (
         <>
           <div className="fixed inset-0 z-[1199]" onClick={() => setOpen(false)} />
@@ -139,7 +149,7 @@ function RowActionsMenu({
         Edit
         <MoreHorizontal className="h-3.5 w-3.5" />
       </button>
-      {portalRoot ? createPortal(menu, portalRoot) : menu}
+      {mounted && (portalRoot ? createPortal(menu, portalRoot) : menu)}
     </>
   );
 }
@@ -190,6 +200,18 @@ export function Employees() {
     queryFn: () => employeesApi.list({ search: search || undefined, page, page_size: PAGE_SIZE, client_id: selectedClientId || undefined, status: statusFilter, department_id: deptFilter || undefined }),
     placeholderData: (prev) => prev,
   });
+
+  // Name lookups for the table/grid. Doing these as `.find()` in the row body
+  // is O(rows x clients) on every render — 12 rows against 200 clients is 2,400
+  // comparisons per keystroke in the search box.
+  const clientNameById = useMemo(
+    () => new Map((clients.data?.items ?? []).map((c) => [c.id, c.client_name])),
+    [clients.data]
+  );
+  const deptNameById = useMemo(
+    () => new Map((depts.data ?? []).map((d: Department) => [d.id, d.name])),
+    [depts.data]
+  );
 
   const allActiveEmployees = useQuery({
     queryKey: ["employees", "all_active"],
@@ -351,13 +373,7 @@ export function Employees() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={6} />)}
             {!list.isLoading &&
               list.data?.items.map((e, idx) => (
-                <motion.tr
-                  key={e.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className="tr-hover"
-                >
+                <tr key={e.id} className="tr-hover row-in">
                   <td className="td">
                     <div className="flex items-center gap-3">
                       <div
@@ -389,7 +405,7 @@ export function Employees() {
                   </td>
                   <td className="td text-slate-600 dark:text-slate-400 text-[12px]">
                     {e.client_id
-                      ? (clients.data?.items.find((c) => c.id === e.client_id)?.client_name ?? <span className="text-slate-300">—</span>)
+                      ? (clientNameById.get(e.client_id) ?? <span className="text-slate-300">—</span>)
                       : <span className="text-slate-300 dark:text-slate-700">—</span>}
                   </td>
                   <td className="td text-slate-600 dark:text-slate-400">
@@ -410,7 +426,7 @@ export function Employees() {
                       />
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             {!list.isLoading && list.data?.items.length === 0 && (
               <tr>
@@ -438,12 +454,9 @@ export function Employees() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {list.isLoading && Array.from({ length: 8 }).map((_, i) => <div key={i} className="card h-48 animate-pulse bg-slate-50 dark:bg-slate-800/50" />)}
           {!list.isLoading && list.data?.items.map((e, idx) => (
-            <motion.div
+            <div
               key={e.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.02 }}
-              className="card p-5 flex flex-col hover:border-accent-200 dark:hover:border-accent-900/50 transition-colors"
+              className="card card-in p-5 flex flex-col hover:border-accent-200 dark:hover:border-accent-900/50 transition-colors"
             >
               <div className="flex justify-between items-start mb-4">
                 <div
@@ -469,13 +482,13 @@ export function Employees() {
                 <div className="flex justify-between truncate">
                   <span className="text-slate-400">Client:</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300 truncate ml-2">
-                    {e.client_id ? (clients.data?.items.find((c) => c.id === e.client_id)?.client_name ?? "—") : "—"}
+                    {e.client_id ? (clientNameById.get(e.client_id) ?? "—") : "—"}
                   </span>
                 </div>
                 <div className="flex justify-between truncate">
                   <span className="text-slate-400">Dept:</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300 truncate ml-2">
-                    {e.department_id ? (depts.data?.find((d) => d.id === e.department_id)?.name ?? "—") : "—"}
+                    {e.department_id ? (deptNameById.get(e.department_id) ?? "—") : "—"}
                   </span>
                 </div>
               </div>
@@ -487,7 +500,7 @@ export function Employees() {
                   triggerClassName="w-full flex items-center justify-center gap-1.5 btn-secondary h-8 text-xs"
                 />
               </div>
-            </motion.div>
+            </div>
           ))}
           {!list.isLoading && list.data?.items.length === 0 && (
             <div className="col-span-full">
@@ -608,14 +621,16 @@ export function Employees() {
 
       {/* Bulk Import Modal */}
       {showBulkImport && (
-        <BulkImportModal
-          onClose={() => setShowBulkImport(false)}
-          onImported={() => {
-            setShowBulkImport(false);
-            setPage(1);
-            qc.invalidateQueries({ queryKey: ["employees"] });
-          }}
-        />
+        <Suspense fallback={null}>
+          <BulkImportModal
+            onClose={() => setShowBulkImport(false)}
+            onImported={() => {
+              setShowBulkImport(false);
+              setPage(1);
+              qc.invalidateQueries({ queryKey: ["employees"] });
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 import { useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -54,15 +53,6 @@ const DONUT_COLORS = [
   "var(--chart-2)",
   "var(--chart-3)",
 ];
-
-const CARD_ANIM = {
-  hidden: { opacity: 0, y: 12 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.06, duration: 0.25 },
-  }),
-};
 
 // ── Health Score calculation ───────────────────────────────────────────────
 function computeHealthScore(params: {
@@ -121,13 +111,9 @@ function KpiCard({
   index?: number;
 }) {
   const inner = (
-    <motion.div
-      custom={index}
-      variants={CARD_ANIM}
-      initial="hidden"
-      animate="show"
+    <div
       className={clsx(
-        "card kpi-card h-full flex flex-col gap-3 group relative overflow-hidden",
+        "card card-in kpi-card h-full flex flex-col gap-3 group relative overflow-hidden",
         to && "cursor-pointer hover:-translate-y-0.5 transition-all duration-200",
         danger && "border-danger/25 dark:border-danger/15"
       )}
@@ -168,7 +154,7 @@ function KpiCard({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
   return to && !locked ? <Link to={to} className="block h-full">{inner}</Link> : inner;
 }

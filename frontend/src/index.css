@@ -1,5 +1,7 @@
-/* ── Google Fonts — "Systematic Trust" design system uses Inter throughout ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Inter is loaded by the preconnected <link> in index.html (weights 300-800,
+   a superset of what this file used to @import). A CSS @import is only
+   discovered after the stylesheet itself parses, so it added a second,
+   serialised round trip for a font the document had already requested. */
 
 @tailwind base;
 @tailwind components;
@@ -207,13 +209,17 @@
 @layer components {
 
   /* ── Spatial background ─────────────────────────────────────────────────── */
+  /* No background-image here on purpose. --bg-gradient is a linear-gradient
+     between two identical colours — the same colour --bg-base already paints
+     underneath — so it drew nothing. It was combined with
+     `background-attachment: fixed`, which takes the page off the compositor's
+     fast scroll path and repaints the full viewport background every frame.
+     A flat background-color scrolls for free. */
   .app-shell {
     position: relative;
     min-height: var(--app-vh);
     background-color: var(--bg-base);
-    background-image: var(--bg-gradient);
-    background-attachment: fixed;
-    transition: background-color var(--transition), background-image var(--transition);
+    transition: background-color var(--transition);
   }
 
   .app-bg {
@@ -224,16 +230,19 @@
     z-index: 0;
   }
 
+  /* The ambient orbs are inert under the flat "Systematic Trust" palette —
+     --orb-* is `transparent` in both themes. The old `filter: blur(140px)` and
+     the infinite orbFloat animation still promoted three layers each and kept
+     the compositor awake permanently, for nothing visible. Sizes/positions are
+     kept so restoring a tinted --orb-* is a one-line change. */
   .orb {
     position: absolute;
     border-radius: 999px;
-    filter: blur(140px);
-    animation: orbFloat 40s ease-in-out infinite;
   }
 
   .orb-blue   { width: 480px; height: 480px; background: var(--orb-blue);   top: -140px; right: -100px; }
-  .orb-purple { width: 400px; height: 400px; background: var(--orb-purple); bottom: -120px; left: -80px;  animation-delay: -12s; animation-duration: 50s; }
-  .orb-pink   { width: 360px; height: 360px; background: var(--orb-pink);   top: 35%; right: 22%;       animation-delay: -22s; animation-duration: 45s; }
+  .orb-purple { width: 400px; height: 400px; background: var(--orb-purple); bottom: -120px; left: -80px; }
+  .orb-pink   { width: 360px; height: 360px; background: var(--orb-pink);   top: 35%; right: 22%; }
 
   .app-content {
     position: relative;
@@ -246,8 +255,6 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sidebar);
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
     transition: background-color var(--transition), border-color var(--transition), box-shadow var(--transition);
   }
 
@@ -263,8 +270,6 @@
       var(--shadow-sidebar),
       inset 0 1px 0 rgba(255,255,255,0.12),
       inset 0 0 0 1px rgba(255,255,255,0.04);
-    backdrop-filter: blur(24px) saturate(1.8) brightness(1.02);
-    -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(1.02);
     transition:
       background-color var(--transition),
       border-color var(--transition),
@@ -682,7 +687,6 @@
     border-radius: 9px;
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 4px 16px rgba(0,0,0,0.30);
-    backdrop-filter: blur(8px);
     pointer-events: none;
     z-index: 1000; /* Z.tooltip */
   }
@@ -698,8 +702,6 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-pill);
     box-shadow: var(--shadow-topbar);
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     transition: background-color var(--transition), border-color var(--transition);
   }
 
@@ -710,8 +712,6 @@
     background: var(--glass-card-bg);
     padding: 1.25rem;
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
     transition: background-color var(--transition), border-color var(--transition), box-shadow var(--transition);
   }
 
@@ -729,8 +729,6 @@
     border: 1px solid var(--glass-border);
     background: var(--glass-panel-bg);
     box-shadow: var(--shadow-glass);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
   }
 
   .glass-modal {
@@ -738,8 +736,6 @@
     border: 1px solid var(--glass-border);
     background: var(--glass-panel-bg);
     box-shadow: var(--shadow-glass);
-    backdrop-filter: blur(var(--glass-modal-blur));
-    -webkit-backdrop-filter: blur(var(--glass-modal-blur));
   }
 
   /* ── Glass card (used by TDS, Attendance, etc.) ────────────────────────── */
@@ -750,8 +746,6 @@
     border: 1px solid var(--glass-border-subtle);
     background: var(--glass-card-bg);
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
     transition: background-color var(--transition), border-color var(--transition);
   }
 
@@ -771,8 +765,6 @@
     border: 1px solid var(--glass-border-subtle);
     border-radius: var(--radius-pill);
     box-shadow: 0 1px 4px rgba(30,41,59,0.06);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     transition: background-color var(--transition), border-color var(--transition), box-shadow 150ms ease;
   }
 
@@ -856,7 +848,6 @@
     padding: 0.5rem 1.125rem;
     font-size: 0.8125rem;
     font-weight: 500;
-    backdrop-filter: blur(8px);
     transition: transform 120ms ease, background-color var(--transition), border-color var(--transition), color var(--transition);
     white-space: nowrap;
   }
@@ -889,7 +880,6 @@
     padding: 0.5rem 0.875rem;
     font-size: 0.875rem;
     font-family: var(--font-sans);
-    backdrop-filter: blur(8px);
     transition: background-color var(--transition), border-color var(--transition), color var(--transition), box-shadow 150ms ease;
   }
 
@@ -1009,6 +999,32 @@
     background: color-mix(in srgb, var(--table-bg) 90%, rgba(99,102,241,0.05) 10%);
   }
 
+  /* ── List entrance ────────────────────────────────────────────────────────
+     Replaces the per-row framer-motion `initial/animate` + `delay: idx * n`
+     cascade. That pattern built a VisualElement and a projection node per row
+     and drove every one of them from a main-thread rAF loop, so any re-render
+     of a list (a search keystroke, a filter, a page change) re-ran the whole
+     cascade on the main thread — this was the bulk of the pointer INP.
+
+     These run on the compositor instead, cost nothing per row, and are capped
+     with `nth-child` so a 200-row table finishes in 120ms rather than 6s. */
+  .row-in {
+    animation: fadeIn 140ms ease-out both;
+  }
+  .card-in {
+    animation: slideUp 200ms ease-out both;
+  }
+
+  /* Stagger only the first 8 items; everything past that lands together. */
+  .row-in:nth-child(1),  .card-in:nth-child(1)  { animation-delay: 0ms; }
+  .row-in:nth-child(2),  .card-in:nth-child(2)  { animation-delay: 15ms; }
+  .row-in:nth-child(3),  .card-in:nth-child(3)  { animation-delay: 30ms; }
+  .row-in:nth-child(4),  .card-in:nth-child(4)  { animation-delay: 45ms; }
+  .row-in:nth-child(5),  .card-in:nth-child(5)  { animation-delay: 60ms; }
+  .row-in:nth-child(6),  .card-in:nth-child(6)  { animation-delay: 75ms; }
+  .row-in:nth-child(7),  .card-in:nth-child(7)  { animation-delay: 90ms; }
+  .row-in:nth-child(n+8), .card-in:nth-child(n+8) { animation-delay: 105ms; }
+
   /* ── Status badges ──────────────────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold;
@@ -1063,8 +1079,6 @@
     border: 1px solid var(--glass-border);
     background: var(--glass-panel-bg);
     box-shadow: 0 32px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.06);
-    backdrop-filter: blur(var(--glass-modal-blur)) saturate(1.8);
-    -webkit-backdrop-filter: blur(var(--glass-modal-blur)) saturate(1.8);
     overflow: hidden;
   }
 
@@ -1240,4 +1254,20 @@
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.65; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────
+   The app had no `prefers-reduced-motion` handling at all. Entrance
+   animations collapse to their end state; hover/state transitions are kept
+   short rather than removed, so focus and hover remain legible. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

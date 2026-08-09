@@ -199,7 +199,7 @@ export function AuditLog() {
           <div className="sticky top-0 z-10">
             <table className="w-full table-fixed">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 backdrop-blur-sm">
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
                   <th className="th w-[160px]">Time</th>
                   <th className="th w-[240px]">Event</th>
                   <th className="th w-[200px]">Entity</th>

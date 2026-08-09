@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import {
   AlertCircle, Eye, EyeOff, KeyRound, Plus, ShieldCheck, UserX, Users,
 } from "lucide-react";
@@ -39,11 +38,6 @@ interface ManagedUser {
   is_active: boolean;
   roles: string[];
 }
-
-const ROW_ANIM = {
-  hidden: { opacity: 0, y: 6 },
-  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.04, duration: 0.2 } }),
-};
 
 function RoleChips({
   selected, onToggle, idPrefix,
@@ -198,13 +192,9 @@ export function Settings() {
               </thead>
               <tbody>
                 {users.data.map((u, i) => (
-                  <motion.tr
+                  <tr
                     key={u.id}
-                    custom={i}
-                    initial="hidden"
-                    animate="show"
-                    variants={ROW_ANIM}
-                    className="border-b border-slate-100 last:border-0 dark:border-slate-800/60"
+                    className="row-in border-b border-slate-100 last:border-0 dark:border-slate-800/60"
                   >
                     <td className="py-2.5 pr-3">
                       <span className="font-medium text-slate-800 dark:text-slate-200">{u.email}</span>
@@ -254,7 +244,7 @@ export function Settings() {
                         </button>
                       )}
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>

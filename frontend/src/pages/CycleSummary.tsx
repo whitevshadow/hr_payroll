@@ -133,7 +133,7 @@ export function CycleSummary() {
         <div className="sticky top-0 z-10 overflow-x-auto">
           <table className="w-full min-w-[800px] table-fixed">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 backdrop-blur-sm">
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
                 <th className="th w-[180px] text-left sticky left-0 bg-slate-50/90 dark:bg-slate-800/60">
                   Employee
                 </th>

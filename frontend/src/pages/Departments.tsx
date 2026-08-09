@@ -14,11 +14,6 @@ import api from "../lib/api";
 import type { Department } from "../types";
 import clsx from "clsx";
 
-const ROW_ANIM = {
-  hidden: { opacity: 0, y: 6 },
-  show:   (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.2 } }),
-};
-
 const DEPT_COLORS = [
   { bg: "bg-violet-50 dark:bg-violet-900/25",   text: "text-violet-600 dark:text-violet-400" },
   { bg: "bg-blue-50 dark:bg-blue-900/25",       text: "text-blue-600 dark:text-blue-400" },
@@ -181,13 +176,9 @@ export function Departments() {
               const count = headcount(d.id);
 
               return (
-                <motion.div
+                <div
                   key={d.id}
-                  custom={idx}
-                  variants={ROW_ANIM}
-                  initial="hidden"
-                  animate="show"
-                  className="group flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/25"
+                  className="row-in group flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/25"
                 >
                   {/* Dept icon + name */}
                   <div className="flex flex-1 items-center gap-3 min-w-0">
@@ -238,7 +229,7 @@ export function Departments() {
                       Edit
                     </button>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>

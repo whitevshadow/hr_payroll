@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useClientContext } from "../lib/ClientContext";
 import { Edit2, Plus, Users, Coins } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { employeesApi } from "../api/employees";
 import { STALE_STABLE } from "../lib/queryClient";
 import { Modal, ModalFooter } from "../components/Modal";
@@ -11,11 +10,6 @@ import { NoClientSelected } from "../components/NoClientSelected";
 import { Skeleton } from "../components/Spinner";
 import { extractErrorMessage } from "../lib/toast";
 import type { DailyRateCard } from "../types";
-
-const ROW_ANIM = {
-  hidden: { opacity: 0, y: 6 },
-  show:   (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.2 } }),
-};
 
 const BLANK: Partial<DailyRateCard> = {
   name: "", monthly_basic: "", monthly_da: "", monthly_hra: "",
@@ -155,13 +149,9 @@ export function RateCards() {
           {!isLoading && list.length > 0 && (
             <div className="divide-y divide-slate-50 dark:divide-slate-800/40">
               {list.map((c, idx) => (
-                <motion.div
+                <div
                   key={c.id}
-                  custom={idx}
-                  variants={ROW_ANIM}
-                  initial="hidden"
-                  animate="show"
-                  className="group flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/25"
+                  className="row-in group flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/25"
                 >
                   <div className="flex flex-1 items-center gap-3 min-w-0">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-900/25">
@@ -202,7 +192,7 @@ export function RateCards() {
                       Edit
                     </button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

@@ -1,7 +1,14 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+
+// Carries `xlsx`; only reachable from the "Import register" action.
+const ExcelRegisterImportModal = lazy(() =>
+  import("../components/ExcelRegisterImportModal").then((m) => ({
+    default: m.ExcelRegisterImportModal,
+  }))
+);
 import { payrollApi } from "../api/payroll";
 import { payoutApi } from "../api/payout";
 import { reportingApi } from "../api/reporting";
@@ -15,7 +22,6 @@ import { formatINR } from "../lib/money";
 import { toastService, extractErrorMessage } from "../lib/toast";
 import { useAuth } from "../lib/auth";
 import { canApprove as canApproveRole } from "../lib/roles";
-import { ExcelRegisterImportModal } from "../components/ExcelRegisterImportModal";
 import type { PayoutBatch } from "../types";
 import {
   ArrowLeft,
@@ -329,15 +335,17 @@ export function CycleDetail() {
       </div>
 
       {showImportModal && (
-        <ExcelRegisterImportModal
-          cycle={c}
-          onClose={() => setShowImportModal(false)}
-          onImported={() => {
-            qc.invalidateQueries({ queryKey: qk.cycle(cycleId!) });
-            qc.invalidateQueries({ queryKey: qk.cycleSummary(cycleId!) });
-            qc.invalidateQueries({ queryKey: qk.cycles });
-          }}
-        />
+        <Suspense fallback={null}>
+          <ExcelRegisterImportModal
+            cycle={c}
+            onClose={() => setShowImportModal(false)}
+            onImported={() => {
+              qc.invalidateQueries({ queryKey: qk.cycle(cycleId!) });
+              qc.invalidateQueries({ queryKey: qk.cycleSummary(cycleId!) });
+              qc.invalidateQueries({ queryKey: qk.cycles });
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Payout summary when disbursed */}

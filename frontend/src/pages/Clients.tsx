@@ -36,16 +36,6 @@ import { toastService } from "../lib/toast";
 import clsx from "clsx";
 import type { Client, ClientCredential, Location } from "../types";
 
-// ── Animation variants ───────────────────────────────────────────────────────
-const ROW_ANIM = {
-  hidden: { opacity: 0, y: 8 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.04, duration: 0.22 },
-  }),
-};
-
 const SECTION_COLORS = [
   "bg-violet-50 dark:bg-violet-900/25 text-violet-600 dark:text-violet-400",
   "bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-400",
@@ -828,16 +818,10 @@ export function Clients() {
             { label: "Active", value: activeCount },
             { label: "Archived", value: total - activeCount },
           ].map((kpi, i) => (
-            <motion.div
-              key={kpi.label}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="card p-4"
-            >
+            <div key={kpi.label} className="card card-in p-4">
               <div className="kpi-label">{kpi.label}</div>
               <div className="kpi-value mt-1">{kpi.value}</div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
@@ -909,13 +893,9 @@ export function Clients() {
             {clients.map((client, idx) => {
               const colorClass = SECTION_COLORS[idx % SECTION_COLORS.length];
               return (
-                <motion.div
+                <div
                   key={client.id}
-                  custom={idx}
-                  variants={ROW_ANIM}
-                  initial="hidden"
-                  animate="show"
-                  className="group flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/25 transition-colors cursor-pointer"
+                  className="row-in group flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/25 transition-colors cursor-pointer"
                   onClick={() => { setDetailClient(client); setActiveTab("details"); }}
                 >
                   {/* Icon + name */}
@@ -990,7 +970,7 @@ export function Clients() {
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -1054,10 +1034,7 @@ export function Clients() {
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
                     {activeTab === tab && (
-                      <motion.div
-                        layoutId="client-drawer-tab"
-                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent-600 dark:bg-accent-400"
-                      />
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent-600 dark:bg-accent-400 row-in" />
                     )}
                   </button>
                 ))}

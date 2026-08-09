@@ -4,7 +4,6 @@ import { AlertTriangle, ChevronDown, ChevronRight, CircleDollarSign, Plus, Users
 import clsx from "clsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { payrollApi } from "../api/payroll";
 import { qk } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
@@ -183,13 +182,7 @@ export function Cycles() {
               Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} cols={4} />)}
             {!cycles.isLoading &&
               visibleCycles.map((c, idx) => (
-                <motion.tr
-                  key={c.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="tr-hover"
-                >
+                <tr key={c.id} className="tr-hover row-in">
                   <td className="td">
                     <div className="flex items-center gap-2">
                       <CircleDollarSign className="h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0" />
@@ -210,7 +203,7 @@ export function Cycles() {
                       Open <ChevronRight className="h-4 w-4" />
                     </Link>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             {/* Older cycles stay collapsed until asked for. */}
             {!cycles.isLoading && allCycles.length > RECENT_COUNT && (

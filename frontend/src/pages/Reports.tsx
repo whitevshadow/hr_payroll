@@ -222,13 +222,7 @@ export function Reports() {
               const days = daysUntil(d);
               const next = nextOccurrence(d);
               return (
-                <motion.div
-                  key={d.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="card p-4 flex items-center justify-between gap-4"
-                >
+                <div key={d.id} className="card card-in p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {d.name}
@@ -267,7 +261,7 @@ export function Reports() {
                       </Link>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>

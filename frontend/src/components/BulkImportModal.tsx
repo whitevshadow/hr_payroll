@@ -475,7 +475,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="relative z-10 w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] backdrop-blur-xl shadow-2xl"
+        className="relative z-10 w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-panel-bg)] shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--glass-border)]">
@@ -666,7 +666,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                   </div>
                   <div className="overflow-auto max-h-64">
                     <table className="w-full text-[11.5px]">
-                      <thead className="sticky top-0 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">
+                      <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
                         <tr className="border-b border-[var(--glass-border)]">
                           <th className="th text-left pl-4">#</th>
                           <th className="th text-left">Code</th>
