@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useClientContext } from "../lib/ClientContext";
-import { Edit2, Plus, Users, Coins } from "lucide-react";
+import { Building2, Edit2, Plus, Users, Coins } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { employeesApi } from "../api/employees";
-import { STALE_STABLE } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
 import { NoClientSelected } from "../components/NoClientSelected";
@@ -12,7 +12,7 @@ import { extractErrorMessage } from "../lib/toast";
 import type { DailyRateCard } from "../types";
 
 const BLANK: Partial<DailyRateCard> = {
-  name: "", monthly_basic: "", monthly_da: "", monthly_hra: "",
+  name: "", department_id: "", monthly_basic: "", monthly_da: "", monthly_hra: "",
   bonus_pct: "", is_active: true,
 };
 
@@ -47,16 +47,31 @@ export function RateCards() {
     staleTime: STALE_STABLE,
   });
 
+  // Departments of the active client — the whole cache is dropped on a client
+  // switch (see ClientProvider), so the client-agnostic key is safe here.
+  const departments = useQuery({
+    queryKey: qk.departments,
+    queryFn:  () => employeesApi.departments(),
+    staleTime: STALE_STABLE,
+  });
+
+  const deptNameById = useMemo(
+    () => new Map((departments.data ?? []).map((d) => [d.id, d.name])),
+    [departments.data],
+  );
+
   const assignedCount = (cardId: string) =>
     employees.data?.items.filter((e) => e.daily_rate_card_id === cardId).length ?? 0;
 
   const saveMut = useMutation({
     mutationFn: async (card: Partial<DailyRateCard>) => {
       if (!card.name?.trim()) throw new Error("Rate card name is required");
+      if (!card.department_id) throw new Error("Department is required — a rate card prices one department's workers");
       const basic = parseFloat(card.monthly_basic ?? "");
       if (!Number.isFinite(basic) || basic <= 0) throw new Error("Monthly Basic must be greater than 0");
       const body = {
         name: card.name.trim(),
+        department_id: card.department_id,
         monthly_basic: card.monthly_basic || "0",
         monthly_da:    card.monthly_da    || "0",
         monthly_hra:   card.monthly_hra   || "0",
@@ -96,7 +111,7 @@ export function RateCards() {
             Daily Rate Cards
           </h1>
           <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
-            Monthly wages shared by this client's daily-rated employees — the day rate is derived per month
+            Monthly wages per department — each card prices one department's daily-rated workers, and the day rate is derived per month
           </p>
         </div>
 
@@ -108,9 +123,10 @@ export function RateCards() {
 
       {/* ── Data table ─────────────────────────────────────────────────── */}
       <div className="table-card overflow-x-auto">
-        <div className="min-w-[820px]">
+        <div className="min-w-[980px]">
           <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 px-6 py-3">
             <div className="flex-1 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400 dark:text-slate-500">Name</div>
+            <div className="w-40 text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400 dark:text-slate-500">Department</div>
             {["Basic / month", "DA / month", "HRA / month", "Bonus %", "Total / month"].map((h) => (
               <div key={h} className="w-[92px] text-right text-[10px] font-semibold uppercase tracking-[0.10em] text-slate-400 dark:text-slate-500">
                 {h}
@@ -167,6 +183,24 @@ export function RateCards() {
                     </div>
                   </div>
 
+                  {/* Department this card prices. Cards created before rate
+                      cards were classified read back with no department and are
+                      flagged until someone edits them. */}
+                  <div className="w-40 flex items-center gap-1.5 min-w-0">
+                    {c.department_id ? (
+                      <>
+                        <Building2 className="h-3 w-3 text-slate-300 dark:text-slate-600 shrink-0" />
+                        <span className="text-[12px] text-slate-600 dark:text-slate-300 truncate">
+                          {deptNameById.get(c.department_id) ?? "—"}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                        Unassigned
+                      </span>
+                    )}
+                  </div>
+
                   {[c.monthly_basic, c.monthly_da, c.monthly_hra, c.bonus_pct].map((v, i) => (
                     <div key={i} className="w-[92px] text-right font-numeric text-[12.5px] text-slate-600 dark:text-slate-300 tabular-nums">
                       {i < 3 ? `₹${v}` : `${v}%`}
@@ -220,6 +254,26 @@ export function RateCards() {
               />
             </div>
 
+            <div>
+              <label className="label" htmlFor="rc-department">Department *</label>
+              <select
+                id="rc-department"
+                className="input"
+                value={editing.department_id ?? ""}
+                onChange={(e) => setEditing({ ...editing, department_id: e.target.value || null })}
+              >
+                <option value="">— Select Department —</option>
+                {(departments.data ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              {(departments.data ?? []).length === 0 && !departments.isLoading && (
+                <p className="mt-1 text-[11.5px] text-amber-600 dark:text-amber-400">
+                  This client has no departments yet — create one on the Departments page first.
+                </p>
+              )}
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               {([
                 ["monthly_basic", "Basic / month *", "9705"],
@@ -259,6 +313,8 @@ export function RateCards() {
             </div>
 
             <p className="text-[11.5px] text-slate-500 dark:text-slate-400">
+              A card belongs to one <strong>department</strong>, so workers in different departments
+              are paid at different rates; a department can have several cards (Helper, Operator).
               Enter <strong>monthly</strong> wages. Payroll derives the day rate for each cycle as
               monthly ÷ calendar days in that month — so ₹{editing.monthly_basic || "9705"} basic pays{" "}
               ₹{perDay(editing.monthly_basic, 31)}/day in a 31-day month and{" "}

@@ -211,6 +211,10 @@ class EmployeeUpdate(BaseModel):
 
 class DailyRateCardCreate(BaseModel):
     client_id: uuid.UUID | None = None
+    # Required: a card prices one department's workers. Legacy cards created
+    # before this field existed carry NULL and are rejected on their next save
+    # until a department is picked.
+    department_id: uuid.UUID
     name: str
     monthly_basic: Decimal
     monthly_da: Decimal = Decimal("0")
@@ -234,6 +238,9 @@ class DailyRateCardOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     client_id: uuid.UUID | None = None
+    # Optional on the way out: cards predating the department column read back
+    # as NULL so the UI can flag them rather than the response failing.
+    department_id: uuid.UUID | None = None
     name: str
     monthly_basic: Decimal
     monthly_da: Decimal

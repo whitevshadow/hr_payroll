@@ -178,11 +178,28 @@ async def update_department(
 
 # ── Daily Rate Cards ─────────────────────────────────────────────────────────
 
+async def _resolve_department(
+    session: AsyncSession, ctx: RequestContext, department_id: uuid.UUID
+) -> Department:
+    """Load a department, refusing one that belongs to another tenant/client.
+
+    Without the client check a card could be pinned to a department the active
+    client cannot see, and the rate cards list — which filters by client — would
+    then show a card labelled with a department name that isn't in its own
+    dropdown.
+    """
+    dept = await session.get(Department, department_id)
+    if not dept or dept.tenant_id != ctx.tenant_id or dept.client_id != ctx.client_id:
+        raise HTTPException(status_code=404, detail="Department not found for this client")
+    return dept
+
+
 @router.get("/rate-cards", response_model=list[DailyRateCardOut])
 async def list_rate_cards(
     ctx: RequestContext = Depends(_admin),
     session: AsyncSession = Depends(get_session),
     include_inactive: bool = False,
+    department_id: uuid.UUID | None = None,
 ):
     q = select(DailyRateCard).where(
         DailyRateCard.tenant_id == ctx.tenant_id,
@@ -190,6 +207,8 @@ async def list_rate_cards(
     )
     if not include_inactive:
         q = q.where(DailyRateCard.is_active.is_(True))
+    if department_id is not None:
+        q = q.where(DailyRateCard.department_id == department_id)
     rows = await session.scalars(q.order_by(DailyRateCard.name))
     return list(rows)
 
@@ -209,9 +228,11 @@ async def create_rate_card(
     )
     if dup:
         raise HTTPException(status_code=409, detail="A rate card with this name already exists")
+    dept = await _resolve_department(session, ctx, body.department_id)
     card = DailyRateCard(
         tenant_id=ctx.tenant_id,
         client_id=ctx.client_id,
+        department_id=dept.id,
         name=body.name.strip(),
         monthly_basic=body.monthly_basic,
         monthly_da=body.monthly_da,
@@ -222,7 +243,8 @@ async def create_rate_card(
     session.add(card)
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="RATE_CARD_CREATED",
                     entity_type="daily_rate_card", entity_id=body.name.strip(),
-                    payload={"name": body.name.strip(), "monthly_basic": str(body.monthly_basic)},
+                    payload={"name": body.name.strip(), "monthly_basic": str(body.monthly_basic),
+                             "department_id": str(dept.id), "department": dept.name},
                     actor_id=ctx.user_id)
     await session.commit()
     await session.refresh(card)
@@ -239,6 +261,8 @@ async def update_rate_card(
     card = await session.get(DailyRateCard, card_id)
     if not card or card.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Rate card not found")
+    dept = await _resolve_department(session, ctx, body.department_id)
+    card.department_id = dept.id
     card.name = body.name.strip()
     card.monthly_basic = body.monthly_basic
     card.monthly_da = body.monthly_da
@@ -247,7 +271,8 @@ async def update_rate_card(
     card.is_active = body.is_active
     await audit_log(session, tenant_id=ctx.tenant_id, event_type="RATE_CARD_UPDATED",
                     entity_type="daily_rate_card", entity_id=str(card_id),
-                    payload={"name": card.name, "monthly_basic": str(card.monthly_basic)},
+                    payload={"name": card.name, "monthly_basic": str(card.monthly_basic),
+                             "department_id": str(dept.id), "department": dept.name},
                     actor_id=ctx.user_id)
     await session.commit()
     await session.refresh(card)

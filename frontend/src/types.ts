@@ -49,6 +49,9 @@ export interface Employee {
 export interface DailyRateCard {
   id: string;
   client_id: string | null;
+  /** Department this card prices. Null only on cards created before rate
+   *  cards were classified by department — the form requires one on save. */
+  department_id: string | null;
   name: string;
   monthly_basic: string;
   monthly_da: string;
