@@ -1,0 +1,864 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//  HR Payroll — database schema (DBML)
+//  Paste into https://dbdiagram.io to render the ER diagram.
+//
+//  Generated from the LIVE database (information_schema), not from the ORM
+//  models, so it reflects what is actually deployed. Where the two disagree,
+//  the drift is called out under "SCHEMA DRIFT" at the bottom of this file.
+//
+//  ── How to read this ──────────────────────────────────────────────────────
+//
+//  1. PRIMARY KEYS
+//     Every table has the same primary key: a single `id uuid`, generated
+//     application-side by SQLAlchemy (hr_shared.TenantAwareBase), not by a
+//     database default. There are no composite primary keys and no sequences
+//     anywhere in the schema. Business uniqueness is expressed separately as
+//     UNIQUE indexes (see each table's `indexes` block).
+//
+//  2. TENANCY
+//     Almost every table carries `tenant_id uuid NOT NULL`. It is the
+//     multi-tenant isolation key and is part of most UNIQUE constraints, but
+//     it is NOT a foreign key to auth_schema.tenants — see point 3.
+//
+//  3. WHY THERE ARE SO FEW FOREIGN KEYS  ← the important part
+//     This is a microservice deployment: one Postgres database, one schema
+//     per service, and each service owns its schema exclusively. Foreign keys
+//     are therefore only declared WITHIN a schema (15 of them, listed below).
+//
+//     Every reference that CROSSES a service boundary — and that is most of
+//     the interesting ones, e.g. payroll_results.employee_id pointing at
+//     employee_schema.employees.id — is an unenforced UUID column. The
+//     database will not stop you deleting an employee who has payslips, and
+//     no cascade will clean up after you. Those relationships are documented
+//     below as `Ref` lines under "LOGICAL REFERENCES" and are drawn on the
+//     diagram, but they do NOT exist as constraints in the database.
+//
+//     Practical consequence: deleting an employee orphans their payroll
+//     results, attendance, and statutory contributions in the other schemas.
+//     The application deletes them explicitly or leaves them behind.
+// ═══════════════════════════════════════════════════════════════════════════
+
+Project hr_payroll {
+  database_type: 'PostgreSQL'
+  Note: 'Multi-tenant HR & payroll platform. One schema per microservice; cross-service references are unenforced UUIDs.'
+}
+
+// ═══════════════ attendance_schema ═══════════════
+
+Table attendance_schema.attendance_audit {
+  actor_id uuid [not null]
+  employee_id uuid
+  month date
+  event_type varchar(60) [not null]
+  previous_value text
+  new_value text
+  reason text
+  created_at timestamptz [not null, default: '2026-06-15 14:21:46.146496+00']
+  id uuid [pk]
+  tenant_id uuid [not null]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table attendance_schema.attendance_months {
+  month date [not null]
+  status varchar(20) [not null]
+  total_employees integer [not null]
+  employees_with_lop integer [not null]
+  completion_pct decimal(5,2) [not null]
+  validated_by uuid
+  validated_at timestamptz
+  locked_by uuid
+  locked_at timestamptz
+  locked_reason text
+  unlocked_by uuid
+  unlocked_at timestamptz
+  unlock_reason text
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  client_id uuid
+
+  indexes {
+    (tenant_id,client_id,month) [unique]
+  }
+}
+
+Table attendance_schema.attendance_records {
+  employee_id uuid [not null]
+  month date [not null]
+  total_days integer [not null]
+  present_days decimal(5,1) [not null]
+  lop_days decimal(5,1) [not null]
+  payable_days decimal(5,1) [not null]
+  is_finalized boolean [not null]
+  cl_days decimal(5,1) [not null]
+  sl_days decimal(5,1) [not null]
+  pl_days decimal(5,1) [not null]
+  wo_days decimal(5,1) [not null]
+  holiday_days decimal(5,1) [not null]
+  wfh_days decimal(5,1) [not null]
+  overtime_hours decimal(6,1) [not null]
+  attendance_pct decimal(5,2) [not null]
+  daily_status text
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  leave_breakdown jsonb
+  client_id uuid
+
+  indexes {
+    (tenant_id,employee_id,month) [unique]
+  }
+}
+
+Table attendance_schema.leave_balances {
+  employee_id uuid [not null]
+  leave_type varchar(30) [not null]
+  financial_year varchar(9) [not null]
+  opening_balance decimal(5,1) [not null]
+  accrued decimal(5,1) [not null]
+  used decimal(5,1) [not null]
+  carry_forward_used decimal(5,1) [not null]
+  closing_balance decimal(5,1) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,employee_id,leave_type,financial_year) [unique]
+  }
+}
+
+Table attendance_schema.leave_policies {
+  client_id uuid
+  name varchar(150) [not null]
+  leave_type varchar(30) [not null]
+  annual_allowance decimal(5,1) [not null]
+  carry_forward boolean [not null]
+  max_carry_forward decimal(5,1) [not null]
+  encashable boolean [not null]
+  max_consecutive_days integer [not null]
+  accrual_type varchar(20) [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  description text
+  requires_document_after_days integer
+}
+
+Table attendance_schema.leave_requests {
+  employee_id uuid [not null]
+  leave_type varchar(30) [not null]
+  from_date date [not null]
+  to_date date [not null]
+  days decimal(5,1) [not null]
+  reason text
+  status varchar(20) [not null]
+  applied_by uuid [not null]
+  reviewed_by uuid
+  reviewed_at timestamptz
+  review_comment text
+  financial_year varchar(9)
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table attendance_schema.leave_transactions {
+  employee_id uuid [not null]
+  leave_request_id uuid
+  leave_type varchar(30) [not null]
+  financial_year varchar(9) [not null]
+  transaction_type varchar(30) [not null]
+  days decimal(5,1) [not null]
+  balance_after decimal(5,1)
+  "note" text
+  created_at timestamptz [not null, default: '2026-07-08 06:47:51.158469+00']
+  id uuid [pk]
+  tenant_id uuid [not null]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// ═══════════════ audit_schema ═══════════════
+
+Table audit_schema.audit_logs {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  event_type varchar(100) [not null]
+  actor_id uuid
+  entity_type varchar(100)
+  entity_id varchar(100)
+  payload_json jsonb [not null]
+  payload_hash varchar(64) [not null]
+  trace_id uuid
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ═══════════════ auth_schema ═══════════════
+
+Table auth_schema.roles {
+  user_id uuid [not null]
+  role_name varchar(50) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table auth_schema.tenants {
+  name varchar(200) [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table auth_schema.users {
+  email varchar(255) [not null]
+  password_hash varchar(255) [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,email) [unique]
+  }
+}
+
+// ═══════════════ compliance_schema ═══════════════
+
+Table compliance_schema.bonus_records {
+  employee_id uuid [not null]
+  financial_year varchar(9) [not null]
+  bonus_type varchar(50) [not null]
+  amount decimal(12,2) [not null]
+  is_paid boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table compliance_schema.compliance_settings {
+  client_id uuid
+  state varchar(60) [not null]
+  pf_enabled boolean [not null]
+  pf_employer_rate decimal(5,2) [not null]
+  pf_employee_rate decimal(5,2) [not null]
+  pf_wage_limit decimal(12,2) [not null]
+  esi_enabled boolean [not null]
+  esi_employer_rate decimal(5,2) [not null]
+  esi_employee_rate decimal(5,2) [not null]
+  esi_wage_limit decimal(12,2) [not null]
+  pt_enabled boolean [not null]
+  lwf_enabled boolean [not null]
+  bonus_enabled boolean [not null]
+  gratuity_enabled boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,client_id,state) [unique]
+  }
+}
+
+Table compliance_schema.esi_contributions {
+  employee_id uuid [not null]
+  cycle_id uuid [not null]
+  gross_wages decimal(12,2) [not null]
+  is_esi_eligible boolean [not null]
+  employee_esi decimal(12,2) [not null]
+  employer_esi decimal(12,2) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  wage_month varchar(7)
+}
+
+Table compliance_schema.esi_eligibility_periods {
+  employee_id uuid [not null]
+  period_start date [not null]
+  locked_from_month varchar(7) [not null]
+  basis_gross decimal(12,2) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,employee_id,period_start) [unique]
+  }
+}
+
+Table compliance_schema.gratuity_records {
+  employee_id uuid [not null]
+  amount decimal(12,2) [not null]
+  years_of_service decimal(5,2) [not null]
+  is_paid boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table compliance_schema.lwf_contributions {
+  employee_id uuid [not null]
+  cycle_id uuid [not null]
+  state varchar(60) [not null]
+  employee_lwf decimal(12,2) [not null]
+  employer_lwf decimal(12,2) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table compliance_schema.pf_contributions {
+  employee_id uuid [not null]
+  cycle_id uuid [not null]
+  pf_wages decimal(12,2) [not null]
+  employee_pf decimal(12,2) [not null]
+  employer_eps decimal(12,2) [not null]
+  employer_epf decimal(12,2) [not null]
+  is_ceiling_applied boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table compliance_schema.pt_deductions {
+  employee_id uuid [not null]
+  cycle_id uuid [not null]
+  state varchar(60) [not null]
+  pt_amount decimal(12,2) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// ═══════════════ employee_schema ═══════════════
+
+Table employee_schema.client_documents {
+  client_id uuid [not null]
+  blob_id uuid
+  doc_category varchar(50)
+  doc_label varchar(100)
+  description text
+  expiry_date date
+  version integer [not null]
+  verification_status varchar(20) [not null]
+  verified_by uuid
+  verified_at timestamptz
+  verification_comment text
+  superseded_by_id uuid
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table employee_schema.client_portal_credentials {
+  client_id uuid [not null]
+  portal_type varchar(50) [not null]
+  portal_name varchar(200)
+  username varchar(255)
+  password_encrypted text
+  last_rotated_at timestamptz
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  portal_url varchar(500)
+  metadata_json jsonb
+
+  indexes {
+    (client_id,portal_type) [unique]
+  }
+}
+
+Table employee_schema.clients {
+  client_code varchar(50) [not null]
+  client_name varchar(200) [not null]
+  legal_name varchar(200)
+  address_line1 varchar(255)
+  address_line2 varchar(255)
+  area varchar(150)
+  city varchar(100)
+  state varchar(100)
+  country varchar(100) [not null]
+  pincode varchar(20)
+  gst_number varchar(20)
+  pan_number varchar(20)
+  tan_number varchar(20)
+  cin_number varchar(30)
+  contact_person varchar(150)
+  contact_email varchar(255)
+  contact_mobile varchar(20)
+  contact_telephone varchar(20)
+  pf_establishment_code varchar(50)
+  esic_employer_code varchar(50)
+  professional_tax_number varchar(50)
+  labour_license_number varchar(100)
+  shop_act_number varchar(100)
+  status varchar(20) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  address jsonb
+  contact jsonb
+  statutory_ids jsonb
+  industry varchar(100)
+  payroll_start_date date
+  payroll_frequency varchar(20) [default: 'MONTHLY']
+  payroll_calendar varchar(30)
+  financial_year varchar(9)
+  msme_number varchar(50)
+  website varchar(255)
+  salary_template_id uuid
+
+  indexes {
+    (tenant_id,client_code) [unique]
+  }
+}
+
+Table employee_schema.daily_rate_cards {
+  client_id uuid
+  name varchar(100) [not null]
+  monthly_basic decimal(12,2) [not null]
+  monthly_da decimal(12,2) [not null]
+  monthly_hra decimal(12,2) [not null]
+  bonus_pct decimal(5,2) [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,client_id,name) [unique]
+  }
+}
+
+Table employee_schema.departments {
+  name varchar(150) [not null]
+  cost_center varchar(100)
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  client_id uuid
+  parent_department_id uuid
+  head_employee_id uuid
+}
+
+Table employee_schema.employees {
+  emp_code varchar(50) [not null]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255)
+  pan_number text
+  bank_account text
+  bank_ifsc text
+  uan_number text
+  status varchar(20) [not null]
+  joining_date date
+  department_id uuid
+  designation varchar(120)
+  location_id uuid
+  work_location varchar(120)
+  city varchar(100)
+  state varchar(100)
+  branch varchar(100)
+  client_id uuid
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  mobile varchar(20)
+  gender varchar(20)
+  date_of_birth date
+  employment_type varchar(50)
+  aadhaar_number text
+  exit_date date
+  exit_reason varchar(255)
+  user_id uuid
+  reporting_manager_id uuid
+  wage_type varchar(10) [not null, default: 'MONTHLY']
+  daily_rate_card_id uuid
+
+  indexes {
+    (tenant_id,emp_code) [unique]
+  }
+}
+
+Table employee_schema.financial_years {
+  name varchar(20) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenant_id,name) [unique]
+  }
+}
+
+Table employee_schema.locations {
+  location_name varchar(150) [not null]
+  city varchar(100) [not null]
+  state varchar(100) [not null]
+  country varchar(100) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  pincode varchar(20)
+  is_active boolean [default: true]
+  client_id uuid
+  location_code varchar(50)
+}
+
+Table employee_schema.workflow_definitions {
+  name varchar(150) [not null]
+  entity_type varchar(50) [not null]
+  steps jsonb [not null]
+  is_active boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table employee_schema.workflow_instances {
+  definition_id uuid
+  entity_type varchar(50) [not null]
+  entity_id uuid [not null]
+  current_step integer [not null]
+  status varchar(20) [not null]
+  initiated_by uuid [not null]
+  payload jsonb [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table employee_schema.workflow_step_actions {
+  instance_id uuid [not null]
+  step_number integer [not null]
+  actor_id uuid [not null]
+  action varchar(20) [not null]
+  comment text
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+// ═══════════════ notification_schema ═══════════════
+
+Table notification_schema.notifications {
+  id uuid [pk]
+  tenant_id uuid [not null]
+  user_id uuid
+  "type" varchar(80) [not null]
+  body text [not null]
+  link text
+  is_read boolean [not null]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ═══════════════ payout_schema ═══════════════
+
+Table payout_schema.payout_batches {
+  cycle_id uuid [not null]
+  batch_type varchar(20) [not null]
+  total_amount decimal(14,2) [not null]
+  status varchar(20) [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table payout_schema.payout_transactions {
+  batch_id uuid [not null]
+  employee_id uuid [not null]
+  amount decimal(12,2) [not null]
+  idempotency_key varchar(64) [not null]
+  status varchar(20) [not null]
+  bank_reference text
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    idempotency_key [unique]
+  }
+}
+
+// ═══════════════ payroll_schema ═══════════════
+
+Table payroll_schema.payroll_cycles {
+  name varchar(150) [not null]
+  period_start date [not null]
+  period_end date [not null]
+  status varchar(20) [not null]
+  is_dry_run boolean [not null]
+  created_by uuid
+  approved_by uuid
+  trace_id uuid
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  client_id uuid
+  financial_year varchar(20)
+}
+
+Table payroll_schema.payroll_results {
+  cycle_id uuid [not null]
+  employee_id uuid [not null]
+  gross_earnings decimal(12,2) [not null]
+  total_deductions decimal(12,2) [not null]
+  net_pay decimal(12,2) [not null]
+  breakdown_json jsonb [not null]
+  status varchar(20) [not null]
+  error varchar(500)
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  client_id uuid
+
+  indexes {
+    (tenant_id,cycle_id,employee_id) [unique]
+  }
+}
+
+// ═══════════════ reporting_schema ═══════════════
+
+Table reporting_schema.generated_reports {
+  cycle_id uuid [not null]
+  employee_id uuid
+  report_type varchar(30) [not null]
+  status varchar(20) [not null]
+  file_path text
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  blob_id uuid
+  report_metadata jsonb
+}
+
+// ═══════════════ salary_schema ═══════════════
+
+Table salary_schema.salary_components {
+  structure_id uuid [not null]
+  component_name varchar(100) [not null]
+  amount decimal(12,2) [not null]
+  component_type varchar(20) [not null]
+  is_taxable boolean [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table salary_schema.salary_structures {
+  employee_id uuid [not null]
+  ctc decimal(12,2) [not null]
+  effective_from date [not null]
+  effective_to date
+  is_active boolean [not null]
+  work_location varchar(120)
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  template_id uuid
+
+  indexes {
+    (tenant_id,employee_id,effective_from) [unique]
+  }
+}
+
+Table salary_schema.salary_templates {
+  client_id uuid
+  template_name varchar(150) [not null]
+  description text
+  is_active boolean [not null]
+  template_components jsonb [not null]
+  id uuid [pk]
+  tenant_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+
+// ══════ Enforced foreign keys (all are WITHIN one schema) ══════
+Ref: auth_schema.roles.user_id > auth_schema.users.id [delete: cascade]
+Ref: employee_schema.client_documents.client_id > employee_schema.clients.id [delete: cascade]
+Ref: employee_schema.client_portal_credentials.client_id > employee_schema.clients.id [delete: cascade]
+Ref: employee_schema.departments.client_id > employee_schema.clients.id [delete: no action]
+Ref: employee_schema.departments.parent_department_id > employee_schema.departments.id [delete: set null]
+Ref: employee_schema.employees.daily_rate_card_id > employee_schema.daily_rate_cards.id [delete: set null]
+Ref: employee_schema.employees.department_id > employee_schema.departments.id [delete: no action]
+Ref: employee_schema.employees.location_id > employee_schema.locations.id [delete: no action]
+Ref: employee_schema.employees.reporting_manager_id > employee_schema.employees.id [delete: set null]
+Ref: employee_schema.locations.client_id > employee_schema.clients.id [delete: no action]
+Ref: employee_schema.workflow_instances.definition_id > employee_schema.workflow_definitions.id [delete: no action]
+Ref: employee_schema.workflow_step_actions.instance_id > employee_schema.workflow_instances.id [delete: cascade]
+Ref: payout_schema.payout_transactions.batch_id > payout_schema.payout_batches.id [delete: cascade]
+Ref: payroll_schema.payroll_results.cycle_id > payroll_schema.payroll_cycles.id [delete: cascade]
+Ref: salary_schema.salary_components.structure_id > salary_schema.salary_structures.id [delete: cascade]
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOGICAL REFERENCES — cross-service, NOT enforced by the database
+//
+//  Each line below is a real relationship the application relies on, stored
+//  as a bare uuid with no FK because the two tables belong to different
+//  services. dbdiagram will draw them; Postgres will not enforce them.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Everything is scoped to a tenant (auth-service owns the tenant list) ──
+Ref: employee_schema.clients.tenant_id > auth_schema.tenants.id
+Ref: auth_schema.users.tenant_id > auth_schema.tenants.id
+
+// ── An employee's identity is owned by employee-service; every other
+//    service references it by id only ──
+Ref: salary_schema.salary_structures.employee_id > employee_schema.employees.id
+Ref: attendance_schema.attendance_records.employee_id > employee_schema.employees.id
+Ref: attendance_schema.leave_requests.employee_id > employee_schema.employees.id
+Ref: attendance_schema.leave_balances.employee_id > employee_schema.employees.id
+Ref: attendance_schema.leave_transactions.employee_id > employee_schema.employees.id
+Ref: attendance_schema.attendance_audit.employee_id > employee_schema.employees.id
+Ref: payroll_schema.payroll_results.employee_id > employee_schema.employees.id
+Ref: compliance_schema.pf_contributions.employee_id > employee_schema.employees.id
+Ref: compliance_schema.esi_contributions.employee_id > employee_schema.employees.id
+Ref: compliance_schema.pt_deductions.employee_id > employee_schema.employees.id
+Ref: compliance_schema.lwf_contributions.employee_id > employee_schema.employees.id
+Ref: compliance_schema.bonus_records.employee_id > employee_schema.employees.id
+Ref: compliance_schema.gratuity_records.employee_id > employee_schema.employees.id
+Ref: payout_schema.payout_transactions.employee_id > employee_schema.employees.id
+Ref: reporting_schema.generated_reports.employee_id > employee_schema.employees.id
+
+// ── A payroll cycle is owned by payroll-service; downstream services key
+//    their per-run output off it ──
+Ref: compliance_schema.pf_contributions.cycle_id > payroll_schema.payroll_cycles.id
+Ref: compliance_schema.esi_contributions.cycle_id > payroll_schema.payroll_cycles.id
+Ref: compliance_schema.pt_deductions.cycle_id > payroll_schema.payroll_cycles.id
+Ref: compliance_schema.lwf_contributions.cycle_id > payroll_schema.payroll_cycles.id
+Ref: payout_schema.payout_batches.cycle_id > payroll_schema.payroll_cycles.id
+Ref: reporting_schema.generated_reports.cycle_id > payroll_schema.payroll_cycles.id
+
+// ── Client scoping. clients lives in employee_schema, so references from
+//    other services are unenforced ──
+Ref: payroll_schema.payroll_cycles.client_id > employee_schema.clients.id
+Ref: attendance_schema.attendance_months.client_id > employee_schema.clients.id
+Ref: attendance_schema.attendance_records.client_id > employee_schema.clients.id
+Ref: attendance_schema.leave_policies.client_id > employee_schema.clients.id
+Ref: compliance_schema.compliance_settings.client_id > employee_schema.clients.id
+Ref: salary_schema.salary_templates.client_id > employee_schema.clients.id
+
+// ── Leave (feature currently unrouted in the UI) ──
+//   NOTE: leave_requests and leave_balances do NOT hold a policy id. They
+//   carry a `leave_type` string (CASUAL / SICK / EARNED / ...) that is matched
+//   against leave_policies.leave_type for the same client. It is a lookup by
+//   value, not a key relationship, so no Ref is drawn — a request can name a
+//   leave_type that has no policy row behind it.
+
+// ── Blobs live in MinIO; these columns hold the object id, not a row id ──
+// employee_schema.client_documents.blob_id   -> MinIO object
+// reporting_schema.generated_reports.file_path -> MinIO object (payslip PDF)
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  KEY BUSINESS RULES ENCODED AS UNIQUE CONSTRAINTS
+// ═══════════════════════════════════════════════════════════════════════════
+//  employees            (tenant_id, emp_code)              one code per tenant *
+//  clients              (tenant_id, client_code)
+//  daily_rate_cards     (tenant_id, client_id, name)
+//  salary_structures    (tenant_id, employee_id, effective_from)
+//                       -> salary history is append-only; a revision is a new row
+//  attendance_records   (tenant_id, employee_id, month)     one row per person-month
+//  attendance_months    (tenant_id, client_id, month)       the lock/validate control row
+//  leave_balances       (tenant_id, employee_id, leave_type, financial_year)
+//  payroll_results      (tenant_id, cycle_id, employee_id)  makes a re-run idempotent
+//  compliance_settings  (tenant_id, client_id, state)       PF/ESI/PT/LWF switches per state
+//  payout_transactions  (idempotency_key)                   stops a double payout
+//  users                (tenant_id, email)
+//  financial_years      (tenant_id, name)
+//  client_portal_credentials (client_id, portal_type)
+//
+//  * see SCHEMA DRIFT below — the model intends (tenant_id, client_id, emp_code)
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SCHEMA DRIFT — live database vs SQLAlchemy models
+//
+//  Tables are created with metadata.create_all() at service startup. That
+//  creates MISSING tables but never ALTERs an existing one, so constraints
+//  added to a model after a table already exists are silently absent in a
+//  long-lived database. Two such gaps are present here:
+//
+//  1. employee_schema.employees
+//       model : UNIQUE (tenant_id, client_id, emp_code)
+//       live  : UNIQUE (tenant_id, emp_code)
+//     Effect: two clients under one tenant cannot both use "E001". The model
+//     was changed to allow it; the deployed database still forbids it.
+//
+//  2. compliance_schema.{pf,esi,pt,lwf}_contributions
+//       model : UNIQUE (tenant_id, employee_id, cycle_id)
+//       live  : no unique constraint at all
+//     Effect: nothing stops duplicate contribution rows for one employee in
+//     one cycle, which would double-count statutory totals. The delete-then-
+//     insert in /compliance/compute is currently the only thing preventing it.
+//
+//  Both need an explicit migration; create_all will not fix them.
+//
+//  ── Orphaned objects (exist in the database, unused by any running code) ──
+//  ── Frozen created_at defaults (data bug, not a modelling one) ──
+//  attendance_schema.attendance_audit.created_at
+//  attendance_schema.leave_transactions.created_at
+//      Default is a FROZEN literal timestamp, not now():
+//        attendance_audit    DEFAULT '2026-06-15 14:21:46.146496+00'
+//        leave_transactions  DEFAULT '2026-07-08 06:47:51.158469+00'
+//      These came from ALTER TABLE ... ADD COLUMN with an evaluated default,
+//      so every row inserted since gets that same fixed timestamp instead of
+//      its real insertion time. All 26 attendance_audit rows currently share
+//      one created_at value, which makes the audit trail useless for ordering
+//      or for answering "when did this change?". Compare
+//      attendance_records.created_at, which correctly defaults to now().
+//      Fix: ALTER TABLE ... ALTER COLUMN created_at SET DEFAULT now();
+//
+//  compliance_schema.esi_eligibility_periods
+//      Superseded — ESI contribution-period eligibility is now derived by
+//      querying esi_contributions.wage_month. The model was deleted; the
+//      table was not dropped.
+//  tds_schema.* (13 tables)
+//      tds-service is disconnected from the platform: no container, not in
+//      docker-compose, no gateway route. The schema was dropped once and
+//      recreated by a stale container's create_all. Excluded from this file.
+// ═══════════════════════════════════════════════════════════════════════════
