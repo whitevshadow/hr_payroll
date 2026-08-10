@@ -856,7 +856,10 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                 )}
 
                 <div className="text-center">
-                  <button onClick={downloadTemplate} className="btn-ghost text-[12px] inline-flex items-center gap-1.5">
+                  <button
+                    onClick={() => downloadTemplate(bulkWageType as "MONTHLY" | "DAILY", bulkRateCard)}
+                    className="btn-ghost text-[12px] inline-flex items-center gap-1.5"
+                  >
                     <Download className="h-3.5 w-3.5" />
                     Need the template? Download it here
                   </button>
