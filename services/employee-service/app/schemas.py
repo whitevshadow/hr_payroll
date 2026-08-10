@@ -118,6 +118,28 @@ class EmployeeBase(BaseModel):
     def normalize_wage_type(cls, v: str | None) -> str | None:
         return v.strip().upper() if isinstance(v, str) else v
 
+    @field_validator("aadhaar_number", mode="before")
+    @classmethod
+    def validate_aadhaar(cls, v: str | None) -> str | None:
+        """Optional, but a supplied value must be 12 digits.
+
+        The API previously accepted any string here (the field was merely
+        required), so junk like "123" reached the encrypted column. Masked
+        values are passed through untouched: the update path echoes back the
+        masked form it was given and drops it before writing.
+        """
+        if v is None:
+            return v
+        text = str(v).strip()
+        if not text:
+            return None
+        if "X" in text.upper():
+            return text
+        digits = text.replace(" ", "").replace("-", "")
+        if not digits.isdigit() or len(digits) != 12:
+            raise ValueError("aadhaar_number must be 12 digits")
+        return digits
+
     @model_validator(mode="after")
     def validate_daily_wage(self) -> "EmployeeBase":
         if self.wage_type not in ("MONTHLY", "DAILY"):
@@ -128,7 +150,10 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
-    aadhaar_number: str
+    # Optional: daily-wage and contract workers frequently have no Aadhaar on
+    # file at onboarding, and blocking creation on it stalled the whole intake.
+    # The 12-digit format is still enforced when a value IS supplied.
+    pass
 
 
 class EmployeeUpdate(BaseModel):
@@ -256,7 +281,7 @@ class BulkImportRow(BaseModel):
     uan_number: str | None = None
     bank_account: str | None = None
     bank_ifsc: str | None = None
-    aadhaar_number: str
+    aadhaar_number: str | None = None
     gender: str | None = None
     date_of_birth: date | None = None
     state: str | None = None

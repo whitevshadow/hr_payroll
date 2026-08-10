@@ -9,7 +9,7 @@ import {
   Calendar, Download, Upload, Lock, Unlock, CheckCircle2,
   AlertCircle, AlertTriangle, Users, Percent, FileSpreadsheet,
   RefreshCw, X, ChevronDown, ShieldCheck, Save, Eye,
-  BarChart3, Clock, Search,
+  BarChart3, Clock, Search, ClipboardList,
 } from "lucide-react";
 import { attendanceApi, type AttendanceRecordFull, type AttendanceStatus } from "../api/attendance";
 import { employeesApi } from "../api/employees";
@@ -84,6 +84,32 @@ function summariseDays(days: AttCode[], totalDays: number) {
 }
 
 // ── AttendanceRow: per-employee state for the edit grid ───────────────────────
+/** One employee's month, entered as totals rather than day-by-day. */
+interface QuickRow {
+  employee_id: string;
+  emp_code: string;
+  name: string;
+  present: string;   // kept as strings so a half-typed "1" doesn't snap to 0
+  holiday: string;
+  wo: string;
+  leave: string;
+  dirty: boolean;
+}
+
+/** Mirrors attendance-service `_calc`: anything not accounted for by present /
+ *  paid holiday / weekly off / leave is loss of pay, and payable is the month
+ *  minus that. Payable is never typed by the user — a typed value can silently
+ *  contradict the day counts, and payroll pays whatever is stored. */
+function quickTotals(r: QuickRow, monthDays: number) {
+  const n = (v: string) => {
+    const x = parseFloat(v);
+    return Number.isFinite(x) && x > 0 ? x : 0;
+  };
+  const marked = n(r.present) + n(r.holiday) + n(r.wo) + n(r.leave);
+  const lop = Math.max(0, monthDays - marked);
+  return { marked, lop, payable: monthDays - lop, over: marked > monthDays };
+}
+
 interface AttRow {
   employee_id: string;
   emp_code: string;
@@ -457,7 +483,7 @@ function UploadPreviewModal({
 // § 3 — MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type ActiveTab = "summary" | "grid";
+type ActiveTab = "summary" | "quick" | "grid";
 
 export function Attendance() {
   const { user } = useAuth();
@@ -467,6 +493,11 @@ export function Attendance() {
 
   const [month, setMonth] = useState(currentMonthValue());
   const [activeTab, setActiveTab] = useState<ActiveTab>("summary");
+  // Quick entry: totals per employee instead of 31 day-cells. The backend has
+  // always accepted this shape (/attendance/bulk takes the summary numbers and
+  // derives LOP itself) — only the UI insisted on day-level marking.
+  const [quickRows, setQuickRows] = useState<QuickRow[]>([]);
+  const [quickLoaded, setQuickLoaded] = useState(false);
   const [empSearch, setEmpSearch] = useState("");
   const { selectedClientId } = useClientContext();
 
@@ -672,6 +703,65 @@ export function Attendance() {
   const validateMut = useMutation({
     mutationFn: () => attendanceApi.validate(month),
     onSuccess: () => { toastService.success("Attendance VALIDATED."); setShowValidate(false); invalidate(); },
+    onError: (err) => toastService.error(extractErrorMessage(err)),
+  });
+
+  // Seed from what is already saved so re-opening the tab shows the real state
+  // rather than blank inputs that would zero everyone on save.
+  function buildQuick() {
+    const byEmp: Record<string, any> = {};
+    for (const r of monthlyRecords) byEmp[r.employee_id] = r;
+    setQuickRows(
+      employees.map((e) => {
+        const rec = byEmp[e.id];
+        const num = (v: any) => (v === undefined || v === null || v === "" ? "" : String(parseFloat(v)));
+        return {
+          employee_id: e.id,
+          emp_code: e.emp_code,
+          name: `${e.first_name} ${e.last_name}`,
+          present: rec ? num(rec.present_days) : "",
+          holiday: rec ? num(rec.holiday_days) : "",
+          wo: rec ? num(rec.wo_days) : "",
+          // The three leave buckets collapse into one input here; anything more
+          // granular belongs in the grid.
+          leave: rec
+            ? String((parseFloat(rec.cl_days ?? 0) || 0) + (parseFloat(rec.sl_days ?? 0) || 0) + (parseFloat(rec.pl_days ?? 0) || 0) || "")
+            : "",
+          dirty: false,
+        };
+      })
+    );
+    setQuickLoaded(true);
+  }
+
+  const quickSaveMut = useMutation({
+    mutationFn: () => {
+      const num = (v: string) => {
+        const x = parseFloat(v);
+        return Number.isFinite(x) && x > 0 ? x : 0;
+      };
+      const records = quickRows
+        .filter((r) => r.dirty)
+        .map((r) => ({
+          employee_id: r.employee_id,
+          total_days: totalDays,
+          present_days: num(r.present),
+          cl_days: num(r.leave),
+          sl_days: 0,
+          pl_days: 0,
+          wo_days: num(r.wo),
+          holiday_days: num(r.holiday),
+          wfh_days: 0,
+          overtime_hours: 0,
+        }));
+      if (records.length === 0) throw new Error("Nothing changed to save.");
+      return attendanceApi.bulkUpsert({ month: monthToFirst(month), records, source: "MANUAL" });
+    },
+    onSuccess: (data) => {
+      toastService.success(`Saved ${data.created + data.updated} employees.`);
+      invalidate();
+      setQuickRows((rs) => rs.map((r) => ({ ...r, dirty: false })));
+    },
     onError: (err) => toastService.error(extractErrorMessage(err)),
   });
 
@@ -950,12 +1040,13 @@ export function Attendance() {
       {/* ── Tabs + employee search ───────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-card-bg)] p-1 w-fit">
-        {([["summary", BarChart3, "Summary"], ["grid", FileSpreadsheet, "Edit Grid"]] as const).map(([id, Icon, label]) => (
+        {([["summary", BarChart3, "Summary"], ["quick", ClipboardList, "Quick Entry"], ["grid", FileSpreadsheet, "Edit Grid"]] as const).map(([id, Icon, label]) => (
           <button
             key={id}
             onClick={() => {
               setActiveTab(id as ActiveTab);
               if (id === "grid" && !gridLoaded) buildGrid();
+              if (id === "quick" && !quickLoaded) buildQuick();
             }}
             className={clsx(
               "relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
@@ -1003,6 +1094,121 @@ export function Attendance() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
+          {/* ══ QUICK ENTRY TAB ════════════════════════════════════════════ */}
+          {activeTab === "quick" && (
+            <div className="card-glass overflow-hidden p-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[var(--glass-border)]">
+                <div>
+                  <h3 className="font-display font-semibold text-[var(--text-primary)]">
+                    Quick Entry — {monthLabel}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Enter totals per employee. LOP and payable days are calculated for you.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {quickRows.filter((r) => r.dirty).length} changed
+                  </span>
+                  <button
+                    className="btn"
+                    disabled={!canEdit || quickSaveMut.isPending || quickRows.every((r) => !r.dirty)}
+                    onClick={() => quickSaveMut.mutate()}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {quickSaveMut.isPending ? "Saving…" : "Save Attendance"}
+                  </button>
+                </div>
+              </div>
+
+              {isLocked && (
+                <div className="flex items-center gap-2 border-b border-[var(--glass-border)] bg-amber-50/60 px-5 py-2 text-[12px] text-amber-700 dark:bg-amber-900/15 dark:text-amber-400">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  This month is locked. Unlock it to make changes.
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px]">
+                  <thead>
+                    <tr className="border-b border-[var(--glass-border)] bg-[var(--glass-card-bg)]/60 sticky top-0 z-10">
+                      <th className="th text-left">Employee</th>
+                      <th className="th text-right w-[90px]">Present</th>
+                      <th className="th text-right w-[90px]">Paid Hol.</th>
+                      <th className="th text-right w-[90px]">Week Off</th>
+                      <th className="th text-right w-[90px]">Leave</th>
+                      <th className="th text-right w-[80px]">Marked</th>
+                      <th className="th text-right w-[80px]">LOP</th>
+                      <th className="th text-right w-[90px]">Payable</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--glass-border-subtle)]">
+                    {quickRows.length === 0 && (
+                      <tr><td colSpan={8} className="td py-10 text-center text-[var(--text-muted)]">
+                        No active employees for this client.
+                      </td></tr>
+                    )}
+                    {quickRows
+                      .filter((r) => !q || r.name.toLowerCase().includes(q) || r.emp_code.toLowerCase().includes(q))
+                      .map((row, idx) => {
+                        const t = quickTotals(row, totalDays);
+                        const field = (key: "present" | "holiday" | "wo" | "leave") => (
+                          <td className="td text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              max={totalDays}
+                              step="0.5"
+                              disabled={!canEdit}
+                              value={row[key]}
+                              onChange={(e) =>
+                                setQuickRows((rs) =>
+                                  rs.map((r) =>
+                                    r.employee_id === row.employee_id
+                                      ? { ...r, [key]: e.target.value, dirty: true }
+                                      : r
+                                  )
+                                )
+                              }
+                              className="input w-[70px] py-1 text-right text-[12.5px] tabular-nums"
+                            />
+                          </td>
+                        );
+                        return (
+                          <tr key={row.employee_id} className={clsx("tr-hover", t.over && "bg-amber-50/40 dark:bg-amber-900/10")}>
+                            <td className="td">
+                              <div className="text-[12.5px] font-medium text-[var(--text-primary)]">{row.name}</div>
+                              <div className="font-mono text-[10px] text-[var(--text-muted)]">{row.emp_code}</div>
+                            </td>
+                            {field("present")}
+                            {field("holiday")}
+                            {field("wo")}
+                            {field("leave")}
+                            <td className={clsx("td text-right font-numeric tabular-nums", t.over ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-[var(--text-muted)]")}>
+                              {t.marked}/{totalDays}
+                            </td>
+                            <td className={clsx("td text-right font-numeric tabular-nums", t.lop > 0 ? "text-danger" : "text-[var(--text-muted)]")}>
+                              {t.lop}
+                            </td>
+                            <td className="td text-right font-numeric font-semibold tabular-nums text-[var(--text-primary)]">
+                              {t.payable}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+
+              {quickRows.some((r) => quickTotals(r, totalDays).over) && (
+                <div className="flex items-center gap-2 border-t border-[var(--glass-border)] bg-amber-50/60 px-5 py-2.5 text-[12px] text-amber-700 dark:bg-amber-900/15 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Some rows add up to more than {totalDays} days. Fix them before saving — the extra days are not paid.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ══ SUMMARY TAB ════════════════════════════════════════════════ */}
           {activeTab === "summary" && (
             <div className="card-glass overflow-hidden p-0">

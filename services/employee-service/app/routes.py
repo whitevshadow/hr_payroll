@@ -369,12 +369,12 @@ async def bulk_import_employees(
             if not IFSC_RE.match(ifsc):
                 results.append(_err(idx, row, f"Invalid IFSC format: {ifsc}")); continue
             row = row.model_copy(update={"bank_ifsc": ifsc})
-        if not row.aadhaar_number:
-            results.append(_err(idx, row, "Aadhaar Number is required")); continue
-        aadhaar_clean = row.aadhaar_number.replace(" ", "").replace("-", "")
-        if not AADHAAR_RE.match(aadhaar_clean):
+        # Aadhaar is optional; only a malformed value is an error. Blank stays
+        # blank so the row imports and the number can be added later.
+        aadhaar_clean = (row.aadhaar_number or "").replace(" ", "").replace("-", "")
+        if aadhaar_clean and not AADHAAR_RE.match(aadhaar_clean):
             results.append(_err(idx, row, "Aadhaar must be 12 digits")); continue
-        row = row.model_copy(update={"aadhaar_number": aadhaar_clean})
+        row = row.model_copy(update={"aadhaar_number": aadhaar_clean or None})
         if row.basic_salary is not None and row.basic_salary <= 0:
             results.append(_err(idx, row, "Basic Salary must be positive")); continue
         wage_type = (row.wage_type or "MONTHLY").strip().upper()

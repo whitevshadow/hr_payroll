@@ -8,12 +8,48 @@ export interface StatutoryDeadline {
   dayOfMonth: number;
   /** If true, deadline is in the month FOLLOWING the period month. */
   followingMonth?: boolean;
-  category: "PF" | "ESI" | "PT" | "INCOME_TAX";
+  category: "PF" | "ESI" | "PT" | "LWF" | "INCOME_TAX";
   link?: string; // internal route to navigate on click
 }
 
 // VERIFY against current government notifications before relying on these dates.
 export const STATUTORY_DEADLINES: StatutoryDeadline[] = [
+  {
+    id: "pf-ecr",
+    name: "PF ECR Filing",
+    description: "EPFO Electronic Challan cum Return for PF/EPS deposits",
+    dayOfMonth: 15,
+    followingMonth: true,
+    category: "PF",
+    link: "/compliance",
+  },
+  {
+    id: "esi-filing",
+    name: "ESI Filing & Deposit",
+    description: "ESIC contribution deposit for eligible employees",
+    dayOfMonth: 15,
+    followingMonth: true,
+    category: "ESI",
+    link: "/compliance",
+  },
+  {
+    id: "pt-maharashtra",
+    name: "PT Return (Maharashtra)",
+    description: "Professional Tax return filing for Maharashtra",
+    dayOfMonth: 31,
+    followingMonth: true,
+    category: "PT",
+    link: "/compliance",
+  },
+  {
+    id: "mlwf",
+    name: "MLWF Contribution",
+    description: "Maharashtra Labour Welfare Fund — half-yearly, due 15 Jul and 15 Jan",
+    dayOfMonth: 15,
+    followingMonth: true,
+    category: "LWF",
+    link: "/compliance",
+  },
 ];
 
 /** Compute the next occurrence date of a deadline relative to today. */

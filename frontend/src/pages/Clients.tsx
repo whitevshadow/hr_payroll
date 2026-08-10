@@ -224,7 +224,19 @@ function ClientModal({ client, onClose }: {
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      if (!form.client_name?.trim()) throw new Error("Client Name is required");
+      const missing = ([
+        ["Client Name", form.client_name],
+        ["Address Line 1", form.address_line1],
+        ["City", form.city],
+        ["State", form.state],
+        ["Pincode", form.pincode],
+      ] as const).filter(([, v]) => !String(v ?? "").trim()).map(([label]) => label);
+      if (missing.length) {
+        throw new Error(
+          `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} required. ` +
+          `Everything else can be filled in later.`
+        );
+      }
 
       const payload = {
         client_code: form.client_code || undefined,
@@ -302,10 +314,10 @@ function ClientModal({ client, onClose }: {
         </Section>
 
         {/* Address */}
-        <Section title="Address Information" icon={MapPin}>
+        <Section title="Address Information" icon={MapPin} defaultOpen>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <FormRow label="Address Line 1">
+              <FormRow label="Address Line 1" required>
                 <input className="input" placeholder="Street / Building" {...F("address_line1")} />
               </FormRow>
             </div>

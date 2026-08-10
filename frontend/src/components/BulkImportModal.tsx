@@ -7,8 +7,8 @@
  *   Step 4 — Import + Result report
  */
 
-import { useState, useRef, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import {
@@ -19,6 +19,7 @@ import {
 import { employeesApi, type BulkImportRow, type BulkImportResult, type RowResult } from "../api/employees";
 import { salaryApi } from "../api/salary";
 import { extractErrorMessage } from "../lib/toast";
+import { NewRateCardModal } from "./NewRateCardModal";
 import clsx from "clsx";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,21 +28,48 @@ import clsx from "clsx";
 
 const STEPS = ["Download Template", "Upload File", "Preview & Validate", "Import Results"];
 
-const MANDATORY_HEADERS = [
+// The template is built for the pay setup chosen on step 1, so the columns
+// differ per wage type. Wage Type and Rate Card are NOT columns any more —
+// they are picked once up front and applied to every row, which is the whole
+// point of choosing before downloading.
+//
+// Column ORDER matters: the sample rows are positional, so both are built from
+// this same list rather than being written out separately.
+const BASE_HEADERS = [
   "Name", "Mobile", "Aadhaar Number",
   "Department", "Work Location", "Date of Joining",
   "Employment Type",
 ];
-// "Basic Salary (Annual CTC)" leads the optional block so ALL_HEADERS keeps its
-// original column order — the template's sample rows are positional, and the
-// header styling picks mandatory vs optional by index.
-const OPTIONAL_HEADERS = [
-  "Basic Salary (Annual CTC)",
+const TAIL_HEADERS = [
   "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "Bank Account", "IFSC Code",
   "Gender", "Date of Birth", "State", "City", "Branch",
-  "Wage Type", "Rate Card",
 ];
-const ALL_HEADERS = [...MANDATORY_HEADERS, ...OPTIONAL_HEADERS];
+
+/** Columns for the chosen wage type. Monthly staff need a CTC to build a
+ *  salary structure from; daily-rated staff take every rate from the rate
+ *  card, so a salary column there would be meaningless and confusing. */
+function headersFor(wageType: "MONTHLY" | "DAILY"): string[] {
+  return wageType === "MONTHLY"
+    ? [...BASE_HEADERS, "Basic Salary (Annual CTC)", ...TAIL_HEADERS]
+    : [...BASE_HEADERS, ...TAIL_HEADERS];
+}
+
+// Only Name is a hard requirement in the file itself now — wage type and rate
+// card come from the up-front choice, and nothing else blocks an import.
+// Mobile / Department / Work Location / Date of Joining / Employment Type were
+// once labelled mandatory but were never enforced by the parser or the API.
+const REQUIRED_HEADERS = new Set(["Name"]);
+
+// Columns that do not block an import but DO change what someone is paid.
+// A missing value here is reported as a per-row warning, not an error.
+const PAY_AFFECTING: Array<{ key: keyof BulkImportRow; label: string; why: string }> = [
+  { key: "gender", label: "Gender",
+    why: "PT exemption cannot be applied — women may be over-deducted" },
+  { key: "state", label: "State",
+    why: "falls back to the default PT slab" },
+  { key: "work_location", label: "Work Location",
+    why: "HRA calculated at the non-metro rate" },
+];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAN_RE   = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -54,6 +82,8 @@ const IFSC_RE  = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 interface ParsedRow extends BulkImportRow {
   _rowNum: number;          // 1-based (skipping header)
   _errors: string[];
+  /** Non-blocking: the row imports, but something that affects pay is absent. */
+  _warnings: string[];
   _isValid: boolean;
 }
 
@@ -61,69 +91,87 @@ interface ParsedRow extends BulkImportRow {
 // Template generator
 // ─────────────────────────────────────────────────────────────────────────────
 
-function downloadTemplate() {
-  const sampleRows = [
-    [
-      "Rahul Sharma", "9876543210", "123456789012",
-      "Engineering", "Pune", "2026-06-01", "Full Time", "540000",
-      "E010", "rahul@company.com", "Developer", "ABCDE1234F", "", "12345678901", "HDFC0001234", "", "", "Maharashtra", "Mumbai", "",
-      "", "",
-    ],
-    [
-      "Priya Patil", "9876543211", "987654321098",
-      "HR", "Mumbai", "2026-06-01", "Full Time", "420000",
-      "", "priya@company.com", "Executive", "", "", "", "", "Female", "", "Maharashtra", "Mumbai", "",
-      "", "",
-    ],
-    [
-      "Sanubai Kadale", "9876543212", "456789012345",
-      "Production", "Chakan", "2026-06-01", "Contract", "",
-      "", "", "Helper", "", "", "", "", "Female", "", "Maharashtra", "Pune", "",
-      "DAILY", "Chakan Helper 2026",
-    ],
-  ];
+function downloadTemplate(wageType: "MONTHLY" | "DAILY", rateCardName: string) {
+  const headers = headersFor(wageType);
+  const daily = wageType === "DAILY";
 
-  // Sheet 1 — Data
-  const ws1 = XLSX.utils.aoa_to_sheet([ALL_HEADERS, ...sampleRows]);
-  ws1["!cols"] = ALL_HEADERS.map((h) => ({ wch: Math.max(h.length + 4, 16) }));
+  // Samples are built by column NAME, not by position, so they can never drift
+  // out of alignment when the column set changes with the wage type.
+  const sample = (v: Record<string, string>) => headers.map((h) => v[h] ?? "");
+  const sampleRows = daily
+    ? [
+        sample({ "Name": "Sanubai Kadale", "Mobile": "9876543212", "Aadhaar Number": "456789012345",
+                 "Department": "Production", "Work Location": "Chakan", "Date of Joining": "2026-06-01",
+                 "Employment Type": "Contract", "Designation": "Helper", "Gender": "Female",
+                 "State": "Maharashtra", "City": "Pune" }),
+        sample({ "Name": "Raghu Sapre", "Mobile": "9876543213", "Department": "Production",
+                 "Work Location": "Chakan", "Date of Joining": "2026-06-01", "Employment Type": "Contract",
+                 "Designation": "Helper", "Gender": "Male", "State": "Maharashtra", "City": "Pune" }),
+      ]
+    : [
+        sample({ "Name": "Rahul Sharma", "Mobile": "9876543210", "Aadhaar Number": "123456789012",
+                 "Department": "Engineering", "Work Location": "Pune", "Date of Joining": "2026-06-01",
+                 "Employment Type": "Full Time", "Basic Salary (Annual CTC)": "540000",
+                 "Employee Code": "E010", "Email": "rahul@company.com", "Designation": "Developer",
+                 "PAN Number": "ABCDE1234F", "Bank Account": "12345678901", "IFSC Code": "HDFC0001234",
+                 "Gender": "Male", "State": "Maharashtra", "City": "Mumbai" }),
+        sample({ "Name": "Priya Patil", "Mobile": "9876543211", "Aadhaar Number": "987654321098",
+                 "Department": "HR", "Work Location": "Mumbai", "Date of Joining": "2026-06-01",
+                 "Employment Type": "Full Time", "Basic Salary (Annual CTC)": "420000",
+                 "Employee Code": "E011", "Email": "priya@company.com", "Designation": "Executive",
+                 "Gender": "Female", "State": "Maharashtra", "City": "Mumbai" }),
+      ];
 
-  // Mark mandatory columns red (A–K = cols 0–10)
+  const ws1 = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+  ws1["!cols"] = headers.map((h) => ({ wch: Math.max(h.length + 4, 16) }));
+
   const headerRange = XLSX.utils.decode_range(ws1["!ref"] ?? "A1:U1");
   for (let c = headerRange.s.c; c <= headerRange.e.c; c++) {
     const cellAddr = XLSX.utils.encode_cell({ r: 0, c });
     if (!ws1[cellAddr]) continue;
+    const req = REQUIRED_HEADERS.has(headers[c]);
     ws1[cellAddr].s = {
-      font: { bold: true, color: { rgb: c < MANDATORY_HEADERS.length ? "CC0000" : "555555" } },
-      fill: { patternType: "solid", fgColor: { rgb: c < MANDATORY_HEADERS.length ? "FFE8E8" : "F5F5F5" } },
+      font: { bold: true, color: { rgb: req ? "CC0000" : "555555" } },
+      fill: { patternType: "solid", fgColor: { rgb: req ? "FFE8E8" : "F5F5F5" } },
     };
   }
 
-  // Sheet 2 — Instructions
+  const payLine = daily
+    ? `  All employees in this file are DAILY RATED on rate card: ${rateCardName}`
+    : "  All employees in this file are paid MONTHLY from an annual CTC";
+
   const instructions: string[][] = [
     ["BULK EMPLOYEE IMPORT — INSTRUCTIONS"],
     [""],
-    ["MANDATORY COLUMNS (marked in red in the Data sheet)"],
-    ...MANDATORY_HEADERS.map((h, i) => [`  ${i + 1}. ${h}`]),
+    ["PAY SETUP (already chosen — do not add these as columns)"],
+    [payLine],
+    [daily
+      ? "  Per-day Basic / DA / HRA and bonus % all come from that rate card, so there is"
+      : "  Basic / HRA / allowances are derived from the CTC you enter per employee."],
+    ...(daily ? [["  no salary column in this template."]] : []),
     [""],
-    ["OPTIONAL COLUMNS"],
-    ...OPTIONAL_HEADERS.map((h, i) => [`  ${i + 1}. ${h}`]),
+    ["REQUIRED COLUMNS (marked in red in the Data sheet)"],
+    ...headers.filter((h) => REQUIRED_HEADERS.has(h)).map((h, i) => [`  ${i + 1}. ${h}`]),
+    [""],
+    ["EVERYTHING ELSE IS OPTIONAL — but some optional columns change what someone is PAID:"],
+    ["  Gender          : Drives the Maharashtra PT exemption (women are nil up to Rs 25,000)."],
+    ["                    Blank means the exemption cannot be applied and women may be over-deducted."],
+    ["  State           : Selects the Professional Tax slab. Blank falls back to the default slab."],
+    ["  Work Location   : Metro locations attract HRA at 50% of basic instead of 40%."],
     [""],
     ["FORMAT RULES"],
-    ["  Employee Code   : Optional. If left blank, it will be auto-generated (e.g. EMP-1A2B3C)"],
+    ["  Employee Code   : Optional — auto-generated if blank (e.g. EMP-1A2B3C). Supplying your own"],
+    ["                    is strongly recommended: it is the only reliable duplicate key. Without it,"],
+    ["                    two different people with the same name can both be imported."],
     ["  Email           : Valid email format (e.g. name@company.com)"],
     ["  Mobile          : Exactly 10 digits"],
-    ["  Aadhaar Number  : Exactly 12 digits"],
+    ["  Aadhaar Number  : Optional. Exactly 12 digits when supplied."],
     ["  Date of Joining : YYYY-MM-DD (e.g. 2026-06-01) or DD-MM-YYYY"],
     ["  Employment Type : Full Time / Part Time / Contract"],
-    ["  Basic Salary    : Optional. Annual CTC in INR, numbers only (e.g. 540000). When present, a salary"],
-    ["                    structure is created automatically. Leave blank for daily-wage employees, or when"],
-    ["                    salaries are assigned later from the Salary page."],
+    ...(daily ? [] : [["  Basic Salary    : Optional. Annual CTC in INR, numbers only (e.g. 540000). When present,"],
+                      ["                    a salary structure is created automatically."]]),
     ["  PAN Number      : 10-char alphanumeric (e.g. ABCDE1234F)"],
     ["  IFSC Code       : 11-char (e.g. HDFC0001234)"],
-    ["  Wage Type       : MONTHLY (default) or DAILY"],
-    ["  Rate Card       : Name of an existing rate card for this client — required when Wage Type is DAILY."],
-    ["                    Per-day rates (Basic / DA / HRA, bonus %, leave %) live on the rate card, so"],
-    ["                    every worker on it shares the same rates. Create rate cards before importing."],
     [""],
     ["NOTES"],
     ["  • Duplicate Employee Codes or Emails will be skipped."],
@@ -132,12 +180,12 @@ function downloadTemplate() {
     ["  • Maximum 5000 rows per upload."],
   ];
   const ws2 = XLSX.utils.aoa_to_sheet(instructions);
-  ws2["!cols"] = [{ wch: 70 }];
+  ws2["!cols"] = [{ wch: 78 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, "Employee Data");
   XLSX.utils.book_append_sheet(wb, ws2, "Instructions");
-  XLSX.writeFile(wb, "BulkEmployee_Import_Template.xlsx");
+  XLSX.writeFile(wb, `BulkEmployee_${daily ? "DailyWage" : "Monthly"}_Template.xlsx`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -242,16 +290,16 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           if (!name)       errors.push("Name is required");
           if (email && !EMAIL_RE.test(email)) errors.push(`Invalid email: ${email}`);
           if (mobile && mobile.length !== 10) errors.push("Mobile must be 10 digits");
-          if (!aadhaar) errors.push("Aadhaar Number is required");
-          else if (aadhaar.length !== 12) errors.push("Aadhaar must be 12 digits");
+          // Optional: a blank Aadhaar imports fine, a malformed one does not.
+          if (aadhaar && aadhaar.length !== 12) errors.push("Aadhaar must be 12 digits");
           if (!joiningDate && joiningRaw)  errors.push(`Cannot parse Joining Date: "${joiningRaw}"`);
           if (salary !== undefined && salary <= 0) errors.push("Basic Salary must be positive number");
           if (pan && !PAN_RE.test(pan))  errors.push(`Invalid PAN: ${pan}`);
           if (ifsc && !IFSC_RE.test(ifsc)) errors.push(`Invalid IFSC: ${ifsc}`);
-          if (wageType && wageType !== "MONTHLY" && wageType !== "DAILY")
-            errors.push(`Wage Type must be MONTHLY or DAILY (got "${wageType}")`);
-          if (wageType === "DAILY" && !rateCard)
-            errors.push("Rate Card is required for DAILY wage rows");
+          // NOTE: wage type and rate card are deliberately NOT validated here.
+          // They can be supplied per row OR chosen once for the whole file in
+          // the preview step, and that choice happens after parsing — so the
+          // check lives in `effectiveRows` where both inputs are known.
 
           // Intra-file duplicate check
           if (empCode && seenCodes.has(empCode.toLowerCase())) {
@@ -265,9 +313,22 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             seenEmails.add(email);
           }
 
+          // Absent values that quietly change pay. These never block the
+          // import — they tell the user what the system will assume.
+          const warnings: string[] = [];
+          const rowValues: Record<string, string> = {
+            gender: get(r, "gender"),
+            state: get(r, "state"),
+            work_location: get(r, "work_location"),
+          };
+          for (const f of PAY_AFFECTING) {
+            if (!rowValues[f.key as string]?.trim()) warnings.push(`No ${f.label} — ${f.why}`);
+          }
+
           parsed.push({
             _rowNum: i,
             _errors: errors,
+            _warnings: warnings,
             _isValid: errors.length === 0,
             emp_code: empCode,
             name: name,
@@ -345,12 +406,45 @@ function RowBadge({ status }: { status: "valid" | "error" | "duplicate" | "creat
 // KPI card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function KPI({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className={clsx("flex flex-col items-center rounded-xl border px-4 py-3", color)}>
+function KPI({
+  label, value, color, onClick, active, disabled,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  /** When given, the tile becomes a filter toggle for the preview table. */
+  onClick?: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  const body = (
+    <>
       <div className="text-2xl font-bold font-display tabular-nums">{value}</div>
       <div className="text-[10.5px] font-semibold uppercase tracking-wider mt-0.5 opacity-70">{label}</div>
-    </div>
+    </>
+  );
+  const base = clsx("flex flex-col items-center rounded-xl border px-4 py-3", color);
+
+  if (!onClick) return <div className={base}>{body}</div>;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={!!active}
+      title={disabled ? undefined : `Show only ${label.toLowerCase()} rows`}
+      className={clsx(
+        base,
+        "transition-all",
+        disabled
+          ? "cursor-default opacity-60"
+          : "cursor-pointer hover:brightness-95 dark:hover:brightness-110",
+        active && "ring-2 ring-offset-1 ring-current ring-offset-transparent"
+      )}
+    >
+      {body}
+    </button>
   );
 }
 
@@ -373,6 +467,30 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   const [result, setResult] = useState<BulkImportResult | null>(null);
   const [salaryProgress, setSalaryProgress] = useState({ done: 0, total: 0 });
   const [salaryError, setSalaryError] = useState("");
+  // Preview filter driven by the KPI tiles. With 175 rows and 2 bad ones,
+  // scrolling to find the failures is the whole problem — clicking "Invalid"
+  // isolates them. Import always uses every valid row, never the filtered view.
+  const [previewFilter, setPreviewFilter] = useState<"all" | "valid" | "invalid">("all");
+
+  // ── Apply-to-all-rows selections ──────────────────────────────────────────
+  // Most files are homogeneous — one register of daily-wage workers on one rate
+  // card — so repeating those two values on every row is pure friction. These
+  // fill in any row that did not supply its own; a row that DID keeps its value
+  // (see effectiveRows), so a mixed file still works.
+  const [bulkWageType, setBulkWageType] = useState<"" | "MONTHLY" | "DAILY">("");
+  const [bulkRateCard, setBulkRateCard] = useState("");
+  const [showNewCard, setShowNewCard] = useState(false);
+
+  const rateCardsQ = useQuery({
+    queryKey: ["rate-cards"],
+    queryFn: () => employeesApi.rateCards(),
+  });
+  const rateCards = rateCardsQ.data ?? [];
+
+  // The template cannot be built until we know which columns it needs, and a
+  // daily-wage file is meaningless without the card its rates come from.
+  const paySetupReady =
+    bulkWageType === "MONTHLY" || (bulkWageType === "DAILY" && !!bulkRateCard);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Parse file whenever a new file is selected ──────────────────────────
@@ -380,6 +498,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
     setFile(f);
     setParseError("");
     setRows([]);
+    setPreviewFilter("all");
     try {
       const parsed = await parseFile(f);
       if (parsed.length > 5000) {
@@ -405,8 +524,8 @@ export function BulkImportModal({ onClose, onImported }: Props) {
     mutationFn: async () => {
       setSalaryError("");
       setSalaryProgress({ done: 0, total: 0 });
-      const validRows = rows.filter((r) => r._isValid);
-      const payload: BulkImportRow[] = validRows.map(({ _rowNum, _errors, _isValid, ...rest }) => rest);
+      const validRows = effectiveRows.filter((r) => r._isValid);
+      const payload: BulkImportRow[] = validRows.map(({ _rowNum, _errors, _warnings, _isValid, ...rest }) => rest);
       const res = await employeesApi.bulkImport(payload);
 
       // Auto-create salary structures for created employees that have basic_salary
@@ -452,8 +571,40 @@ export function BulkImportModal({ onClose, onImported }: Props) {
   });
 
   // ── Derived counts ────────────────────────────────────────────────────────
-  const validCount = rows.filter((r) => r._isValid).length;
-  const errorCount = rows.filter((r) => !r._isValid).length;
+  // Resolve each row against the bulk selections, then finish validating.
+  // Per-row values always win: the selectors fill gaps, they never overwrite
+  // something the spreadsheet explicitly said.
+  const effectiveRows: ParsedRow[] = useMemo(() => {
+    return rows.map((r) => {
+      const wage = (r.wage_type || bulkWageType || "").toUpperCase();
+      const card = r.rate_card || (wage === "DAILY" ? bulkRateCard : "") || undefined;
+      const errors = [...r._errors];
+
+      if (!wage) {
+        errors.push("Wage Type is required — set the column, or choose one for all rows above");
+      } else if (wage !== "MONTHLY" && wage !== "DAILY") {
+        errors.push(`Wage Type must be MONTHLY or DAILY (got "${wage}")`);
+      } else if (wage === "DAILY" && !card) {
+        errors.push("Rate Card is required for DAILY rows — set the column, or choose one above");
+      }
+
+      return {
+        ...r,
+        wage_type: wage || undefined,
+        rate_card: card,
+        _errors: errors,
+        _isValid: errors.length === 0,
+      };
+    });
+  }, [rows, bulkWageType, bulkRateCard]);
+
+  const validCount = effectiveRows.filter((r) => r._isValid).length;
+  const errorCount = effectiveRows.filter((r) => !r._isValid).length;
+  // Rows that import successfully but with a pay-affecting field absent.
+  const warnCount = effectiveRows.filter((r) => r._isValid && r._warnings.length > 0).length;
+
+  const visibleRows =
+    previewFilter === "all" ? effectiveRows : effectiveRows.filter((r) => r._isValid === (previewFilter === "valid"));
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -524,44 +675,136 @@ export function BulkImportModal({ onClose, onImported }: Props) {
             {/* ─── Step 0: Download Template ─── */}
             {step === 0 && (
               <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-                <div className="rounded-2xl border border-dashed border-accent-300 dark:border-accent-700 bg-accent-50/40 dark:bg-accent-900/10 p-6 text-center">
-                  <FileSpreadsheet className="h-12 w-12 text-accent-400 mx-auto mb-3" />
-                  <h3 className="font-display font-bold text-[15px] text-[var(--text-primary)] mb-1">Download Excel Template</h3>
-                  <p className="text-[12px] text-[var(--text-muted)] mb-4 max-w-sm mx-auto">
-                    Use our pre-formatted template to ensure all required fields are correctly filled.
-                    The file includes sample data and detailed instructions.
+                {/* Pay setup comes FIRST: it decides which columns the template
+                    needs, and is applied to every row on import — so it never
+                    appears as a column in the file. */}
+                <div>
+                  <h3 className="font-display font-bold text-[15px] text-[var(--text-primary)]">
+                    1. How are these employees paid?
+                  </h3>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                    Applies to everyone in the file, and decides which columns the template contains.
                   </p>
-                  <button onClick={downloadTemplate} className="btn mx-auto">
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {([
+                      ["MONTHLY", "Monthly salary", "Each employee has an annual CTC. The template includes a salary column."],
+                      ["DAILY", "Daily rated", "Everyone is paid from one rate card. No salary column needed."],
+                    ] as const).map(([val, title, desc]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setBulkWageType(val)}
+                        className={clsx(
+                          "rounded-xl border p-3 text-left transition-colors",
+                          bulkWageType === val
+                            ? "border-accent-500 bg-accent-50/60 dark:bg-accent-900/20"
+                            : "border-[var(--glass-border)] hover:border-accent-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={clsx(
+                            "flex h-3.5 w-3.5 items-center justify-center rounded-full border",
+                            bulkWageType === val ? "border-accent-600 bg-accent-600" : "border-slate-300"
+                          )}>
+                            {bulkWageType === val && <CheckCircle2 className="h-3 w-3 text-white" />}
+                          </span>
+                          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</span>
+                        </div>
+                        <p className="mt-1 pl-5 text-[11px] text-[var(--text-muted)]">{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {bulkWageType === "DAILY" && (
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="font-display font-bold text-[15px] text-[var(--text-primary)]">
+                        2. Which rate card?
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCard(true)}
+                        className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400"
+                      >
+                        + Create a rate card
+                      </button>
+                    </div>
+                    <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                      Everyone in this file is paid from it — per-day Basic, DA, HRA and bonus all come from the card.
+                    </p>
+                    <select
+                      className="input mt-2 max-w-md"
+                      value={bulkRateCard}
+                      onChange={(e) => setBulkRateCard(e.target.value)}
+                    >
+                      <option value="">— select a rate card —</option>
+                      {rateCards.map((c) => (
+                        <option key={c.id} value={c.name}>
+                          {c.name} (₹{c.monthly_basic}+{c.monthly_da}+{c.monthly_hra}/month)
+                        </option>
+                      ))}
+                    </select>
+                    {rateCards.length === 0 && !rateCardsQ.isLoading && (
+                      <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                        No rate cards for this client yet — create one above before continuing.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-dashed border-accent-300 dark:border-accent-700 bg-accent-50/40 dark:bg-accent-900/10 p-6 text-center">
+                  <FileSpreadsheet className="h-10 w-10 text-accent-400 mx-auto mb-2" />
+                  <h3 className="font-display font-bold text-[15px] text-[var(--text-primary)] mb-1">
+                    {bulkWageType === "DAILY" ? "3. Download the template" : "2. Download the template"}
+                  </h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mb-4 max-w-sm mx-auto">
+                    {paySetupReady ? (
+                      <>Built for {bulkWageType === "DAILY" ? <>daily-rated staff on <strong>{bulkRateCard}</strong></> : <>monthly-salaried staff</>}, with sample rows and instructions.</>
+                    ) : (
+                      <>Choose how these employees are paid first — the template columns depend on it.</>
+                    )}
+                  </p>
+                  <button
+                    onClick={() => downloadTemplate(bulkWageType as "MONTHLY" | "DAILY", bulkRateCard)}
+                    disabled={!paySetupReady}
+                    className={clsx("btn mx-auto", !paySetupReady && "cursor-not-allowed opacity-50")}
+                  >
                     <Download className="h-4 w-4" />
                     Download Excel Template
                   </button>
                 </div>
 
-                <div className="rounded-xl border border-[var(--glass-border)] overflow-hidden">
-                  <div className="px-4 py-2.5 bg-slate-50/60 dark:bg-slate-800/40 border-b border-[var(--glass-border)]">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Template Columns</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-1">
-                    <div>
-                      <div className="text-[10.5px] font-semibold text-red-500 uppercase tracking-wider mb-1.5">Mandatory</div>
-                      {MANDATORY_HEADERS.map((h) => (
-                        <div key={h} className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)] py-0.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                          {h}
-                        </div>
-                      ))}
+                {paySetupReady && (
+                  <div className="rounded-xl border border-[var(--glass-border)] overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50/60 dark:bg-slate-800/40 border-b border-[var(--glass-border)]">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        Template columns ({headersFor(bulkWageType as "MONTHLY" | "DAILY").length})
+                      </span>
                     </div>
-                    <div>
-                      <div className="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Optional</div>
-                      {OPTIONAL_HEADERS.map((h) => (
+                    <div className="p-4 grid grid-cols-3 gap-x-6 gap-y-1">
+                      {headersFor(bulkWageType as "MONTHLY" | "DAILY").map((h) => (
                         <div key={h} className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)] py-0.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                          <span className={clsx("h-1.5 w-1.5 rounded-full shrink-0",
+                            REQUIRED_HEADERS.has(h) ? "bg-red-400" : "bg-slate-300 dark:bg-slate-600")} />
                           {h}
+                          {REQUIRED_HEADERS.has(h) && <span className="text-red-500">*</span>}
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
+                )}
+
+                {showNewCard && (
+                  <NewRateCardModal
+                    onClose={() => setShowNewCard(false)}
+                    onCreated={(card) => {
+                      setShowNewCard(false);
+                      rateCardsQ.refetch();
+                      setBulkRateCard(card.name);
+                    }}
+                  />
+                )}
               </motion.div>
             )}
 
@@ -624,13 +867,43 @@ export function BulkImportModal({ onClose, onImported }: Props) {
             {/* ─── Step 2: Preview & Validate ─── */}
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                {/* Read-only: the pay setup was chosen on step 1 and is applied to
+                    every row here. Shown so the import is never a black box. */}
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-card-bg)]/50 px-3 py-2 text-[12px]">
+                  <span className="font-semibold uppercase tracking-wider text-[10.5px] text-[var(--text-muted)]">
+                    Applying to all rows
+                  </span>
+                  <span className="rounded-full bg-accent-50 px-2 py-0.5 font-semibold text-accent-700 dark:bg-accent-900/30 dark:text-accent-300">
+                    {bulkWageType === "DAILY" ? "Daily rated" : "Monthly salary"}
+                  </span>
+                  {bulkWageType === "DAILY" && (
+                    <span className="rounded-full bg-violet-50 px-2 py-0.5 font-semibold text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                      {bulkRateCard}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setStep(0)}
+                    className="ml-auto text-[11px] font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400"
+                  >
+                    Change
+                  </button>
+                </div>
+
                 {/* KPI summary */}
                 <div className="grid grid-cols-4 gap-2">
                   <KPI label="Total" value={rows.length}
+                    onClick={() => setPreviewFilter("all")}
+                    active={previewFilter === "all"}
                     color="bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" />
                   <KPI label="Valid" value={validCount}
+                    onClick={() => setPreviewFilter(validCount ? "valid" : "all")}
+                    active={previewFilter === "valid"}
+                    disabled={validCount === 0}
                     color="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/40 text-emerald-700 dark:text-emerald-400" />
                   <KPI label="Invalid" value={errorCount}
+                    onClick={() => setPreviewFilter(errorCount ? "invalid" : "all")}
+                    active={previewFilter === "invalid"}
+                    disabled={errorCount === 0}
                     color={clsx(
                       errorCount > 0
                         ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/40 text-red-700 dark:text-red-400"
@@ -657,10 +930,24 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                 {/* Preview table */}
                 <div className="rounded-xl border border-[var(--glass-border)] overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/60 dark:bg-slate-800/40 border-b border-[var(--glass-border)]">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                       Preview — {file?.name}
+                      {previewFilter !== "all" && (
+                        <button
+                          onClick={() => setPreviewFilter("all")}
+                          className={clsx(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] normal-case tracking-normal",
+                            previewFilter === "invalid"
+                              ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          )}
+                        >
+                          Showing {visibleRows.length} {previewFilter} only
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      )}
                     </span>
-                    <button onClick={() => { setStep(1); setRows([]); setFile(null); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1">
+                    <button onClick={() => { setStep(1); setRows([]); setFile(null); setPreviewFilter("all"); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1">
                       <RefreshCw className="h-3 w-3" /> Change file
                     </button>
                   </div>
@@ -678,7 +965,7 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--glass-border-subtle)]">
-                        {rows.map((row) => (
+                        {visibleRows.map((row) => (
                           <tr key={row._rowNum} className={clsx("tr-hover", !row._isValid && "bg-red-50/30 dark:bg-red-900/5")}>
                             <td className="td pl-4 text-[var(--text-muted)]">{row._rowNum + 1}</td>
                             <td className="td font-mono">{row.emp_code || <span className="text-red-400">—</span>}</td>
@@ -689,16 +976,19 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                               {row.basic_salary ? `₹${row.basic_salary.toLocaleString("en-IN")}` : "—"}
                             </td>
                             <td className="td">
-                              {row._isValid ? (
-                                <RowBadge status="valid" />
-                              ) : (
-                                <div className="space-y-0.5">
-                                  <RowBadge status="error" />
-                                  {row._errors.map((e, i) => (
-                                    <div key={i} className="text-[10px] text-red-500 dark:text-red-400">{e}</div>
-                                  ))}
-                                </div>
-                              )}
+                              <div className="space-y-0.5">
+                                {row._isValid ? <RowBadge status="valid" /> : <RowBadge status="error" />}
+                                {row._errors.map((e, i) => (
+                                  <div key={`e${i}`} className="text-[10px] text-red-500 dark:text-red-400">{e}</div>
+                                ))}
+                                {/* Warnings are shown on rows that WILL import — they
+                                    flag a default the system is about to assume. */}
+                                {row._isValid && row._warnings.map((w, i) => (
+                                  <div key={`w${i}`} className="text-[10px] text-amber-600 dark:text-amber-400">
+                                    {w}
+                                  </div>
+                                ))}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -708,9 +998,19 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                 </div>
 
                 {errorCount > 0 && (
-                  <div className="flex items-center gap-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-2 text-[11.5px] text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     {errorCount} row(s) have errors and will be <strong>skipped</strong>. Only {validCount} valid rows will be imported.
+                  </div>
+                )}
+                {warnCount > 0 && (
+                  <div className="flex items-start gap-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      {warnCount} row(s) <strong>will import</strong> but are missing a field that
+                      affects pay (gender, state or work location). They are not errors — the
+                      system will fall back to a default. Check the Status column.
+                    </span>
                   </div>
                 )}
               </motion.div>
@@ -870,7 +1170,12 @@ export function BulkImportModal({ onClose, onImported }: Props) {
                 )}
               </button>
             ) : step === 1 ? null : (
-              <button onClick={() => setStep(1)} className="btn">
+              <button
+                onClick={() => setStep(1)}
+                disabled={!paySetupReady}
+                title={paySetupReady ? undefined : "Choose how these employees are paid first"}
+                className={clsx("btn", !paySetupReady && "cursor-not-allowed opacity-50")}
+              >
                 Next — Upload File <ChevronRight className="h-3.5 w-3.5" />
               </button>
             )}

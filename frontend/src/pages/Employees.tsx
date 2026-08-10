@@ -5,12 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Plus, Filter, ChevronLeft, ChevronRight, Trash2, AlertTriangle, CheckCircle2, Edit2, User, MoreHorizontal } from "lucide-react";
 import { employeesApi } from "../api/employees";
+import { salaryApi } from "../api/salary";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Modal, ModalFooter } from "../components/Modal";
 import { EmptyState } from "../components/EmptyState";
+import { NewRateCardModal } from "../components/NewRateCardModal";
 import { SkeletonRow } from "../components/Spinner";
 import { extractErrorMessage, toastService as toast } from "../lib/toast";
 import { useClientContext } from "../lib/ClientContext";
@@ -35,9 +37,11 @@ function validate(f: Partial<Employee>): string | null {
   if (!f.client_id) return "Client is required";
   if (!f.first_name?.trim()) return "First name is required";
   if (!f.last_name?.trim()) return "Last name is required";
+  // Aadhaar is optional — daily-wage and contract workers often have none on
+  // file at onboarding. Format is still enforced when a value is supplied.
   const aadhaar = f.aadhaar_number?.trim() || "";
-  if (!aadhaar) return "Aadhaar Number is required";
-  if (!aadhaar.includes("X") && !/^\d{12}$/.test(aadhaar.replace(/\s/g, ""))) return "Aadhaar Number must be 12 digits";
+  if (aadhaar && !aadhaar.includes("X") && !/^\d{12}$/.test(aadhaar.replace(/\s/g, "")))
+    return "Aadhaar Number must be 12 digits";
   
   if (f.pan_number && !f.pan_number.includes("#") && !f.pan_number.includes("X") && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(f.pan_number.toUpperCase()))
     return "PAN must be in the format ABCDE1234F";
@@ -164,6 +168,10 @@ export function Employees() {
   const [deleteError, setDeleteError] = useState("");
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [formError, setFormError] = useState("");
+  // Monthly CTC is not an Employee field — it becomes a salary-service
+  // structure on save. Kept beside the form so one screen sets up a
+  // payable employee instead of a round trip via the Salary page.
+  const [ctc, setCtc] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   
   // Advanced filters
@@ -218,19 +226,52 @@ export function Employees() {
     queryFn: () => employeesApi.list({ page_size: 1000, status: "ACTIVE" }),
   });
 
+  // Opening the form must reset CTC: a value left over from the previous
+  // employee would otherwise be written to whoever is opened next.
+  function openEmployee(emp: Partial<Employee>) {
+    setEditing(emp);
+    setCtc("");
+    setFormError("");
+  }
+
   const saveMut = useMutation({
     mutationFn: async (emp: Partial<Employee>) => {
       const err = validate(emp);
       if (err) throw new Error(err);
-      if (emp.id) {
-        const { id, emp_code, ...rest } = emp;
-        return employeesApi.update(id, rest);
+
+      const ctcValue = parseFloat(ctc);
+      const wantsSalary =
+        (emp.wage_type ?? "MONTHLY") === "MONTHLY" && Number.isFinite(ctcValue) && ctcValue > 0;
+
+      const saved = emp.id
+        ? await employeesApi.update(emp.id, (({ id, emp_code, ...rest }) => rest)(emp))
+        : await employeesApi.create(emp as any);
+
+      // Salary lives in another service, so it is a second call. A failure here
+      // must not read as "employee not created" — the employee exists either
+      // way, and the message says exactly what still needs doing.
+      if (wantsSalary) {
+        try {
+          await salaryApi.create({
+            employee_id: saved.id,
+            ctc: ctcValue,
+            effective_from: emp.joining_date || new Date().toISOString().slice(0, 10),
+            work_location: saved.work_location ?? emp.work_location ?? null,
+          });
+        } catch (e) {
+          throw new Error(
+            `Employee saved, but the salary structure could not be created: ${extractErrorMessage(e)}. ` +
+            `Add it from the Salary page.`
+          );
+        }
       }
-      return employeesApi.create(emp as any);
+      return saved;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["salary"] });
       setEditing(null);
+      setCtc("");
       setFormError("");
     },
     onError: (err) => setFormError(extractErrorMessage(err)),
@@ -278,7 +319,7 @@ export function Employees() {
           }}>
             Bulk Import Employees
           </button>
-          <button className="btn" onClick={() => setEditing({ ...EMPTY_EMP, client_id: selectedClientId || undefined })}>
+          <button className="btn" onClick={() => openEmployee({ ...EMPTY_EMP, client_id: selectedClientId || undefined })}>
             <Plus className="h-4 w-4" />
             Add Employee
           </button>
@@ -421,7 +462,7 @@ export function Employees() {
                     <div className="flex items-center justify-end">
                       <RowActionsMenu
                         employee={e}
-                        onEdit={() => setEditing(e)}
+                        onEdit={() => openEmployee(e)}
                         onDelete={() => { setConfirmDelete(e); setDeleteError(""); }}
                       />
                     </div>
@@ -438,7 +479,7 @@ export function Employees() {
                     }
                     action={
                       !search ? (
-                        <button className="btn" onClick={() => setEditing({ ...EMPTY_EMP })}>
+                        <button className="btn" onClick={() => openEmployee({ ...EMPTY_EMP })}>
                           <Plus className="h-4 w-4" /> Add Employee
                         </button>
                       ) : undefined
@@ -495,7 +536,7 @@ export function Employees() {
               <div className="mt-4">
                 <RowActionsMenu
                   employee={e}
-                  onEdit={() => setEditing(e)}
+                  onEdit={() => openEmployee(e)}
                   onDelete={() => { setConfirmDelete(e); setDeleteError(""); }}
                   triggerClassName="w-full flex items-center justify-center gap-1.5 btn-secondary h-8 text-xs"
                 />
@@ -511,7 +552,7 @@ export function Employees() {
                 }
                 action={
                   !search ? (
-                    <button className="btn" onClick={() => setEditing({ ...EMPTY_EMP })}>
+                    <button className="btn" onClick={() => openEmployee({ ...EMPTY_EMP })}>
                       <Plus className="h-4 w-4" /> Add Employee
                     </button>
                   ) : undefined
@@ -556,7 +597,13 @@ export function Employees() {
           clients={clients.data?.items ?? []}
           rateCards={rateCards.data ?? []}
           activeEmployees={allActiveEmployees.data?.items ?? []}
-          onClose={() => { setEditing(null); setFormError(""); }}
+          ctc={ctc}
+          onCtcChange={setCtc}
+          onRateCardCreated={(card) => {
+            qc.invalidateQueries({ queryKey: ["rate-cards"] });
+            setEditing((e) => (e ? { ...e, daily_rate_card_id: card.id } : e));
+          }}
+          onClose={() => { setEditing(null); setCtc(""); setFormError(""); }}
           onSave={() => saveMut.mutate(editing)}
           saving={saveMut.isPending}
           error={formError}
@@ -637,7 +684,8 @@ export function Employees() {
 }
 
 function EmployeeModal({
-  value, departments, locations, clients, rateCards, activeEmployees, onClose, onSave, saving, error, onChange,
+  value, departments, locations, clients, rateCards, activeEmployees,
+  ctc, onCtcChange, onRateCardCreated, onClose, onSave, saving, error, onChange,
 }: {
   value: Partial<Employee>;
   departments: Department[];
@@ -645,6 +693,9 @@ function EmployeeModal({
   clients: import("../types").Client[];
   rateCards: import("../types").DailyRateCard[];
   activeEmployees: Employee[];
+  ctc: string;
+  onCtcChange: (v: string) => void;
+  onRateCardCreated: (card: import("../types").DailyRateCard) => void;
   onClose: () => void;
   onSave: () => void;
   saving: boolean;
@@ -653,6 +704,15 @@ function EmployeeModal({
 }) {
   const set = (k: keyof Employee, v: unknown) => onChange({ ...value, [k]: v });
   const isEdit = !!value.id;
+  const [showNewCard, setShowNewCard] = useState(false);
+
+  // Mirrors salary-service: monthly gross is CTC/12. Shown as a sanity check so
+  // a mis-keyed annual figure is obvious before saving.
+  const ctcNum = parseFloat(ctc);
+  const ctcMonthly =
+    Number.isFinite(ctcNum) && ctcNum > 0
+      ? (ctcNum / 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })
+      : "";
 
   return (
     <Modal open onClose={onClose} title={isEdit ? "Edit Employee" : "Add Employee"} size="lg">
@@ -721,7 +781,7 @@ function EmployeeModal({
             onChange={(e) => set("pan_number", e.target.value.toUpperCase())} />
         </div>
         <div>
-          <label className="label" htmlFor="f-aadhaar">Aadhaar Number *</label>
+          <label className="label" htmlFor="f-aadhaar">Aadhaar Number</label>
           <input id="f-aadhaar" className="input" placeholder="123456789012" value={value.aadhaar_number ?? ""}
             onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, ""))} />
         </div>
@@ -749,9 +809,43 @@ function EmployeeModal({
             <option value="DAILY">Daily rated</option>
           </select>
         </div>
-        {value.wage_type === "DAILY" && (
+        {/* Pay setup lives here so one screen produces a payable employee.
+            Previously monthly staff needed a second trip to the Salary page and
+            daily staff a trip to Rate Cards, which is the main reason adding
+            one person felt like a three-screen process. */}
+        {(value.wage_type ?? "MONTHLY") === "MONTHLY" ? (
           <div>
-            <label className="label" htmlFor="f-rate-card">Rate Card *</label>
+            <label className="label" htmlFor="f-ctc">Annual CTC (₹)</label>
+            <input
+              id="f-ctc"
+              className="input"
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="e.g. 540000"
+              value={ctc}
+              onChange={(e) => onCtcChange(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+              {value.id
+                ? "Leave blank to keep the current structure; entering a value adds a revision."
+                : ctcMonthly
+                  ? `≈ ₹${ctcMonthly} / month gross. A salary structure is created on save.`
+                  : "Optional — you can assign salary later from the Salary page."}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label className="label" htmlFor="f-rate-card">Rate Card *</label>
+              <button
+                type="button"
+                onClick={() => setShowNewCard(true)}
+                className="text-[11px] font-semibold text-accent-600 hover:text-accent-700 dark:text-accent-400"
+              >
+                + New rate card
+              </button>
+            </div>
             <select id="f-rate-card" className="input" value={value.daily_rate_card_id ?? ""}
               onChange={(e) => set("daily_rate_card_id", e.target.value || null)}>
               <option value="">— Select Rate Card —</option>
@@ -763,11 +857,7 @@ function EmployeeModal({
             </select>
             {rateCards.length === 0 && (
               <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
-                No rate cards for this client yet —{" "}
-                <Link to="/rate-cards" className="underline font-semibold hover:text-amber-700 dark:hover:text-amber-300">
-                  create one
-                </Link>{" "}
-                before adding daily-wage employees.
+                No rate cards for this client yet — create one above without leaving this form.
               </p>
             )}
           </div>
@@ -790,7 +880,15 @@ function EmployeeModal({
       {error && (
         <div role="alert" className="alert-danger mt-4">{error}</div>
       )}
+
+      {showNewCard && (
+        <NewRateCardModal
+          onClose={() => setShowNewCard(false)}
+          onCreated={(card) => { setShowNewCard(false); onRateCardCreated(card); }}
+        />
+      )}
       <ModalFooter onClose={onClose} onSave={onSave} saving={saving} />
     </Modal>
   );
 }
+

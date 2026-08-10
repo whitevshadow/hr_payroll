@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,9 +10,11 @@ const ExcelRegisterImportModal = lazy(() =>
   }))
 );
 import { payrollApi } from "../api/payroll";
+import { attendanceApi } from "../api/attendance";
+import { employeesApi } from "../api/employees";
 import { payoutApi } from "../api/payout";
 import { reportingApi } from "../api/reporting";
-import { qk } from "../lib/queryClient";
+import { qk, STALE_STABLE } from "../lib/queryClient";
 import { PageHeader } from "../components/PageHeader";
 import { Stepper } from "../components/Stepper";
 import { StatusBadge } from "../components/StatusBadge";
@@ -30,6 +32,8 @@ import {
   FileText,
   FileSpreadsheet,
   AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
   Loader2,
   DollarSign,
   Users,
@@ -66,6 +70,86 @@ export function CycleDetail() {
     queryFn: () => payrollApi.getCycleSummary(cycleId!),
     enabled: !!c && c.status !== "DRAFT" && c.status !== "LOCKED",
   });
+
+  // ── Run readiness ─────────────────────────────────────────────────────────
+  // Running without attendance produced seven silent zero rows, which reads as
+  // a broken calculation rather than missing input. These checks surface the
+  // real blockers before the run instead of after it.
+  const cycleMonth = c?.period_start ? c.period_start.slice(0, 7) : "";
+
+  const attMonthQ = useQuery({
+    queryKey: ["attendance-month-status", cycleMonth],
+    queryFn: () => attendanceApi.getMonthStatus(cycleMonth),
+    enabled: !!cycleMonth,
+    retry: false,
+  });
+
+  const attRecordsQ = useQuery({
+    queryKey: ["attendance-monthly", cycleMonth],
+    queryFn: () => attendanceApi.getMonthly(cycleMonth),
+    enabled: !!cycleMonth,
+    retry: false,
+  });
+
+  const activeEmpQ = useQuery({
+    queryKey: qk.employees({ status: "ACTIVE", page_size: 500 }),
+    queryFn: () => employeesApi.list({ status: "ACTIVE", page_size: 500 }),
+    staleTime: STALE_STABLE,
+  });
+
+  const readiness = useMemo(() => {
+    const employees = (activeEmpQ.data?.items ?? []).filter(
+      (e) => !c?.client_id || e.client_id === c.client_id
+    );
+    const withAttendance = new Set(
+      (attRecordsQ.data?.records ?? []).map((r: any) => r.employee_id)
+    );
+    const missingAttendance = employees.filter((e) => !withAttendance.has(e.id));
+    // A daily employee with no rate card fails its row; a monthly one with no
+    // salary structure does too. We can only cheaply detect the former here.
+    const missingRateCard = employees.filter(
+      (e) => e.wage_type === "DAILY" && !e.daily_rate_card_id
+    );
+    const attStatus = attMonthQ.data?.status ?? "DRAFT";
+
+    return {
+      loading: activeEmpQ.isLoading || attRecordsQ.isLoading,
+      employees,
+      missingAttendance,
+      missingRateCard,
+      attLocked: attStatus === "LOCKED",
+      checks: [
+        {
+          ok: employees.length > 0,
+          label: employees.length > 0
+            ? `${employees.length} active employees`
+            : "No active employees for this client",
+          fix: "/employees",
+        },
+        {
+          ok: employees.length > 0 && missingAttendance.length === 0,
+          label: missingAttendance.length === 0 && employees.length > 0
+            ? "Attendance entered for everyone"
+            : `Attendance missing for ${missingAttendance.length} of ${employees.length}`,
+          fix: "/attendance",
+        },
+        {
+          ok: missingRateCard.length === 0,
+          label: missingRateCard.length === 0
+            ? "All daily-wage employees have a rate card"
+            : `${missingRateCard.length} daily-wage employees have no rate card`,
+          fix: "/employees",
+        },
+      ] as Array<{ ok: boolean; label: string; fix: string }>,
+      // Attendance lock is advisory, not a blocker: payroll reads the figures
+      // either way, and locking is a process control rather than a data one.
+      advisory: attStatus === "LOCKED"
+        ? null
+        : "Attendance for this month is not locked — figures can still change under a completed run.",
+    };
+  }, [activeEmpQ.data, activeEmpQ.isLoading, attRecordsQ.data, attRecordsQ.isLoading, attMonthQ.data, c?.client_id]);
+
+  const blockers = readiness.checks.filter((x) => !x.ok);
 
   const runMut = useMutation({
     mutationFn: () => payrollApi.runCycle(cycleId!),
@@ -215,6 +299,46 @@ export function CycleDetail() {
         </div>
       )}
 
+      {/* Run readiness — only meaningful while the cycle can still be run. */}
+      {canRun && !readiness.loading && (
+        <div className="card mb-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Before you run
+          </h2>
+          <div className="space-y-1.5">
+            {readiness.checks.map((chk) => (
+              <div key={chk.label} className="flex items-center gap-2 text-[12.5px]">
+                {chk.ok ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                )}
+                <span className={chk.ok ? "text-slate-600 dark:text-slate-400" : "text-amber-700 dark:text-amber-400"}>
+                  {chk.label}
+                </span>
+                {!chk.ok && (
+                  <Link to={chk.fix} className="text-[11px] font-semibold text-accent-600 underline dark:text-accent-400">
+                    Fix
+                  </Link>
+                )}
+              </div>
+            ))}
+            {readiness.advisory && (
+              <div className="flex items-center gap-2 text-[12.5px] text-slate-500 dark:text-slate-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                {readiness.advisory}
+              </div>
+            )}
+          </div>
+          {blockers.length > 0 && (
+            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800 dark:bg-amber-900/15 dark:text-amber-300">
+              Running now would produce ₹0 for the employees above rather than an error.
+              Fix the items first, or run anyway if that is intended.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
       <div className="card">
         <h2 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -222,7 +346,8 @@ export function CycleDetail() {
         </h2>
         <div className="flex flex-wrap gap-3">
           <button
-            className="btn"
+            className={clsx("btn", blockers.length > 0 && "opacity-90")}
+            title={blockers.length > 0 ? blockers.map((b) => b.label).join(" · ") : undefined}
             disabled={!canRun || runMut.isPending || isComputing}
             onClick={() => runMut.mutate()}
           >
