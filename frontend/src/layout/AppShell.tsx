@@ -47,6 +47,7 @@ import {
 import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
 import { Z } from "../lib/zIndex";
+import { anchorRect } from "../lib/anchor";
 import { notificationsApi } from "../api/notifications";
 import { clientsApi } from "../api/clients";
 import { qk, STALE_STABLE } from "../lib/queryClient";
@@ -574,8 +575,10 @@ function NotificationPanel({
 
   useEffect(() => {
     if (open && anchorRef.current) {
-      const r = anchorRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+      // See lib/anchor: a zoomed rect mixed with an unzoomed window.innerWidth
+      // put this panel off by the zoom factor in both axes.
+      const r = anchorRect(anchorRef.current);
+      setPos({ top: r.bottom + 8, right: r.viewportW - r.right });
     }
   }, [open, anchorRef]);
 
@@ -724,13 +727,14 @@ function ActiveClientSelector({
 
   const selected = clients.find((c) => c.id === selectedClientId) ?? null;
 
-  // Compute portal position from the trigger button's bounding rect
+  // Compute portal position from the trigger button's bounding rect, in the
+  // layout pixels a fixed-position panel is measured in (see lib/anchor).
   const handleOpen = () => {
     if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
+      const rect = anchorRect(btnRef.current);
       setDropdownPos({
         top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
+        right: rect.viewportW - rect.right,
       });
     }
     setOpen((o) => !o);

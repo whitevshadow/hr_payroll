@@ -21,6 +21,7 @@ import { toastService, extractErrorMessage } from "../lib/toast";
 import { useAuth } from "../lib/auth";
 import { hasRole, isEmployeeOnly } from "../lib/roles";
 import { useClientContext } from "../lib/ClientContext";
+import { anchorRect } from "../lib/anchor";
 import type { Employee } from "../types";
 import clsx from "clsx";
 
@@ -174,7 +175,10 @@ function KPICard({ icon: Icon, label, value, sub, color = "#3395FF" }: {
 // IMPORTANT: AnimatePresence must be INSIDE the portal content, not wrapping
 // the createPortal() call — Framer Motion tracks children by key and a portal
 // object is opaque to it, so exit animations never fire when placed outside.
-const DROPDOWN_APPROX_H = ATT_CODES.length * 30 + 12; // ~11 items × 30px + padding
+// 33px per row, not the 30 first guessed: measured at 373.6 layout px for 11
+// codes, and the shortfall let a flipped-up menu overlap the cell it belongs
+// to by roughly one row.
+const DROPDOWN_APPROX_H = ATT_CODES.length * 33 + 12;
 
 // `onChange` used to be an inline arrow built per cell per render, which made
 // the memo() below a no-op: every one of the (employees x days) cells — 6,000+
@@ -201,12 +205,15 @@ const CodeCell = memo(function CodeCell({
   function openDropdown() {
     if (disabled) return;
     if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
+      // Layout pixels, not visual ones — see lib/anchor. The flip-up test
+      // needs them too: comparing a zoomed rect against an unzoomed
+      // window.innerHeight misjudges the space left below the trigger.
+      const rect = anchorRect(btnRef.current);
+      const spaceBelow = rect.viewportH - rect.bottom;
       const openUp = spaceBelow < DROPDOWN_APPROX_H + 8;
       setPos({
         top: openUp ? rect.top - DROPDOWN_APPROX_H - 4 : rect.bottom + 4,
-        left: Math.min(rect.left, window.innerWidth - 148), // keep within viewport
+        left: Math.min(rect.left, rect.viewportW - 148), // keep within viewport
         openUp,
       });
     }

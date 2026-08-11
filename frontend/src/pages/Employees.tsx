@@ -16,6 +16,7 @@ import { NewRateCardModal } from "../components/NewRateCardModal";
 import { SkeletonRow } from "../components/Spinner";
 import { extractErrorMessage, toastService as toast } from "../lib/toast";
 import { useClientContext } from "../lib/ClientContext";
+import { anchorRect } from "../lib/anchor";
 import type { Employee, Department } from "../types";
 import clsx from "clsx";
 
@@ -88,11 +89,20 @@ function RowActionsMenu({
 
   function openMenu() {
     if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
+      // anchorRect, not getBoundingClientRect: the menu is fixed-positioned
+      // inside the zoomed document, so it needs layout pixels. See lib/anchor.
+      const rect = anchorRect(btnRef.current);
       const MENU_W = 170;
+      // Three items, a divider and the container padding. Rounded up, so a
+      // near-miss flips up rather than opening half off-screen.
+      const MENU_H = 132;
+      // The last grid row sits close enough to the bottom that a downward menu
+      // is cut off by the viewport, so drop upward there instead — the same
+      // flip the attendance grid's cell dropdown does.
+      const openUp = rect.viewportH - rect.bottom < MENU_H + 8;
       setPos({
-        top: rect.bottom + 4,
-        left: Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8),
+        top: openUp ? rect.top - MENU_H - 4 : rect.bottom + 4,
+        left: Math.max(8, Math.min(rect.right - MENU_W, rect.viewportW - MENU_W - 8)),
       });
     }
     setMounted(true);
