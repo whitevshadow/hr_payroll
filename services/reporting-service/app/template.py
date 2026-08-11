@@ -209,11 +209,15 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
   .meta td.lbl {{
     font-weight: 600;
     color: #4b5563;
-    width: 15%;
+    /* 15% wrapped every two-word label onto a second line ("Employee
+       Name", "Bank A/C No."), which is what made the box look dense.
+       Dropping five fields freed the width to hold them on one line. */
+    width: 21%;
+    white-space: nowrap;
   }}
   .meta td.val {{
     color: #111827;
-    width: 35%;
+    width: 29%;
   }}
   .tables-container {{
     display: table;
@@ -307,6 +311,21 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
     </div>
   </div>
 
+  <!--
+    Kept deliberately short. Five fields came out of this box:
+
+    Department, UAN Number and PF Number were never populated — payroll
+    writes six keys into breakdown_json["employee"] (emp_code, name, pan,
+    bank_account, designation, work_location) and none of those three is
+    among them, so all three printed "-" on every payslip ever produced.
+    pf_number had no source anywhere in the codebase at all.
+
+    Company repeated the letterhead directly above it, and PAN was masked
+    to ABCDE####F — unverifiable, and with TDS out of the project it no
+    longer serves any purpose here. Neither is required on a wage slip:
+    Minimum Wages (Central) Rules Form XI asks for the wage rate,
+    attendance, gross, deductions and net, not identity numbers.
+  -->
   <div class="emp-box">
     <table class="meta">
       <tr>
@@ -314,24 +333,20 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
         <td class="lbl">Employee ID</td><td class="val">{_txt(emp.get('emp_code'))}</td>
       </tr>
       <tr>
-        <td class="lbl">Company</td><td class="val">{company['name']}</td>
-        <td class="lbl">Work Location</td><td class="val">{_txt(emp.get('work_location'))}</td>
-      </tr>
-      <tr>
         <td class="lbl">Designation</td><td class="val">{_txt(emp.get('designation'))}</td>
-        <td class="lbl">Department</td><td class="val">{_txt(emp.get('department'))}</td>
-      </tr>
-      <tr>
-        <td class="lbl">PAN Number</td><td class="val">{_txt(emp.get('pan'))}</td>
-        <td class="lbl">Bank A/C No.</td><td class="val">{_bank_account(emp.get('bank_account'))}</td>
-      </tr>
-      <tr>
-        <td class="lbl">UAN Number</td><td class="val">{_txt(emp.get('uan'))}</td>
-        <td class="lbl">PF Number</td><td class="val">{_txt(emp.get('pf_number'))}</td>
+        <td class="lbl">Work Location</td><td class="val">{_txt(emp.get('work_location'))}</td>
       </tr>
       <tr>
         <td class="lbl">Total Days</td><td class="val">{_txt(attendance.get('total_days'))}</td>
         <td class="lbl">Payable Days</td><td class="val">{_txt(attendance.get('payable_days', attendance.get('paid_days')))} (LOP: {_txt(attendance.get('lop_days'), '0')})</td>
+      </tr>
+      <!-- Seven fields into a two-column grid leaves one cell over. It trails
+           the last row so the pairs above stay intact — splitting Total and
+           Payable Days across rows would be worse than an empty cell. The
+           cells carry no borders, so the gap does not render. -->
+      <tr>
+        <td class="lbl">Bank A/C No.</td><td class="val">{_bank_account(emp.get('bank_account'))}</td>
+        <td class="lbl"></td><td class="val"></td>
       </tr>
     </table>
   </div>
