@@ -7,17 +7,23 @@ import { useClientContext } from "../lib/ClientContext";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState } from "../components/EmptyState";
 import { FullPageSpinner } from "../components/Spinner";
-import { ShieldPlus, Landmark, Receipt, ExternalLink, Copy, Check } from "lucide-react";
+import { ShieldPlus, Landmark, Receipt, HandCoins, ExternalLink, Copy, Check } from "lucide-react";
 import clsx from "clsx";
-import type { Client } from "../types";
+import type { Client, StatutoryIds } from "../types";
 
 /**
  * Government e-filing portals. The URLs are the same for every organization —
- * they are the national portals, not per-client tenants. What differs per client
- * is the registration identifier, which the cards surface for quick copy.
+ * they are the national or state portals, not per-client tenants. What differs
+ * per client is the registration identifier, which the cards surface for quick
+ * copy.
+ *
+ * GST is deliberately absent: it is an indirect-tax filing on the company's
+ * sales, not a payroll obligation, and nothing on this platform produces a GST
+ * return. Professional Tax takes its place — that one IS deducted every cycle
+ * (see compliance-service compute_pt) and has to be remitted monthly.
  */
 interface Portal {
-  key: "esi" | "pf" | "gst";
+  key: "esi" | "pf" | "pt" | "lwf";
   name: string;
   fullName: string;
   description: string;
@@ -25,7 +31,8 @@ interface Portal {
   icon: React.ElementType;
   accent: string;
   idLabel: string;
-  idField: keyof Pick<Client, "esic_employer_code" | "pf_establishment_code" | "gst_number">;
+  /** Key inside the client's statutory_ids — the store of record. */
+  idField: keyof StatutoryIds;
 }
 
 const PORTALS: Portal[] = [
@@ -38,7 +45,7 @@ const PORTALS: Portal[] = [
     icon: ShieldPlus,
     accent: "emerald",
     idLabel: "ESIC Employer Code",
-    idField: "esic_employer_code",
+    idField: "esic_code",
   },
   {
     key: "pf",
@@ -49,18 +56,29 @@ const PORTALS: Portal[] = [
     icon: Landmark,
     accent: "violet",
     idLabel: "PF Establishment Code",
-    idField: "pf_establishment_code",
+    idField: "pf_code",
   },
   {
-    key: "gst",
-    name: "GST",
-    fullName: "Goods & Services Tax Portal",
-    description: "File GST returns, pay tax and download filed returns on the GST services portal.",
-    url: "https://services.gst.gov.in/services/login",
+    key: "pt",
+    name: "P.Tax",
+    fullName: "Maharashtra Profession Tax (PTRC / PTEC)",
+    description: "File monthly PTRC returns and pay the profession tax deducted from salaries on the MahaGST portal.",
+    url: "https://www.mahagst.gov.in/en",
     icon: Receipt,
     accent: "amber",
-    idLabel: "GSTIN",
-    idField: "gst_number",
+    idLabel: "PTRC / PTEC Number",
+    idField: "pt_number",
+  },
+  {
+    key: "lwf",
+    name: "MLWF",
+    fullName: "Maharashtra Labour Welfare Board",
+    description: "Pay the half-yearly Labour Welfare Fund contribution for the June and December periods.",
+    url: "https://public.mlwb.in/",
+    icon: HandCoins,
+    accent: "sky",
+    idLabel: "MLWF Establishment Code",
+    idField: "lwf",
   },
 ];
 
@@ -79,6 +97,11 @@ const ACCENT: Record<string, { chip: string; icon: string; ring: string }> = {
     chip: "bg-amber-50 dark:bg-amber-900/25 border-amber-200 dark:border-amber-800",
     icon: "text-amber-600 dark:text-amber-400",
     ring: "hover:border-amber-400 dark:hover:border-amber-600",
+  },
+  sky: {
+    chip: "bg-sky-50 dark:bg-sky-900/25 border-sky-200 dark:border-sky-800",
+    icon: "text-sky-600 dark:text-sky-400",
+    ring: "hover:border-sky-400 dark:hover:border-sky-600",
   },
 };
 
@@ -113,7 +136,7 @@ function CopyableId({ value }: { value: string }) {
 
 function PortalCard({ portal, client }: { portal: Portal; client: Client | null }) {
   const accent = ACCENT[portal.accent];
-  const regId = client ? client[portal.idField] : null;
+  const regId = client?.statutory_ids?.[portal.idField] ?? null;
 
   return (
     <motion.a
@@ -190,7 +213,7 @@ export function StatutoryPortals() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {PORTALS.map((p) => (
           <PortalCard key={p.key} portal={p} client={client} />
         ))}
@@ -200,7 +223,7 @@ export function StatutoryPortals() {
         <div className="mt-8">
           <EmptyState
             title="No active clients"
-            description="Add a client with its ESI, PF and GST registration details to see them here."
+            description="Add a client with its ESI, PF, Profession Tax and MLWF registration details to see them here."
           />
         </div>
       )}

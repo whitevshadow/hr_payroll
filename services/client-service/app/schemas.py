@@ -34,7 +34,8 @@ class StatutoryIdsSchema(BaseModel):
     cin: str | None = None
     pf_code: str | None = None       # EPFO establishment code
     esic_code: str | None = None     # ESIC employer code
-    pt_number: str | None = None     # Professional Tax
+    pt_number: str | None = None     # Professional Tax (PTRC/PTEC)
+    lwf: str | None = None           # Labour Welfare Fund establishment code
     labour_license: str | None = None
     shop_act: str | None = None
     msme: str | None = None

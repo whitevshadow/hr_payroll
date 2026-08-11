@@ -132,31 +132,58 @@ export interface EmployeeDocument {
 }
 
 // ---- Clients ----------------------------------------------------------------
+/** Registration numbers, keyed as the API stores them.
+ *  This is the store of record — the client form's flat inputs are mapped into
+ *  and out of this object, because the API accepts nothing else. */
+export interface StatutoryIds {
+  gst: string | null;
+  pan: string | null;
+  tan: string | null;
+  cin: string | null;
+  pf_code: string | null;        // EPFO establishment code
+  esic_code: string | null;      // ESIC employer code
+  pt_number: string | null;      // Professional Tax (PTRC/PTEC)
+  lwf: string | null;            // Labour Welfare Fund establishment code
+  labour_license: string | null;
+  shop_act: string | null;
+  msme: string | null;
+}
+export interface ClientAddress {
+  line1: string | null;
+  line2: string | null;
+  area: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  pincode: string | null;
+}
+export interface ClientContact {
+  person: string | null;
+  email: string | null;
+  mobile: string | null;
+  telephone: string | null;
+  website: string | null;
+}
 export interface Client {
   id: string;
   client_code: string;
   client_name: string;
   legal_name: string | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  area: string | null;
+  industry: string | null;
+  // Nested objects are what the API actually returns and the only shape it
+  // accepts on write. Flat equivalents were declared here once but the server
+  // never sent them, so every read of one silently yielded undefined.
+  address: ClientAddress | null;
+  contact: ClientContact | null;
+  statutory_ids: StatutoryIds | null;
+  // Genuinely returned flat, for backward compatibility, alongside the nested copy.
   city: string | null;
   state: string | null;
-  country: string;
-  pincode: string | null;
   gst_number: string | null;
   pan_number: string | null;
-  tan_number: string | null;
-  cin_number: string | null;
   contact_person: string | null;
   contact_email: string | null;
   contact_mobile: string | null;
-  contact_telephone: string | null;
-  pf_establishment_code: string | null;
-  esic_employer_code: string | null;
-  professional_tax_number: string | null;
-  labour_license_number: string | null;
-  shop_act_number: string | null;
   status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
   created_at: string;
   updated_at: string;
@@ -167,8 +194,20 @@ export interface ClientPage {
   page: number;
   page_size: number;
 }
-export type ClientCreate = Omit<Client, "id" | "status" | "created_at" | "updated_at">;
-export type ClientUpdate = Partial<Omit<Client, "id" | "client_code" | "status" | "created_at" | "updated_at">>;
+/** What the API accepts on write. Deliberately not derived from `Client`: the
+ *  read shape carries flat backward-compat copies that the server ignores on
+ *  write, and sending them looks like it works while the values are dropped. */
+export interface ClientWrite {
+  client_code?: string;
+  client_name: string;
+  legal_name?: string;
+  industry?: string;
+  address?: Partial<ClientAddress>;
+  contact?: Partial<ClientContact>;
+  statutory_ids?: Partial<StatutoryIds>;
+}
+export type ClientCreate = ClientWrite;
+export type ClientUpdate = Partial<ClientWrite>;
 export interface ClientCredential {
   id: string;
   client_id: string;

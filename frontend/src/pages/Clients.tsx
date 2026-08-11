@@ -34,7 +34,7 @@ import { Skeleton } from "../components/Spinner";
 import { extractErrorMessage } from "../lib/toast";
 import { toastService } from "../lib/toast";
 import clsx from "clsx";
-import type { Client, ClientCredential, Location } from "../types";
+import type { Client, ClientCredential, ClientWrite, Location } from "../types";
 
 const SECTION_COLORS = [
   "bg-violet-50 dark:bg-violet-900/25 text-violet-600 dark:text-violet-400",
@@ -52,19 +52,105 @@ const PORTAL_LABELS: Record<PortalType, string> = {
   GST: "GST Portal",
 };
 
-// ── Empty client form ────────────────────────────────────────────────────────
-function emptyClient(): Partial<Client> & {
+// ── Client form state ────────────────────────────────────────────────────────
+// The inputs stay flat because that is what a form wants, but the API stores
+// address, contact and registrations as three nested objects and ignores any
+// flat key it is sent. So the form maps out on save (clientPayload) and back in
+// on edit (formFromClient); skipping either half loses the values silently.
+interface ClientForm {
+  id?: string;
+  client_code: string; client_name: string; legal_name: string;
+  address_line1: string; address_line2: string; area: string;
+  city: string; state: string; country: string; pincode: string;
+  gst_number: string; pan_number: string; tan_number: string; cin_number: string;
+  contact_person: string; contact_email: string; contact_mobile: string; contact_telephone: string;
+  pf_establishment_code: string; esic_employer_code: string; professional_tax_number: string;
+  lwf_registration_number: string; labour_license_number: string; shop_act_number: string;
   _pfUser?: string; _pfPass?: string;
   _esicUser?: string; _esicPass?: string;
   _gstUser?: string; _gstPass?: string;
-} {
+}
+
+function emptyClient(): ClientForm {
   return {
     client_code: "", client_name: "", legal_name: "",
     address_line1: "", address_line2: "", area: "", city: "", state: "", country: "India", pincode: "",
     gst_number: "", pan_number: "", tan_number: "", cin_number: "",
     contact_person: "", contact_email: "", contact_mobile: "", contact_telephone: "",
-    pf_establishment_code: "", esic_employer_code: "", professional_tax_number: "", labour_license_number: "", shop_act_number: "",
+    pf_establishment_code: "", esic_employer_code: "", professional_tax_number: "",
+    lwf_registration_number: "", labour_license_number: "", shop_act_number: "",
     _pfUser: "", _pfPass: "", _esicUser: "", _esicPass: "", _gstUser: "", _gstPass: "",
+  };
+}
+
+/** Unpack a saved client into the flat fields the form edits. */
+function formFromClient(c: Client): ClientForm {
+  const a = c.address ?? null;
+  const k = c.contact ?? null;
+  const s = c.statutory_ids ?? null;
+  return {
+    ...emptyClient(),
+    id: c.id,
+    client_code: c.client_code ?? "",
+    client_name: c.client_name ?? "",
+    legal_name: c.legal_name ?? "",
+    address_line1: a?.line1 ?? "",
+    address_line2: a?.line2 ?? "",
+    area: a?.area ?? "",
+    city: a?.city ?? c.city ?? "",
+    state: a?.state ?? c.state ?? "",
+    country: a?.country ?? "India",
+    pincode: a?.pincode ?? "",
+    gst_number: s?.gst ?? c.gst_number ?? "",
+    pan_number: s?.pan ?? c.pan_number ?? "",
+    tan_number: s?.tan ?? "",
+    cin_number: s?.cin ?? "",
+    contact_person: k?.person ?? c.contact_person ?? "",
+    contact_email: k?.email ?? c.contact_email ?? "",
+    contact_mobile: k?.mobile ?? c.contact_mobile ?? "",
+    contact_telephone: k?.telephone ?? "",
+    pf_establishment_code: s?.pf_code ?? "",
+    esic_employer_code: s?.esic_code ?? "",
+    professional_tax_number: s?.pt_number ?? "",
+    lwf_registration_number: s?.lwf ?? "",
+    labour_license_number: s?.labour_license ?? "",
+    shop_act_number: s?.shop_act ?? "",
+  };
+}
+
+/** Pack the form back into the nested shape the API accepts. */
+function clientPayload(form: ClientForm): ClientWrite {
+  return {
+    client_code: form.client_code || undefined,
+    client_name: form.client_name,
+    legal_name: form.legal_name || undefined,
+    address: {
+      line1: form.address_line1 || null,
+      line2: form.address_line2 || null,
+      area: form.area || null,
+      city: form.city || null,
+      state: form.state || null,
+      country: form.country || "India",
+      pincode: form.pincode || null,
+    },
+    contact: {
+      person: form.contact_person || null,
+      email: form.contact_email || null,
+      mobile: form.contact_mobile || null,
+      telephone: form.contact_telephone || null,
+    },
+    statutory_ids: {
+      gst: form.gst_number || null,
+      pan: form.pan_number || null,
+      tan: form.tan_number || null,
+      cin: form.cin_number || null,
+      pf_code: form.pf_establishment_code || null,
+      esic_code: form.esic_employer_code || null,
+      pt_number: form.professional_tax_number || null,
+      lwf: form.lwf_registration_number || null,
+      labour_license: form.labour_license_number || null,
+      shop_act: form.shop_act_number || null,
+    },
   };
 }
 
@@ -208,11 +294,11 @@ function CredentialRevealPanel({ clientId, cred, onClose }: {
 
 // ── Client form modal ────────────────────────────────────────────────────────
 function ClientModal({ client, onClose }: {
-  client: ReturnType<typeof emptyClient> & { id?: string };
+  client: ClientForm;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<ReturnType<typeof emptyClient>>(client);
+  const [form, setForm] = useState<ClientForm>(client);
   const [formError, setFormError] = useState("");
   const isEdit = !!client.id;
 
@@ -238,35 +324,11 @@ function ClientModal({ client, onClose }: {
         );
       }
 
-      const payload = {
-        client_code: form.client_code || undefined,
-        client_name: form.client_name!,
-        legal_name: form.legal_name || undefined,
-        address_line1: form.address_line1 || undefined,
-        address_line2: form.address_line2 || undefined,
-        area: form.area || undefined,
-        city: form.city || undefined,
-        state: form.state || undefined,
-        country: form.country ?? "India",
-        pincode: form.pincode || undefined,
-        gst_number: form.gst_number || undefined,
-        pan_number: form.pan_number || undefined,
-        tan_number: form.tan_number || undefined,
-        cin_number: form.cin_number || undefined,
-        contact_person: form.contact_person || undefined,
-        contact_email: form.contact_email || undefined,
-        contact_mobile: form.contact_mobile || undefined,
-        contact_telephone: form.contact_telephone || undefined,
-        pf_establishment_code: form.pf_establishment_code || undefined,
-        esic_employer_code: form.esic_employer_code || undefined,
-        professional_tax_number: form.professional_tax_number || undefined,
-        labour_license_number: form.labour_license_number || undefined,
-        shop_act_number: form.shop_act_number || undefined,
-      };
+      const payload = clientPayload(form);
 
       const saved = isEdit
         ? await clientsApi.update(client.id!, payload)
-        : await clientsApi.create(payload as any);
+        : await clientsApi.create(payload);
 
       // Save credentials if provided
       const credUpdates: Array<{ type: "PF" | "ESIC" | "GST"; user?: string; pass?: string }> = [
@@ -390,16 +452,17 @@ function ClientModal({ client, onClose }: {
               <input className="input" placeholder="31000…" {...F("esic_employer_code")} />
             </FormRow>
             <FormRow label="Professional Tax Number">
-              <input className="input" placeholder="PT/…" {...F("professional_tax_number")} />
+              <input className="input" placeholder="PTRC / PTEC…" {...F("professional_tax_number")} />
+            </FormRow>
+            <FormRow label="MLWF Establishment Code">
+              <input className="input" placeholder="MLWB/…" {...F("lwf_registration_number")} />
             </FormRow>
             <FormRow label="Labour License Number">
               <input className="input" placeholder="LL/…" {...F("labour_license_number")} />
             </FormRow>
-            <div className="col-span-2">
-              <FormRow label="Shop Act Number">
-                <input className="input" placeholder="SA/…" {...F("shop_act_number")} />
-              </FormRow>
-            </div>
+            <FormRow label="Shop Act Number">
+              <input className="input" placeholder="SA/…" {...F("shop_act_number")} />
+            </FormRow>
           </div>
         </Section>
 
@@ -751,7 +814,7 @@ export function Clients() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [editing, setEditing] = useState<(ReturnType<typeof emptyClient> & { id?: string }) | null>(null);
+  const [editing, setEditing] = useState<ClientForm | null>(null);
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [confirmArchive, setConfirmArchive] = useState<Client | null>(null);
@@ -952,7 +1015,7 @@ export function Clients() {
                   >
                     <button
                       title="Edit"
-                      onClick={() => setEditing({ ...client })}
+                      onClick={() => setEditing(formFromClient(client))}
                       className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-[#3395FF] hover:bg-[#3395FF]/8 transition-colors"
                     >
                       <Edit2 className="h-3.5 w-3.5" />
@@ -1068,11 +1131,16 @@ export function Clients() {
                     </div>
 
                     {/* Address */}
-                    {(detailClient.address_line1 || detailClient.pincode) && (
+                    {(detailClient.address?.line1 || detailClient.address?.pincode) && (
                       <div>
                         <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Address</div>
                         <div className="text-[12.5px] text-slate-600 dark:text-slate-400 space-y-0.5">
-                          {[detailClient.address_line1, detailClient.address_line2, detailClient.area, `${detailClient.city ?? ""} ${detailClient.pincode ?? ""}`.trim()].filter(Boolean).map((l, i) => (
+                          {[
+                            detailClient.address.line1,
+                            detailClient.address.line2,
+                            detailClient.address.area,
+                            `${detailClient.address.city ?? ""} ${detailClient.address.pincode ?? ""}`.trim(),
+                          ].filter(Boolean).map((l, i) => (
                             <div key={i}>{l}</div>
                           ))}
                         </div>
@@ -1084,10 +1152,10 @@ export function Clients() {
                       <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Tax Details</div>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          ["GST", detailClient.gst_number],
-                          ["PAN", detailClient.pan_number],
-                          ["TAN", detailClient.tan_number],
-                          ["CIN", detailClient.cin_number],
+                          ["GST", detailClient.statutory_ids?.gst ?? detailClient.gst_number],
+                          ["PAN", detailClient.statutory_ids?.pan ?? detailClient.pan_number],
+                          ["TAN", detailClient.statutory_ids?.tan],
+                          ["CIN", detailClient.statutory_ids?.cin],
                         ].map(([label, val]) =>
                           val ? (
                             <div key={label} className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2">
@@ -1116,11 +1184,12 @@ export function Clients() {
                       <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Statutory Registrations</div>
                       <div className="space-y-1">
                         {[
-                          ["PF Code", detailClient.pf_establishment_code],
-                          ["ESIC Code", detailClient.esic_employer_code],
-                          ["PT No.", detailClient.professional_tax_number],
-                          ["Labour Lic.", detailClient.labour_license_number],
-                          ["Shop Act", detailClient.shop_act_number],
+                          ["PF Code", detailClient.statutory_ids?.pf_code],
+                          ["ESIC Code", detailClient.statutory_ids?.esic_code],
+                          ["PT No.", detailClient.statutory_ids?.pt_number],
+                          ["MLWF Code", detailClient.statutory_ids?.lwf],
+                          ["Labour Lic.", detailClient.statutory_ids?.labour_license],
+                          ["Shop Act", detailClient.statutory_ids?.shop_act],
                         ].map(([label, val]) =>
                           val ? (
                             <div key={label} className="flex items-center justify-between text-[12px]">
@@ -1159,7 +1228,7 @@ export function Clients() {
               {/* Drawer footer */}
               <div className="shrink-0 flex items-center gap-2 px-5 py-3 border-t border-slate-100 dark:border-slate-800">
                 <button
-                  onClick={() => { setEditing({ ...detailClient }); setDetailClient(null); }}
+                  onClick={() => { setEditing(formFromClient(detailClient)); setDetailClient(null); }}
                   className="btn flex-1"
                 >
                   <Edit2 className="h-3.5 w-3.5" /> Edit Client

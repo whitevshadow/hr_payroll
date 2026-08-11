@@ -102,6 +102,10 @@ class Client(TenantAwareBase):
             "gst": self.gst_number, "pan": self.pan_number, "tan": self.tan_number,
             "cin": self.cin_number, "pf_code": self.pf_establishment_code,
             "esic_code": self.esic_employer_code, "pt_number": self.professional_tax_number,
+            # LWF arrived after the JSONB column became the store of record, so it
+            # never got a legacy flat column. A row still on the flat columns
+            # predates the field entirely and can only answer None here.
+            "lwf": None,
             "labour_license": self.labour_license_number, "shop_act": self.shop_act_number,
             "msme": self.msme_number,
         }
