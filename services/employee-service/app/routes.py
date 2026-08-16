@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from hr_shared import RequestContext, audit_log, mask_pan, mask_bank_account, mask_aadhaar, mask_uan
+from hr_shared import RequestContext, audit_log, mask_pan, mask_bank_account, mask_aadhaar
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,11 +53,16 @@ _PRIVILEGED = ("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")
 # PII fields returned masked in list/detail responses; the raw value is only
 # obtainable through the audited pii-access endpoint. (bank_ifsc is a public
 # branch code, not treated as sensitive PII.)
+#
+# uan_number is deliberately absent, for the same reason as ip_number: it is
+# field 1 of every ECR filed with EPFO and is printed on the member's own PF
+# passbook. Masked, the ECR export emits XXXXXXXX6789 and EPFO rejects the
+# file — so masking it would block the filing the field exists for. It is not
+# a credential: nothing can be transacted with a UAN alone.
 _PII_MASKERS = {
     "pan_number": mask_pan,
     "bank_account": mask_bank_account,
     "aadhaar_number": mask_aadhaar,
-    "uan_number": mask_uan,
 }
 
 

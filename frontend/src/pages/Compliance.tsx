@@ -11,6 +11,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { NoClientSelected } from "../components/NoClientSelected";
 import { ESICReturnPanel } from "../components/ESICReturnPanel";
+import { ECRReturnPanel } from "../components/ECRReturnPanel";
 import { FullPageSpinner } from "../components/Spinner";
 import { formatINR } from "../lib/money";
 import { toCSV } from "../lib/csv";
@@ -230,7 +231,18 @@ export function Compliance() {
         />
       )}
 
-      {summary.data && tab === "pf" && <PFTable rows={filteredPf} empMap={empMap} />}
+      {summary.data && tab === "pf" && (
+        <>
+          {/* Above the register, matching the ESI tab: the register is for
+              checking the numbers, this is what actually gets filed. */}
+          <ECRReturnPanel
+            cycle={cycles.data?.find((c) => c.id === activeCycleId) ?? null}
+            pfRows={filteredPf}
+            employees={filteredEmployees}
+          />
+          <PFTable rows={filteredPf} empMap={empMap} />
+        </>
+      )}
       {summary.data && tab === "esi" && (
         <>
           {/* Sits above the register: the register is for checking the numbers,
