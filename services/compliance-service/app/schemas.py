@@ -109,3 +109,9 @@ class GratuityRecordOut(BaseModel):
     amount: Decimal
     years_of_service: Decimal
     is_paid: bool
+
+
+class PruneRequest(BaseModel):
+    """Employees that legitimately belong to a cycle. Anything else attached to
+    it is left over from an earlier run and is deleted — see routes.prune_cycle."""
+    employee_ids: list[uuid.UUID]

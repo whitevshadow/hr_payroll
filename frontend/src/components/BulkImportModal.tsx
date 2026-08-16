@@ -41,7 +41,7 @@ const BASE_HEADERS = [
   "Employment Type",
 ];
 const TAIL_HEADERS = [
-  "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "Bank Account", "IFSC Code",
+  "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "ESIC IP Number", "Bank Account", "IFSC Code",
   "Gender", "Date of Birth", "State", "City", "Branch",
 ];
 
@@ -103,10 +103,12 @@ function downloadTemplate(wageType: "MONTHLY" | "DAILY", rateCardName: string) {
         sample({ "Name": "Sanubai Kadale", "Mobile": "9876543212", "Aadhaar Number": "456789012345",
                  "Department": "Production", "Work Location": "Chakan", "Date of Joining": "2026-06-01",
                  "Employment Type": "Contract", "Designation": "Helper", "Gender": "Female",
+                 "ESIC IP Number": "3311723167",
                  "State": "Maharashtra", "City": "Pune" }),
         sample({ "Name": "Raghu Sapre", "Mobile": "9876543213", "Department": "Production",
                  "Work Location": "Chakan", "Date of Joining": "2026-06-01", "Employment Type": "Contract",
-                 "Designation": "Helper", "Gender": "Male", "State": "Maharashtra", "City": "Pune" }),
+                 "Designation": "Helper", "Gender": "Male", "ESIC IP Number": "3314055094",
+                 "State": "Maharashtra", "City": "Pune" }),
       ]
     : [
         sample({ "Name": "Rahul Sharma", "Mobile": "9876543210", "Aadhaar Number": "123456789012",
@@ -114,6 +116,7 @@ function downloadTemplate(wageType: "MONTHLY" | "DAILY", rateCardName: string) {
                  "Employment Type": "Full Time", "Basic Salary (Annual CTC)": "540000",
                  "Employee Code": "E010", "Email": "rahul@company.com", "Designation": "Developer",
                  "PAN Number": "ABCDE1234F", "Bank Account": "12345678901", "IFSC Code": "HDFC0001234",
+                 "ESIC IP Number": "3314404117",
                  "Gender": "Male", "State": "Maharashtra", "City": "Mumbai" }),
         sample({ "Name": "Priya Patil", "Mobile": "9876543211", "Aadhaar Number": "987654321098",
                  "Department": "HR", "Work Location": "Mumbai", "Date of Joining": "2026-06-01",
@@ -247,6 +250,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           basic_salary:   Math.max(colIdx("basic salary"), colIdx("ctc"), colIdx("salary")),
           pan_number:     colIdx("pan"),
           uan_number:     colIdx("uan"),
+          ip_number:      colIdx("ip number"),
           bank_account:   colIdx("account number"),
           bank_ifsc:      colIdx("ifsc"),
           aadhaar_number: Math.max(colIdx("aadhaar"), colIdx("aadhar")),
@@ -342,6 +346,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             basic_salary: salary,
             pan_number: pan || undefined,
             uan_number: get(r, "uan_number") || undefined,
+            ip_number: get(r, "ip_number") || undefined,
             aadhaar_number: aadhaar,
             bank_account: get(r, "bank_account") || undefined,
             bank_ifsc: ifsc || undefined,

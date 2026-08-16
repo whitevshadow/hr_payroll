@@ -48,6 +48,12 @@ _ADDITIVE_DDL = [
     CREATE INDEX IF NOT EXISTS ix_daily_rate_cards_department_id
         ON daily_rate_cards (department_id)
     """,
+    # ESIC Insured Person number. TEXT because EncryptedString stores a Fernet
+    # token, which is far longer than the 10 digits it holds.
+    """
+    ALTER TABLE employees
+        ADD COLUMN IF NOT EXISTS ip_number TEXT
+    """,
 ]
 
 

@@ -106,6 +106,9 @@ export interface BulkImportRow {
   basic_salary?: number;         // annual CTC — used by frontend to call salary-service
   pan_number?: string;
   uan_number?: string;
+  /** ESIC Insured Person number, 10 digits — needed to file the monthly
+   *  contribution return for this employee. */
+  ip_number?: string;
   aadhaar_number?: string;
   bank_account?: string;
   bank_ifsc?: string;

@@ -78,6 +78,9 @@ class EmployeeBase(BaseModel):
     bank_ifsc: str | None = None
     uan_number: str | None = None
     aadhaar_number: str | None = None
+    # ESIC Insured Person number — 10 digits, issued by ESIC on registration.
+    # Required to file the monthly contribution return for this employee.
+    ip_number: str | None = None
     status: str = "ACTIVE"
     joining_date: date | None = None
     exit_date: date | None = None
@@ -140,6 +143,25 @@ class EmployeeBase(BaseModel):
             raise ValueError("aadhaar_number must be 12 digits")
         return digits
 
+    @field_validator("ip_number", mode="before")
+    @classmethod
+    def validate_ip_number(cls, v: str | None) -> str | None:
+        """Optional, but a supplied value must be the 10 digits ESIC issued.
+
+        ESIC rejects the entire monthly-contribution upload on a malformed IP
+        number rather than skipping the offending row, so it is worth catching
+        at entry instead of at filing time.
+        """
+        if v is None:
+            return v
+        text = str(v).strip()
+        if not text:
+            return None
+        digits = text.replace(" ", "").replace("-", "")
+        if not digits.isdigit() or len(digits) != 10:
+            raise ValueError("ip_number must be 10 digits")
+        return digits
+
     @model_validator(mode="after")
     def validate_daily_wage(self) -> "EmployeeBase":
         if self.wage_type not in ("MONTHLY", "DAILY"):
@@ -169,6 +191,7 @@ class EmployeeUpdate(BaseModel):
     bank_ifsc: str | None = None
     uan_number: str | None = None
     aadhaar_number: str | None = None
+    ip_number: str | None = None
     status: str | None = None
     joining_date: date | None = None
     exit_date: date | None = None
@@ -205,6 +228,17 @@ class EmployeeUpdate(BaseModel):
     @classmethod
     def normalize_wage_type(cls, v: str | None) -> str | None:
         return v.strip().upper() if isinstance(v, str) else v
+
+    # The format checks live on EmployeeBase, which EmployeeOut inherits — so
+    # without them here an update WROTE the bad value and only then failed
+    # serialising the response, leaving invalid data in the row behind a 500.
+    # Reused rather than restated so the two paths cannot drift apart.
+    _validate_ip = field_validator("ip_number", mode="before")(
+        EmployeeBase.validate_ip_number.__func__
+    )
+    _validate_aadhaar = field_validator("aadhaar_number", mode="before")(
+        EmployeeBase.validate_aadhaar.__func__
+    )
 
 
 # ── Daily Rate Cards ──────────────────────────────────────────────────────────
@@ -286,6 +320,7 @@ class BulkImportRow(BaseModel):
     # PII
     pan_number: str | None = None
     uan_number: str | None = None
+    ip_number: str | None = None
     bank_account: str | None = None
     bank_ifsc: str | None = None
     aadhaar_number: str | None = None

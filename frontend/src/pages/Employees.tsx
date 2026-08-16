@@ -31,7 +31,7 @@ const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
   status: "ACTIVE", work_location: "", designation: "",
   pan_number: "", bank_account: "", bank_ifsc: "", joining_date: "",
-  aadhaar_number: "", gender: null,
+  aadhaar_number: "", gender: null, uan_number: "", ip_number: "",
 };
 
 function validate(f: Partial<Employee>): string | null {
@@ -810,6 +810,27 @@ function EmployeeModal({
           <label className="label" htmlFor="f-aadhaar">Aadhaar Number</label>
           <input id="f-aadhaar" className="input" placeholder="123456789012" value={value.aadhaar_number ?? ""}
             onChange={(e) => set("aadhaar_number", e.target.value.replace(/\D/g, ""))} />
+        </div>
+        {/* Statutory identifiers. Both were only ever settable through bulk
+            import, so anyone added by hand had neither — and each is required
+            to file: UAN for the EPFO ECR, IP Number for the ESIC monthly
+            contribution return. */}
+        <div>
+          <label className="label" htmlFor="f-uan">UAN Number</label>
+          <input id="f-uan" className="input" placeholder="100123456789" value={value.uan_number ?? ""}
+            onChange={(e) => set("uan_number", e.target.value)} />
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            EPFO Universal Account Number — needed for the PF ECR.
+          </p>
+        </div>
+        <div>
+          <label className="label" htmlFor="f-ip">ESIC IP Number</label>
+          <input id="f-ip" className="input" placeholder="3311723167" maxLength={10}
+            value={value.ip_number ?? ""}
+            onChange={(e) => set("ip_number", e.target.value.replace(/\D/g, ""))} />
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            10 digits, issued by ESIC — without it this employee cannot be filed.
+          </p>
         </div>
         <div>
           <label className="label" htmlFor="f-bank">Bank Account</label>

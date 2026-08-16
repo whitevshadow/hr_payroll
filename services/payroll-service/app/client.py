@@ -116,6 +116,24 @@ async def get_attendance(client, token: str, employee_id: str, month: str, clien
         raise
 
 
+async def prune_compliance(
+    client, token: str, cycle_id: str, employee_ids: list[str], client_id: str | None = None
+) -> dict:
+    """Drop compliance rows for employees no longer in this cycle.
+
+    /compute rewrites one employee at a time, so it cannot clear rows for
+    someone the run no longer covers — see compliance-service prune_cycle.
+    """
+    return await _post(
+        client,
+        "compliance-service",
+        f"{settings.compliance_url}/api/v1/compliance/cycles/{cycle_id}/prune",
+        token,
+        {"employee_ids": employee_ids},
+        client_id,
+    )
+
+
 async def compute_compliance(client, token: str, payload: dict, client_id: str | None = None) -> dict:
     return await _post(
         client,

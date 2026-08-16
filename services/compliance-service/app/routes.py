@@ -22,6 +22,7 @@ from .schemas import (
     ComplianceSettingOut,
     ComputeRequest,
     ComputeResponse,
+    PruneRequest,
 )
 
 router = APIRouter(prefix="/api/v1/compliance", tags=["compliance"])
@@ -231,6 +232,39 @@ async def compute(
 
     return ComputeResponse(employee_id=body.employee_id, cycle_id=body.cycle_id,
                            **pf, **esi, **pt, **lwf)
+
+
+@router.post("/cycles/{cycle_id}/prune")
+async def prune_cycle(
+    cycle_id: uuid.UUID,
+    body: PruneRequest,
+    ctx: RequestContext = Depends(get_client_context),
+    session: AsyncSession = Depends(get_session),
+):
+    """Drop contribution rows for employees no longer part of this cycle.
+
+    /compute deletes and rewrites rows one employee at a time, so it only ever
+    touches employees it is called for. When a re-run stops covering someone —
+    they separated, or moved to another client — their rows from the previous
+    run survive with the figures and rules of that run. They then keep counting
+    toward the PF/ESI/PT registers and totals, and would be filed on the ESIC
+    monthly return as though they had been paid.
+
+    Payroll calls this after a run with the employees it actually computed;
+    everything else attached to the cycle goes.
+    """
+    keep = set(body.employee_ids)
+    removed = 0
+    for model in (PFContribution, ESIContribution, PTDeduction, LWFContribution):
+        rows = list(await session.scalars(
+            select(model).where(model.tenant_id == ctx.tenant_id, model.cycle_id == cycle_id)
+        ))
+        for row in rows:
+            if row.employee_id not in keep:
+                await session.delete(row)
+                removed += 1
+    await session.commit()
+    return {"cycle_id": str(cycle_id), "kept_employees": len(keep), "rows_removed": removed}
 
 
 @router.get("/summary/{cycle_id}")

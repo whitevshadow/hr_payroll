@@ -31,9 +31,16 @@ export interface Employee {
   bank_account: string | null;
   bank_ifsc: string | null;
   uan_number: string | null;
+  /** ESIC Insured Person number, 10 digits. Returned unmasked, unlike the
+   *  other identifiers — it is printed on every monthly contribution return
+   *  filed with ESIC, so masking it would block that filing. */
+  ip_number: string | null;
   aadhaar_number: string;
   status: "ACTIVE" | "INACTIVE" | "SEPARATED";
   joining_date: string | null;
+  /** Last working day. Goes on the employee's final ESIC return — without it
+   *  ESIC keeps expecting contributions for them. */
+  exit_date: string | null;
   department_id: string | null;
   designation: string | null;
   location_id: string | null;

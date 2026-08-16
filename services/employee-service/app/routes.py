@@ -484,6 +484,7 @@ async def bulk_import_employees(
                 bank_ifsc=row.bank_ifsc,
                 uan_number=row.uan_number,
                 aadhaar_number=row.aadhaar_number,
+                ip_number=row.ip_number,
                 designation=row.designation,
                 department_id=dept_id,
                 location_id=matched_loc.id if matched_loc else None,

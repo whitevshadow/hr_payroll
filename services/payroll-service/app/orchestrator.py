@@ -736,6 +736,21 @@ async def run_cycle(
                 await session.delete(stale)
         await session.commit()
 
+        # Compliance keeps its own PF/ESI/PT/LWF rows, and /compute only ever
+        # rewrites the employees it is called for — so dropping the payroll
+        # result above is not enough. Left alone, the stale contribution rows
+        # keep counting toward the compliance registers and would be filed on
+        # the ESIC monthly return. A failure here must not fail the run: the
+        # payroll is computed and correct, and the stale rows are a reporting
+        # problem the next run will clear.
+        try:
+            await client.prune_compliance(
+                http, token, str(cycle.id), [e["id"] for e in employees],
+                str(cycle.client_id) if cycle.client_id else None,
+            )
+        except Exception as exc:
+            logging.error("[payroll] compliance prune failed for cycle %s: %s", cycle.id, exc)
+
     cycle.status = state.COMPUTED if computed > 0 or failed == 0 else state.FAILED
     await session.commit()
 

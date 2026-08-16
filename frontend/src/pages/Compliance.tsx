@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { NoClientSelected } from "../components/NoClientSelected";
+import { ESICReturnPanel } from "../components/ESICReturnPanel";
 import { FullPageSpinner } from "../components/Spinner";
 import { formatINR } from "../lib/money";
 import { toCSV } from "../lib/csv";
@@ -230,7 +231,18 @@ export function Compliance() {
       )}
 
       {summary.data && tab === "pf" && <PFTable rows={filteredPf} empMap={empMap} />}
-      {summary.data && tab === "esi" && <ESITable rows={filteredEsi} empMap={empMap} />}
+      {summary.data && tab === "esi" && (
+        <>
+          {/* Sits above the register: the register is for checking the numbers,
+              this is the artefact that actually gets filed. */}
+          <ESICReturnPanel
+            cycle={cycles.data?.find((c) => c.id === activeCycleId) ?? null}
+            esiRows={filteredEsi}
+            employees={filteredEmployees}
+          />
+          <ESITable rows={filteredEsi} empMap={empMap} />
+        </>
+      )}
       {summary.data && tab === "pt" && <PTTable rows={filteredPt} empMap={empMap} />}
       {summary.data && tab === "lwf" && (
         <LWFTable rows={filteredLwf} empMap={empMap} enabled={!!setting?.lwf_enabled} />

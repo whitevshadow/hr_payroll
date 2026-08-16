@@ -107,6 +107,12 @@ class Employee(TenantAwareBase):
     bank_ifsc: Mapped[str | None] = mapped_column(EncryptedString)
     uan_number: Mapped[str | None] = mapped_column(EncryptedString)
     aadhaar_number: Mapped[str | None] = mapped_column(EncryptedString)
+    # ESIC Insured Person number (10 digits). Encrypted at rest like the other
+    # identifiers, but deliberately NOT in routes._PII_MASKERS: it is printed on
+    # every monthly contribution return filed with ESIC and on the e-Pehchan
+    # card the employee carries, so masking it on read would block the statutory
+    # filing the field exists for.
+    ip_number: Mapped[str | None] = mapped_column(EncryptedString)
 
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     joining_date: Mapped[date | None] = mapped_column(Date)
