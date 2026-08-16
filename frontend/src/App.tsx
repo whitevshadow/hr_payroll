@@ -38,6 +38,7 @@ const Clients         = lazy(() => import("./pages/Clients").then(m => ({ defaul
 const FinancialYears  = lazy(() => import("./pages/FinancialYears").then(m => ({ default: m.FinancialYears })));
 const ClientDashboard = lazy(() => import("./pages/ClientDashboard").then(m => ({ default: m.ClientDashboard })));
 const AdminPayslips   = lazy(() => import("./pages/AdminPayslips").then(m => ({ default: m.AdminPayslips })));
+const Paysheet        = lazy(() => import("./pages/Paysheet").then(m => ({ default: m.Paysheet })));
 const Account         = lazy(() => import("./pages/Account").then(m => ({ default: m.Account })));
 const Settings        = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
 
@@ -126,6 +127,7 @@ export default function App() {
       <Route path="/payouts" element={<Shell><HrRoute><Payouts /></HrRoute></Shell>} />
       <Route path="/reports" element={<Shell><HrRoute><Reports /></HrRoute></Shell>} />
       <Route path="/payslips" element={<Shell><HrRoute><AdminPayslips /></HrRoute></Shell>} />
+      <Route path="/paysheet" element={<Shell><HrRoute><Paysheet /></HrRoute></Shell>} />
       <Route path="/audit" element={<Shell><AuditRoute><AuditLog /></AuditRoute></Shell>} />
 
       {/* Payslip View (accessible to authenticated users) */}

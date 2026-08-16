@@ -43,6 +43,7 @@ import {
   Landmark,
   MapPin,
   Coins,
+  Table2,
 } from "lucide-react";
 import { useAuth, getToken } from "../lib/auth";
 import { canViewAudit, isEmployeeOnly } from "../lib/roles";
@@ -135,6 +136,7 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
       { to: "/cycles",  label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
       { to: "/payouts", label: "Payouts",        icon: CreditCard,       hrOnly: true },
       { to: "/payslips", label: "Payslips",      icon: Receipt,          hrOnly: true },
+      { to: "/paysheet", label: "Paysheet",      icon: Table2,           hrOnly: true },
     ],
   },
   {
@@ -966,6 +968,7 @@ function TopBar({
     "/cycles":      "Payroll Cycles",
     "/payouts":     "Payouts",
     "/payslips":    "Payslips",
+    "/paysheet":    "Paysheet",
     "/compliance":  "Compliance",
     "/statutory-portals": "Statutory Filings",
     "/reports":     "Reports",

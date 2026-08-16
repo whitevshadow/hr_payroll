@@ -232,11 +232,18 @@ async def _compute_for_daily_employee(
     hra = money(rate_hra * paid_days)
     bonus = money((basic + da) * bonus_pct / Decimal("100"))
     gross = money(basic + da + hra + bonus)
-    # Client wage-register convention, verified against every row of the
-    # source register: PF wages are gross minus HRA (i.e. Basic + DA + bonus)
-    # and ESI wages are gross minus bonus (i.e. Basic + DA + HRA).
+    # Client wage-register convention, verified row by row against the source
+    # register: PF wages are Basic + DA + bonus (gross minus HRA), and ESI
+    # wages are Basic + DA — HRA and bonus both excluded.
+    #
+    # The ESI base is the client's choice, made explicitly and against advice.
+    # The ESI Act levies contribution on gross wages, which include HRA, so
+    # excluding it under-contributes: on the July register that is Rs 4.59 per
+    # worker per month (SANUBAI 12,847.87 -> 12,235.97, ESI 96.36 -> 91.77).
+    # Kept because the client's filed register uses this base and the paysheet
+    # has to reconcile with it. Revisit if their ESI consultant disagrees.
     pf_wage_base = money(basic + da + bonus)
-    esi_wage_base = money(basic + da + hra)
+    esi_wage_base = money(basic + da)
 
     if paid_days > 0:
         comp = await client.compute_compliance(
@@ -387,10 +394,11 @@ async def _result_from_register_row(
                 "cycle_id": str(cycle.id),
                 "client_id": client_id,
                 # Same register convention as the daily-wage path: PF wages are
-                # gross minus HRA, ESI wages are gross minus bonus.
+                # Basic + DA + bonus, ESI wages are Basic + DA. See the note
+                # there on why HRA is outside the ESI base.
                 "basic": str(money(basic + da + bonus)),
                 "monthly_gross": str(gross),
-                "esi_gross": str(money(gross - bonus)),
+                "esi_gross": str(money(basic + da)),
                 "state": emp.get("state") or "ALL",
                 "gender": emp.get("gender"),
                 "month": cycle.period_start.month,
@@ -695,6 +703,38 @@ async def run_cycle(
                     error=str(exc)[:500],
                 )
             await session.commit()
+
+        # A re-run recomputes everyone currently eligible, but _upsert_result
+        # only ever writes — results from an earlier run survive for anyone who
+        # has since separated or moved to another client. The stale row keeps
+        # its old figures, still counts toward the cycle totals, and prints on
+        # the wage register as if that person had been paid. Drop the rows this
+        # run did not touch so the cycle holds exactly who it just paid.
+        live_ids = {uuid.UUID(e["id"]) for e in employees}
+        existing = await session.execute(
+            select(PayrollResult).where(
+                PayrollResult.tenant_id == ctx.tenant_id,
+                PayrollResult.cycle_id == cycle.id,
+            )
+        )
+        for stale in existing.scalars().all():
+            if stale.employee_id not in live_ids:
+                await audit_log(
+                    session,
+                    tenant_id=ctx.tenant_id,
+                    event_type="PAYROLL_RESULT_DROPPED",
+                    entity_type="payroll_result",
+                    entity_id=str(stale.employee_id),
+                    payload={
+                        "cycle_id": str(cycle.id),
+                        "reason": "employee no longer eligible for this cycle",
+                        "net_pay": str(stale.net_pay),
+                    },
+                    actor_id=ctx.user_id,
+                    trace_id=trace_id,
+                )
+                await session.delete(stale)
+        await session.commit()
 
     cycle.status = state.COMPUTED if computed > 0 or failed == 0 else state.FAILED
     await session.commit()

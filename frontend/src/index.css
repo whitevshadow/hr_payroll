@@ -986,6 +986,62 @@
     color: var(--text-primary);
   }
 
+  /* Paysheet (wage register) cells. Ruled on every side and tight, because the
+     register is read as a grid across 17 columns rather than scanned down one
+     — the app's usual borderless, airy table falls apart at that width. */
+  .ps-head {
+    padding: 0.375rem 0.5rem;
+    text-align: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border-subtle);
+  }
+
+  .ps-th {
+    padding: 0.4375rem 0.375rem;
+    text-align: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border-subtle);
+    /* Headers wrap onto a second line, exactly as the filed register stacks
+       "Present Days" and "Gross Wages" — holding them on one line would force
+       the fixed column widths wider than the screen. */
+    line-height: 1.15;
+  }
+
+  .ps-td {
+    /* Tight on purpose: 16-17 columns have to fit a laptop screen without the
+       Total Ded and Payment columns falling off the right edge. Figures never
+       wrap — a rupee amount split across two lines is unreadable. */
+    padding: 0.4375rem 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border-subtle);
+    white-space: nowrap;
+  }
+
+  /* Fixed layout so the <colgroup> percentages actually bind. Under the default
+     auto layout the browser sizes each column from its content and ignores
+     max-width on a cell — measured, that gave the name column 225px and pushed
+     the table 135px past the screen. */
+  .ps-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  /* The one column allowed to wrap: full names run long ("BAYADABAI SADASHIV
+     WALKE"). Every other column holds a figure and stays on one line. */
+  .ps-td-name {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
   .tr-hover {
     transition: background-color 100ms ease;
     cursor: default;
@@ -1269,5 +1325,78 @@
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────────
+   Added for the paysheet, which is filed on paper. The register is 17 columns
+   wide, so it needs landscape and the full page width: the app chrome (sidebar,
+   top bar, page actions) is dropped and the card's frame flattened, leaving the
+   ruled grid alone on the sheet.
+
+   `zoom` on <html> applies to print too and would scale the register 15% past
+   the paper, so it is reset here. */
+@media print {
+  html {
+    zoom: 1;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* App chrome contributes nothing to a filed register. */
+  aside,
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* The shell constrains content to the area beside the sidebar; without the
+     sidebar the register should use the whole sheet. */
+  main,
+  .app-shell,
+  .app-shell > * {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Horizontal scroll containers must expand — a clipped register would print
+     with its right-hand deduction columns missing. */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  /* Keep the ruling: browsers drop background colours and borders by default. */
+  .ps-head,
+  .ps-th,
+  .ps-td {
+    border: 1px solid #94a3b8 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
   }
 }

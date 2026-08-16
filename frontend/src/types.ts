@@ -314,11 +314,18 @@ export interface PayrollCycle {
   trace_id: string | null;
 }
 
+/** Earnings differ by wage type: a monthly CTC result splits into basic / HRA /
+ *  special allowance, while a daily-wage or register-imported result carries DA
+ *  and a monthly bonus instead. Only basic, HRA and gross appear in both. */
 export interface BreakdownEarnings {
   basic: string;
   hra: string;
-  special_allowance: string;
   gross: string;
+  /** Monthly (CTC-derived) results only. */
+  special_allowance?: string;
+  /** Daily-wage and register-import results only. */
+  da?: string;
+  bonus?: string;
 }
 export interface BreakdownDeductions {
   employee_pf: string;
@@ -327,6 +334,9 @@ export interface BreakdownDeductions {
   tds: string;
   lop: string;
   other: string;
+  /** Labour Welfare Fund — charged only in the state's contribution months
+   *  (June and December for Maharashtra), so absent from every other cycle. */
+  lwf?: string;
 }
 export interface BreakdownEmployerContrib {
   employer_eps: string;
