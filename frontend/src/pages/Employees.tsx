@@ -31,7 +31,7 @@ const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
   status: "ACTIVE", work_location: "", designation: "",
   pan_number: "", bank_account: "", bank_ifsc: "", joining_date: "",
-  aadhaar_number: "",
+  aadhaar_number: "", gender: null,
 };
 
 function validate(f: Partial<Employee>): string | null {
@@ -761,6 +761,22 @@ function EmployeeModal({
           <label className="label" htmlFor="f-email">Email</label>
           <input id="f-email" className="input" type="email" value={value.email ?? ""}
             onChange={(e) => set("email", e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="f-gender">Gender</label>
+          <select id="f-gender" className="input" value={value.gender ?? ""}
+            onChange={(e) => set("gender", e.target.value || null)}>
+            <option value="">— Not specified —</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Other">Other</option>
+          </select>
+          {/* Left unset this is not a cosmetic gap: Maharashtra exempts women
+              earning up to Rs 25,000 from Profession Tax, so a blank here costs
+              the employee Rs 200 every month. */}
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            Needed for the Maharashtra PT exemption for women up to ₹25,000.
+          </p>
         </div>
         <div>
           <label className="label" htmlFor="f-desig">Designation</label>

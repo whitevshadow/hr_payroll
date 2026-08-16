@@ -22,6 +22,11 @@ export interface Employee {
   first_name: string;
   last_name: string;
   email: string | null;
+  /** Drives the Maharashtra PT exemption for women earning up to Rs 25,000
+   *  (compliance-service compute_pt). The API has always stored it, but the
+   *  employee form had no field for it, so anyone not added by bulk import
+   *  was left null and over-deducted Rs 200 a month. */
+  gender: string | null;
   pan_number: string | null;
   bank_account: string | null;
   bank_ifsc: string | null;
