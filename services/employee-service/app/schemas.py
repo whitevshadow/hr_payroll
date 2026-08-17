@@ -81,6 +81,9 @@ class EmployeeBase(BaseModel):
     # ESIC Insured Person number — 10 digits, issued by ESIC on registration.
     # Required to file the monthly contribution return for this employee.
     ip_number: str | None = None
+    # EPS membership — see models.Employee.eps_eligible. False sends the
+    # employer's whole share to EPF instead of splitting it 8.33/3.67.
+    eps_eligible: bool = True
     status: str = "ACTIVE"
     joining_date: date | None = None
     exit_date: date | None = None
@@ -192,6 +195,7 @@ class EmployeeUpdate(BaseModel):
     uan_number: str | None = None
     aadhaar_number: str | None = None
     ip_number: str | None = None
+    eps_eligible: bool | None = None
     status: str | None = None
     joining_date: date | None = None
     exit_date: date | None = None
@@ -321,6 +325,7 @@ class BulkImportRow(BaseModel):
     pan_number: str | None = None
     uan_number: str | None = None
     ip_number: str | None = None
+    eps_eligible: bool | None = None
     bank_account: str | None = None
     bank_ifsc: str | None = None
     aadhaar_number: str | None = None

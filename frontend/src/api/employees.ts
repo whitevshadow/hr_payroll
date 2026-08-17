@@ -109,6 +109,8 @@ export interface BulkImportRow {
   /** ESIC Insured Person number, 10 digits — needed to file the monthly
    *  contribution return for this employee. */
   ip_number?: string;
+  /** "No" / "false" marks a member excluded from the pension scheme. */
+  eps_eligible?: boolean;
   aadhaar_number?: string;
   bank_account?: string;
   bank_ifsc?: string;

@@ -31,7 +31,7 @@ const EMPTY_EMP: Partial<Employee> = {
   emp_code: "", first_name: "", last_name: "", email: "",
   status: "ACTIVE", work_location: "", designation: "",
   pan_number: "", bank_account: "", bank_ifsc: "", joining_date: "",
-  aadhaar_number: "", gender: null, uan_number: "", ip_number: "",
+  aadhaar_number: "", gender: null, uan_number: "", ip_number: "", eps_eligible: true,
 };
 
 function validate(f: Partial<Employee>): string | null {
@@ -830,6 +830,20 @@ function EmployeeModal({
             onChange={(e) => set("ip_number", e.target.value.replace(/\D/g, ""))} />
           <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
             10 digits, issued by ESIC — without it this employee cannot be filed.
+          </p>
+        </div>
+        <div>
+          <label className="label" htmlFor="f-eps">Pension Scheme (EPS)</label>
+          <select id="f-eps" className="input"
+            value={value.eps_eligible === false ? "NO" : "YES"}
+            onChange={(e) => set("eps_eligible", e.target.value === "YES")}>
+            <option value="YES">Member — employer share splits 8.33% / 3.67%</option>
+            <option value="NO">Excluded — whole employer share goes to EPF</option>
+          </select>
+          {/* The exclusion is permanent and does not lapse if wages later fall,
+              so it cannot be derived from this month's figures. */}
+          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+            Excluded if they first joined EPF on or after 1 Sep 2014 above ₹15,000.
           </p>
         </div>
         <div>

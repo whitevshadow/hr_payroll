@@ -54,6 +54,12 @@ _ADDITIVE_DDL = [
     ALTER TABLE employees
         ADD COLUMN IF NOT EXISTS ip_number TEXT
     """,
+    # EPS membership. NOT NULL with a default so existing rows become eligible,
+    # which is the correct reading for anyone already on the scheme.
+    """
+    ALTER TABLE employees
+        ADD COLUMN IF NOT EXISTS eps_eligible BOOLEAN NOT NULL DEFAULT TRUE
+    """,
 ]
 
 

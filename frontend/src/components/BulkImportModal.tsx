@@ -41,7 +41,7 @@ const BASE_HEADERS = [
   "Employment Type",
 ];
 const TAIL_HEADERS = [
-  "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "ESIC IP Number", "Bank Account", "IFSC Code",
+  "Employee Code", "Email", "Designation", "PAN Number", "UAN Number", "ESIC IP Number", "EPS Member", "Bank Account", "IFSC Code",
   "Gender", "Date of Birth", "State", "City", "Branch",
 ];
 
@@ -251,6 +251,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
           pan_number:     colIdx("pan"),
           uan_number:     colIdx("uan"),
           ip_number:      colIdx("ip number"),
+          eps_eligible:   colIdx("eps member"),
           bank_account:   colIdx("account number"),
           bank_ifsc:      colIdx("ifsc"),
           aadhaar_number: Math.max(colIdx("aadhaar"), colIdx("aadhar")),
@@ -347,6 +348,12 @@ function parseFile(file: File): Promise<ParsedRow[]> {
             pan_number: pan || undefined,
             uan_number: get(r, "uan_number") || undefined,
             ip_number: get(r, "ip_number") || undefined,
+            // Blank means eligible — exclusion is the uncommon case, so an
+            // importer who leaves the column alone gets the right answer.
+            eps_eligible: (() => {
+              const v = (get(r, "eps_eligible") || "").trim().toLowerCase();
+              return v === "" ? undefined : !["no", "n", "false", "0", "excluded"].includes(v);
+            })(),
             aadhaar_number: aadhaar,
             bank_account: get(r, "bank_account") || undefined,
             bank_ifsc: ifsc || undefined,

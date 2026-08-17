@@ -181,6 +181,7 @@ async def compute(
             employer_rate=settings_obj.pf_employer_rate,
             ceiling=settings_obj.pf_wage_limit,
             ceiling_on=body.ceiling_on,
+            eps_eligible=body.eps_eligible,
         )
         session.add(PFContribution(tenant_id=ctx.tenant_id, employee_id=body.employee_id,
                                    cycle_id=body.cycle_id, **pf))

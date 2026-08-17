@@ -35,6 +35,11 @@ export interface Employee {
    *  other identifiers — it is printed on every monthly contribution return
    *  filed with ESIC, so masking it would block that filing. */
   ip_number: string | null;
+  /** EPS (pension) membership. False for a member excluded from the scheme —
+   *  someone who first joined on or after 1 Sep 2014 above the wage ceiling.
+   *  Their employer share goes entirely to EPF rather than splitting
+   *  8.33 / 3.67, so the ECR's pension column reads zero. */
+  eps_eligible: boolean;
   aadhaar_number: string;
   status: "ACTIVE" | "INACTIVE" | "SEPARATED";
   joining_date: string | null;

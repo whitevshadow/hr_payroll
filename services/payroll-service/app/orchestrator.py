@@ -109,6 +109,9 @@ async def _compute_for_employee(
             "gender": emp.get("gender"),
             "month": cycle.period_start.month,
             "ceiling_on": settings.pf_ceiling_enabled,
+            # Excluded members send the employer's whole share to EPF;
+            # absent on an older employee record, which means eligible.
+            "eps_eligible": emp.get("eps_eligible", True),
         },
         client_id,
     )
@@ -263,6 +266,9 @@ async def _compute_for_daily_employee(
                 # daily wagers whose gross fluctuates around the ceiling.
                 "year": cycle.period_start.year,
                 "ceiling_on": settings.pf_ceiling_enabled,
+                # Excluded members send the employer's whole share to EPF;
+                # absent on an older record, which means eligible.
+                "eps_eligible": emp.get("eps_eligible", True),
             },
             client_id,
         )
@@ -403,6 +409,9 @@ async def _result_from_register_row(
                 "gender": emp.get("gender"),
                 "month": cycle.period_start.month,
                 "ceiling_on": settings.pf_ceiling_enabled,
+                # Excluded members send the employer's whole share to EPF;
+                # absent on an older record, which means eligible.
+                "eps_eligible": emp.get("eps_eligible", True),
             },
             client_id,
         )

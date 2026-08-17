@@ -23,6 +23,9 @@ class ComputeRequest(BaseModel):
     esi_gross: Optional[Decimal] = None
     # For state PT rules with a gender exemption (e.g. Maharashtra).
     gender: Optional[str] = None
+    # False for a member excluded from the pension scheme — the employer's whole
+    # share then goes to EPF. Defaults true: exclusion is the uncommon case.
+    eps_eligible: bool = True
     # Calendar year of the wage month. When present, ESI eligibility honours
     # the contribution-period rule (Apr–Sep / Oct–Mar): once covered in a
     # period the employee contributes until it ends, even above the ceiling.

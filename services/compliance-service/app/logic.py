@@ -16,14 +16,28 @@ def compute_pf(
     employer_rate: Decimal = Decimal("12"),
     ceiling: Decimal = Decimal("15000"),
     ceiling_on: bool = True,
+    eps_eligible: bool = True,
 ) -> dict:
+    """eps_eligible=False sends the employer's whole share to EPF.
+
+    A member who first joined the scheme on or after 1 September 2014 earning
+    above the ceiling never becomes an EPS member, and the exclusion is
+    permanent — it does not lapse if their wages later fall below it. For those
+    members the 8.33% pension column is zero and EPF takes the full employer
+    rate, which is why this is a stored fact about the person rather than
+    something derivable from this month's wage.
+    """
     basic = Decimal(basic)
     pf_wages = min(basic, ceiling) if ceiling_on else basic
     employee_pf = money(pf_wages * (employee_rate / Decimal("100")))
     # EPS (pension) is 8.33% (or employer_rate if lower) and is always capped at
     # the statutory ceiling, even when the employer opts out of the PF ceiling.
     eps_rate = min(Decimal("8.33"), employer_rate)
-    employer_eps = money(min(pf_wages, ceiling) * (eps_rate / Decimal("100")))
+    employer_eps = (
+        money(min(pf_wages, ceiling) * (eps_rate / Decimal("100")))
+        if eps_eligible
+        else money(0)
+    )
 
     # Total employer contribution is employer_rate% of pf_wages; EPF is whatever
     # remains after EPS. Deriving EPF as (employer_rate - eps_rate)% of pf_wages

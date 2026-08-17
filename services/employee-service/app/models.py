@@ -114,6 +114,14 @@ class Employee(TenantAwareBase):
     # filing the field exists for.
     ip_number: Mapped[str | None] = mapped_column(EncryptedString)
 
+    # EPS (pension scheme) membership. False for someone who first joined the
+    # scheme on or after 1 September 2014 above the wage ceiling — they never
+    # become an EPS member and the employer's whole 12% goes to EPF instead of
+    # splitting 8.33/3.67. The exclusion is permanent and does not lapse if
+    # their wages later drop, so it is recorded per person rather than derived
+    # from the month's wage. Most members are eligible, hence the default.
+    eps_eligible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     joining_date: Mapped[date | None] = mapped_column(Date)
     exit_date: Mapped[date | None] = mapped_column(Date)
