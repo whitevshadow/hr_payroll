@@ -20,20 +20,23 @@ import type { Employee, PayrollCycle } from "../types";
 
 const CEILING = 15000;
 
-/** Field order is fixed by EPFO. Used for the readable CSV; the upload file
- *  carries the same values with no header at all. */
-const COLUMNS = [
+/** The working sheet the client checks before uploading — their own column
+ *  set, not EPFO's. It restates the same figures the way a PF clerk reads
+ *  them: the employer's 12% split into its 8.33% and 3.67% halves, and the
+ *  slice of wages above the statutory ceiling shown explicitly.
+ *
+ *  The upload file is NOT this. That stays the fixed 11-field EPFO order in
+ *  `fields()` below — its layout is dictated by the portal's parser. */
+const REVIEW_COLUMNS = [
   "UAN",
   "Member Name",
   "Gross Wages",
-  "EPF Wages",
-  "EPS Wages",
-  "EDLI Wages",
-  "EPF Contribution (EE)",
-  "EPS Contribution",
-  "EPF EPS Diff (ER)",
+  "Basic",
+  "Employee Share 12%",
+  "Employer Share 8.33% (limit is 15000)",
+  "Employer Share 3.67%",
+  "Basic more than Rs.15000/-",
   "NCP Days",
-  "Refund of Advances",
 ] as const;
 
 const EPFO_PORTAL = "https://unifiedportal-emp.epfindia.gov.in/epfo/";
@@ -168,6 +171,28 @@ export function ECRReturnPanel({
     ];
   };
 
+  /** One working-sheet row. Shares fields()'s rounding so the review sheet and
+   *  the upload file can never disagree: the 3.67% share is the difference of
+   *  the two rounded figures, never rounded from its own value. */
+  const reviewRow = (l: Line) => {
+    const ee = Math.round(l.epfEe);
+    const eps = Math.round(l.eps);
+    return {
+      uan: l.uan,
+      name: l.name,
+      gross: Math.round(l.gross),
+      basic: Math.round(l.epfWages),
+      ee,
+      eps,
+      // Whatever the employer's 12% is not sending to the pension scheme.
+      epf: ee - eps,
+      // The client shows the slice above the ceiling as its own column; it is
+      // zero for anyone at or under it, which is most daily-rated staff.
+      aboveCeiling: Math.max(0, Math.round(l.epfWages) - CEILING),
+      ncp: Math.round(l.ncpDays),
+    };
+  };
+
   function save(name: string, text: string, mime: string) {
     const blob = new Blob([text], { type: mime });
     const url = URL.createObjectURL(blob);
@@ -190,7 +215,12 @@ export function ECRReturnPanel({
   /** Readable copy for checking the figures before uploading. */
   function downloadCsv() {
     const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-    const csv = [COLUMNS as unknown as string[], ...lines.map(fields)]
+    const body = lines.map((l) => {
+      const r = reviewRow(l);
+      return [r.uan, r.name, String(r.gross), String(r.basic), String(r.ee),
+              String(r.eps), String(r.epf), String(r.aboveCeiling), String(r.ncp)];
+    });
+    const csv = [REVIEW_COLUMNS as unknown as string[], ...body]
       .map((r) => r.map(esc).join(","))
       .join("\n");
     save(`ecr-${month}-review.csv`, "﻿" + csv, "text/csv;charset=utf-8;");
@@ -262,10 +292,68 @@ export function ECRReturnPanel({
         )}
       </div>
 
+      {/* The working sheet, on screen. Same figures as the download and the
+          same rounding, so what is checked here is what gets uploaded. */}
+      {lines.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="ps-table border-collapse text-[12px]">
+            <colgroup>
+              {/* Sums to 100. NCP needs enough room for its two-line header —
+                  at 3% the column was narrower than the words and got cut. */}
+              {[14, 20, 9, 9, 11, 12, 9, 10, 6].map((w, i) => (
+                <col key={i} style={{ width: `${w}%` }} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/60">
+                <th className="ps-head" colSpan={5}>&nbsp;</th>
+                <th className="ps-head" colSpan={2}>Employer Share</th>
+                <th className="ps-head" colSpan={2}>&nbsp;</th>
+              </tr>
+              <tr className="bg-slate-50 dark:bg-slate-800/60">
+                <th className="ps-th text-left">UAN</th>
+                <th className="ps-th text-left">Member Name</th>
+                <th className="ps-th text-right">Gross Wages</th>
+                <th className="ps-th text-right">Basic</th>
+                <th className="ps-th text-right">Employee Share 12%</th>
+                <th className="ps-th text-right">8.33% (limit is 15000)</th>
+                <th className="ps-th text-right">3.67%</th>
+                <th className="ps-th text-right">Basic more than ₹15000/-</th>
+                <th className="ps-th text-right">NCP Days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((l) => {
+                const r = reviewRow(l);
+                const rupee = (v: number) =>
+                  v === 0 ? "0" : v.toLocaleString("en-IN");
+                return (
+                  <tr key={l.employeeId} className="tr-hover">
+                    <td className="ps-td font-mono">{r.uan}</td>
+                    <td className="ps-td ps-td-name text-left font-medium text-slate-800 dark:text-slate-200">
+                      {r.name}
+                    </td>
+                    <td className="ps-td text-right font-numeric">{rupee(r.gross)}</td>
+                    <td className="ps-td text-right font-numeric">{rupee(r.basic)}</td>
+                    <td className="ps-td text-right font-numeric font-semibold">{rupee(r.ee)}</td>
+                    <td className="ps-td text-right font-numeric">{rupee(r.eps)}</td>
+                    <td className="ps-td text-right font-numeric">{rupee(r.epf)}</td>
+                    <td className="ps-td text-right font-numeric">{rupee(r.aboveCeiling)}</td>
+                    <td className="ps-td text-right font-numeric">{r.ncp}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-400 dark:border-slate-800">
-        The .txt is the upload file — 11 fields per member separated by #~#, no header.
-        The CSV is the same rows with column names, for checking before you upload.
-        EPS and EDLI wages are capped at ₹{CEILING.toLocaleString("en-IN")}.
+        The table and the Review CSV are the working sheet — the employer's 12% split
+        into its 8.33% and 3.67% halves, with wages above the ceiling shown separately.
+        The .txt is the upload file itself: 11 fields per member separated by #~#, no
+        header, in EPFO's fixed order. EPS and EDLI wages are capped at
+        ₹{CEILING.toLocaleString("en-IN")}.
       </p>
     </div>
   );
