@@ -29,6 +29,18 @@ export const payrollApi = {
   approveCycle: (id: string) =>
     api.post(`/payroll/cycles/${id}/approve`).then((r) => r.data),
 
+  /** Delete a cycle and everything derived from it. Refused with 409 for a
+   *  DISBURSED cycle — it is the record of payments already made. */
+  deleteCycle: (id: string) =>
+    api
+      .delete<{
+        cycle_id: string;
+        name: string;
+        results_deleted: number;
+        compliance_rows_deleted: number | null;
+      }>(`/payroll/cycles/${id}`)
+      .then((r) => r.data),
+
   getCycleSummary: (id: string) =>
     api
       .get<CycleSummaryResponse>(`/payroll/cycles/${id}/summary`)

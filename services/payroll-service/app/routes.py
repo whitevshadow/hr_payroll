@@ -6,12 +6,12 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from hr_shared import AuditLog, RequestContext
+from hr_shared import AuditLog, RequestContext, audit_log
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 
-from . import orchestrator
+from . import client, orchestrator, state
 from .client import ServiceCallError
 from .deps import get_context, get_client_context, get_session, runtime
 from .models import Notification, NotificationBase, PayrollCycle, PayrollResult
@@ -149,6 +149,86 @@ async def approve_cycle(
     except ServiceCallError as exc:
         # Leave the cycle at APPROVED so disbursement can be retried.
         raise HTTPException(status_code=502, detail=f"Disbursement failed: {exc}")
+
+
+@router.delete("/payroll/cycles/{cycle_id}", status_code=200)
+async def delete_cycle(
+    cycle_id: uuid.UUID,
+    request: Request,
+    ctx: RequestContext = Depends(_admin_only),
+    session: AsyncSession = Depends(get_session),
+):
+    """Delete a cycle and everything derived from it.
+
+    A DISBURSED cycle is refused: the money has left the account and the cycle
+    is the record of what was paid, so deleting it would leave payouts pointing
+    at nothing. Every other status is fair game — a mistimed or misconfigured
+    run is exactly the thing people need to clear.
+
+    Results cascade from the cycle row, but the compliance service keeps its own
+    PF/ESI/PT/LWF rows with no foreign key back here. Left alone those survive
+    the delete and keep appearing in the compliance registers and the ESIC/ECR
+    returns, so they are pruned first — pruning to an empty employee list
+    removes every row for the cycle.
+    """
+    cycle = await _load_cycle(session, ctx.tenant_id, cycle_id)
+
+    if cycle.status == state.DISBURSED:
+        raise HTTPException(
+            status_code=409,
+            detail="This cycle has been disbursed and cannot be deleted. "
+                   "Payments were made against it and it is the record of them.",
+        )
+
+    result_count = await session.scalar(
+        select(func.count()).select_from(PayrollResult).where(
+            PayrollResult.tenant_id == ctx.tenant_id,
+            PayrollResult.cycle_id == cycle_id,
+        )
+    ) or 0
+
+    # Compliance first: if this fails the cycle is still here to retry against,
+    # whereas dropping the cycle first would strand the rows with no way to
+    # identify them from the UI.
+    compliance_removed = None
+    try:
+        async with client.make_client() as http:
+            pruned = await client.prune_compliance(
+                http, _bearer(request), str(cycle_id), [],
+                str(cycle.client_id) if cycle.client_id else None,
+            )
+        compliance_removed = pruned.get("rows_removed")
+    except ServiceCallError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not clear compliance records for this cycle: {exc}",
+        )
+
+    # Read off the row before deleting it — the audit entry is the only record
+    # that survives, so it must not depend on the object still being loaded.
+    name, status = cycle.name, cycle.status
+    await session.delete(cycle)
+    await audit_log(
+        session,
+        tenant_id=ctx.tenant_id,
+        event_type="PAYROLL_CYCLE_DELETED",
+        entity_type="payroll_cycle",
+        entity_id=str(cycle_id),
+        payload={
+            "name": name,
+            "status": status,
+            "results_deleted": result_count,
+            "compliance_rows_deleted": compliance_removed,
+        },
+        actor_id=ctx.user_id,
+    )
+    await session.commit()
+    return {
+        "cycle_id": str(cycle_id),
+        "name": name,
+        "results_deleted": result_count,
+        "compliance_rows_deleted": compliance_removed,
+    }
 
 
 _PRIVILEGED = ("ORG_ADMIN", "HR_MANAGER", "PAYROLL_ADMIN", "SUPER_ADMIN")

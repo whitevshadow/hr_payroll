@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useClientContext } from "../lib/ClientContext";
-import { AlertTriangle, ChevronDown, ChevronRight, CircleDollarSign, Plus, Users } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, CircleDollarSign, Plus, Trash2, Users } from "lucide-react";
 import clsx from "clsx";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import { NoClientSelected } from "../components/NoClientSelected";
 import { SkeletonRow } from "../components/Spinner";
 import { formatDate, formatMonth } from "../lib/format";
 import { extractErrorMessage } from "../lib/toast";
+import type { PayrollCycle } from "../types";
 
 const WORKFLOW_STEPS = [
   { status: "DRAFT", label: "Draft", desc: "Setup" },
@@ -104,6 +105,10 @@ export function Cycles() {
   const [nameTouched, setNameTouched] = useState(false);
   const [formError, setFormError] = useState("");
   const [showAll, setShowAll] = useState(false);
+  // Deleting a cycle throws away its results and statutory records, so it goes
+  // through a confirmation naming the cycle rather than a bare icon click.
+  const [confirmDelete, setConfirmDelete] = useState<PayrollCycle | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const cycles = useQuery({
     queryKey: qk.cycles,
@@ -127,6 +132,20 @@ export function Cycles() {
       nav(`/cycles/${cycle.id}`);
     },
     onError: (err) => setFormError(extractErrorMessage(err)),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => payrollApi.deleteCycle(id),
+    onSuccess: (res) => {
+      // The compliance registers and the ESIC/ECR panels read this cycle too,
+      // so their caches go with it or they keep showing a cycle that is gone.
+      qc.invalidateQueries({ queryKey: qk.cycles });
+      qc.invalidateQueries({ queryKey: ["cycle-summary"] });
+      qc.invalidateQueries({ queryKey: ["compliance"] });
+      setConfirmDelete(null);
+      setDeleteError("");
+    },
+    onError: (err) => setDeleteError(extractErrorMessage(err)),
   });
 
   
@@ -196,12 +215,31 @@ export function Cycles() {
                     <StatusBadge status={c.status} />
                   </td>
                   <td className="td">
-                    <Link
-                      to={`/cycles/${c.id}`}
-                      className="flex items-center justify-end gap-1 text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400"
-                    >
-                      Open <ChevronRight className="h-4 w-4" />
-                    </Link>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        to={`/cycles/${c.id}`}
+                        className="flex items-center gap-1 text-sm font-medium text-accent-600 hover:text-accent-700 dark:text-accent-400"
+                      >
+                        Open <ChevronRight className="h-4 w-4" />
+                      </Link>
+                      {/* A disbursed cycle is the record of money that left the
+                          account and the API refuses to delete it — say so on
+                          the button rather than offering one that returns 409. */}
+                      <button
+                        type="button"
+                        title={
+                          c.status === "DISBURSED"
+                            ? "Disbursed cycles cannot be deleted"
+                            : `Delete ${c.name}`
+                        }
+                        aria-label={`Delete ${c.name}`}
+                        disabled={c.status === "DISBURSED"}
+                        onClick={() => { setDeleteError(""); setConfirmDelete(c); }}
+                        className="ml-1 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -290,6 +328,55 @@ export function Cycles() {
           saving={createMut.isPending}
           saveLabel="Create Cycle"
         />
+      </Modal>
+
+      {/* Delete confirmation. Spells out what goes with the cycle, because the
+          statutory records are in other services and are not obvious from a
+          page that only lists cycles. */}
+      <Modal
+        open={!!confirmDelete}
+        onClose={() => { setConfirmDelete(null); setDeleteError(""); }}
+        title="Delete payroll cycle?"
+      >
+        {confirmDelete && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-800/50 dark:bg-red-900/15">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <div className="text-[13px] text-red-700 dark:text-red-400">
+                <div className="font-semibold">
+                  {confirmDelete.name} — {formatDate(confirmDelete.period_start)} to{" "}
+                  {formatDate(confirmDelete.period_end)}
+                </div>
+                <p className="mt-1">This cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="text-[13px] text-slate-600 dark:text-slate-400">
+              <div className="font-semibold text-slate-700 dark:text-slate-300">
+                Deleting this cycle also removes:
+              </div>
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-5">
+                <li>every payslip result computed in it</li>
+                <li>its PF, ESI, PT and LWF records, and the ESIC and ECR returns built from them</li>
+                <li>its paysheet</li>
+              </ul>
+              <p className="mt-2">
+                Attendance for the period is <strong>not</strong> touched — you can run the
+                cycle again from the same data.
+              </p>
+            </div>
+
+            {deleteError && <div className="alert-danger">{deleteError}</div>}
+
+            <ModalFooter
+              onClose={() => { setConfirmDelete(null); setDeleteError(""); }}
+              onSave={() => deleteMut.mutate(confirmDelete.id)}
+              saving={deleteMut.isPending}
+              saveLabel="Delete Cycle"
+              danger
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

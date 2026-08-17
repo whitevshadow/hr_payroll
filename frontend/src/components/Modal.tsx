@@ -206,12 +206,16 @@ export function ModalFooter({
   saving,
   saveLabel = "Save",
   disabled,
+  danger,
 }: {
   onClose: () => void;
   onSave?: () => void;
   saving?: boolean;
   saveLabel?: string;
   disabled?: boolean;
+  /** Destructive confirmations: styles the action red so the primary button
+   *  does not look like an ordinary save. */
+  danger?: boolean;
 }) {
   return (
     <div className="mt-5 flex flex-col-reverse gap-2 border-t border-[var(--glass-border)] pt-4 sm:flex-row sm:justify-end">
@@ -219,16 +223,19 @@ export function ModalFooter({
         Cancel
       </button>
       {onSave && (
+        // btn-danger only overrides the colours — it carries no padding or
+        // radius of its own, so it has to sit on top of btn rather than
+        // replace it, or the label spills outside the red background.
         <button
           type="button"
-          className="btn"
+          className={danger ? "btn btn-danger" : "btn"}
           disabled={saving || disabled}
           onClick={onSave}
         >
           {saving ? (
             <>
               <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              Saving…
+              {danger ? "Deleting…" : "Saving…"}
             </>
           ) : (
             saveLabel
