@@ -190,8 +190,20 @@ export function ECRReturnPanel({
             // Rounded consistently in fields()/reviewRow(); this raw value is
             // never emitted on its own.
             diff: epfEe - eps,
-            // Non-contributing period: days in the month carrying no wages.
-            ncpDays: n(att?.lop_days),
+            // NCP is filed as zero, matching the client's own return.
+            //
+            // Attendance still derives LOP as total - present - leave - weekly
+            // offs - holidays, and that figure remains correct on the paysheet
+            // and the payslip; it is simply not carried onto this return. The
+            // client files NCP as nil because their attendance is entered with
+            // no explicit non-contributing days, and their filed ECR has always
+            // read zero.
+            //
+            // Worth knowing if this is ever revisited: the wages on the same
+            // row ARE pro-rated for those days (12,236 is a full month's 13,080
+            // at 29/31), so a reduced wage is filed against no absence to
+            // explain it. att.lop_days is the number to restore here.
+            ncpDays: 0,
           };
         })
         .sort((a, b) => a.uan.localeCompare(b.uan)),
@@ -336,15 +348,6 @@ export function ECRReturnPanel({
           </div>
         )}
 
-        {lines.some((l) => l.ncpDays > 0) && (
-          <div className="flex items-start gap-2 text-slate-500 dark:text-slate-400">
-            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-            <span>
-              NCP days set for {lines.filter((l) => l.ncpDays > 0).length} member
-              {lines.filter((l) => l.ncpDays > 0).length === 1 ? "" : "s"} from the month's LOP.
-            </span>
-          </div>
-        )}
       </div>
 
       {/* The working sheet, on screen. Same figures as the download and the
@@ -406,10 +409,12 @@ export function ECRReturnPanel({
       <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-400 dark:border-slate-800">
         Basic here is <strong>Basic + DA</strong>, excluding the monthly bonus — payroll
         deducts PF on Basic + DA + bonus, so the payslip and paysheet show a higher
-        figure than this return remits. The employer's 12% is split into its 8.33% and
-        3.67% halves, with wages above the ceiling shown separately. The .txt is the
-        upload file itself: 11 fields per member separated by #~#, no header, in EPFO's
-        fixed order. EPS and EDLI wages are capped at ₹{CEILING.toLocaleString("en-IN")}.
+        figure than this return remits. NCP days are filed as nil; the month's LOP still
+        shows on the paysheet and the attendance grid. The employer's 12% is split into
+        its 8.33% and 3.67% halves, with wages above the ceiling shown separately. The
+        .txt is the upload file itself: 11 fields per member separated by #~#, no header,
+        in EPFO's fixed order. EPS and EDLI wages are capped at
+        ₹{CEILING.toLocaleString("en-IN")}.
       </p>
     </div>
   );
