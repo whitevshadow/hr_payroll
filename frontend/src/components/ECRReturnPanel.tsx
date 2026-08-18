@@ -16,6 +16,12 @@ import type { Employee, PayrollCycle } from "../types";
  * EPS and EDLI wages are capped at the statutory ceiling independently of EPF
  * wages, which is why they are derived here rather than reusing EPF wages: with
  * the ceiling disabled for PF they would otherwise be overstated.
+ *
+ * NOTE ON THE WAGE BASE. This return is filed on Basic + DA only. Payroll
+ * computes PF on Basic + DA + bonus and deducts on that, so the payslip, the
+ * paysheet and the PF register all show the higher figure while the return
+ * remits the lower one — a gap of 12% of the bonus per member per month. That
+ * split is the client's explicit instruction, scoped to this file alone.
  */
 
 const CEILING = 15000;
@@ -99,8 +105,25 @@ export function ECRReturnPanel({
     () => new Map((attendance.data?.records ?? []).map((r) => [r.employee_id, r])),
     [attendance.data]
   );
-  const grossByEmp = useMemo(
-    () => new Map((payroll.data?.results ?? []).map((r) => [r.employee_id, n(r.gross_earnings)])),
+  // Gross, and the Basic + DA the ECR is filed on. Both come from payroll's own
+  // earnings rather than the PF register, because the register's wage includes
+  // the monthly bonus and this return deliberately excludes it — see epfWages.
+  const earningsByEmp = useMemo(
+    () =>
+      new Map(
+        (payroll.data?.results ?? []).map((r) => {
+          const e = r.breakdown_json?.earnings;
+          return [
+            r.employee_id,
+            {
+              gross: n(r.gross_earnings),
+              // Monthly-salaried results carry no DA component at all, so this
+              // is simply their basic — which is already their PF wage.
+              basicPlusDa: n(e?.basic) + n(e?.da),
+            },
+          ];
+        })
+      ),
     [payroll.data]
   );
 
@@ -120,27 +143,59 @@ export function ECRReturnPanel({
         .map((e) => {
           const pf = pfByEmp.get(e.id)!;
           const att = attByEmp.get(e.id);
-          const epfWages = n(pf.pf_wages);
-          // EPS and EDLI are capped at the ceiling regardless of the PF ceiling
-          // setting, so they are not simply a copy of EPF wages.
+          const earned = earningsByEmp.get(e.id);
+          const registerWage = n(pf.pf_wages);
+
+          // ─────────────────────────────────────────────────────────────────
+          // The ECR is filed on Basic + DA, WITHOUT the monthly bonus, at the
+          // client's instruction — and only here. Payroll still deducts on
+          // Basic + DA + bonus, so the payslip, the paysheet and the PF
+          // register are unaffected and keep showing the higher figure.
+          //
+          // The consequence is deliberate and worth stating: the employee has
+          // 12% of Basic+DA+bonus withheld while 12% of Basic+DA is remitted,
+          // so the two differ by 12% of the bonus (Rs 123 a month on this
+          // cycle). Revisit with their PF consultant.
+          //
+          // Contributions are recomputed here rather than read from the
+          // register: the register's figures belong to the other base, and a
+          // return whose contributions do not match its own stated wages is
+          // what EPFO queries.
+          // ─────────────────────────────────────────────────────────────────
+          const basicPlusDa = earned?.basicPlusDa ?? 0;
+          // Mirror whatever the register did about the ceiling. A stored wage
+          // sitting exactly on the ceiling means it bound there; one above it
+          // means the ceiling is switched off and nothing should be capped.
+          const epfWages =
+            registerWage === CEILING ? Math.min(basicPlusDa, CEILING) : basicPlusDa;
+          // EPS and EDLI stay capped at the ceiling whatever the PF ceiling
+          // setting is, so they are not simply a copy of EPF wages.
           const capped = Math.min(epfWages, CEILING);
+          // Excluded members carry no pension share, which the register records
+          // as a zero — the flag itself lives on the employee.
+          const epsEligible = n(pf.employer_eps) > 0;
+
+          const epfEe = epfWages * 0.12;
+          const eps = epsEligible ? capped * 0.0833 : 0;
           return {
             employeeId: e.id,
             uan: (e.uan_number ?? "").trim(),
             name: cleanName(`${e.first_name} ${e.last_name}`),
-            gross: grossByEmp.get(e.id) ?? 0,
+            gross: earned?.gross ?? 0,
             epfWages,
             epsWages: capped,
             edliWages: capped,
-            epfEe: n(pf.employee_pf),
-            eps: n(pf.employer_eps),
-            diff: n(pf.employer_epf),
+            epfEe,
+            eps,
+            // Rounded consistently in fields()/reviewRow(); this raw value is
+            // never emitted on its own.
+            diff: epfEe - eps,
             // Non-contributing period: days in the month carrying no wages.
             ncpDays: n(att?.lop_days),
           };
         })
         .sort((a, b) => a.uan.localeCompare(b.uan)),
-    [withUan, pfByEmp, attByEmp, grossByEmp]
+    [withUan, pfByEmp, attByEmp, earningsByEmp]
   );
 
   const blocked = missingUan.length > 0 || lines.length === 0;
@@ -349,11 +404,12 @@ export function ECRReturnPanel({
       )}
 
       <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-400 dark:border-slate-800">
-        The table and the Review CSV are the working sheet — the employer's 12% split
-        into its 8.33% and 3.67% halves, with wages above the ceiling shown separately.
-        The .txt is the upload file itself: 11 fields per member separated by #~#, no
-        header, in EPFO's fixed order. EPS and EDLI wages are capped at
-        ₹{CEILING.toLocaleString("en-IN")}.
+        Basic here is <strong>Basic + DA</strong>, excluding the monthly bonus — payroll
+        deducts PF on Basic + DA + bonus, so the payslip and paysheet show a higher
+        figure than this return remits. The employer's 12% is split into its 8.33% and
+        3.67% halves, with wages above the ceiling shown separately. The .txt is the
+        upload file itself: 11 fields per member separated by #~#, no header, in EPFO's
+        fixed order. EPS and EDLI wages are capped at ₹{CEILING.toLocaleString("en-IN")}.
       </p>
     </div>
   );
