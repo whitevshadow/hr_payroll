@@ -67,8 +67,8 @@ Here are the modules explained in plain English, and how they depend on each oth
 
 ---
 
-## What Issues Does This Project Solve?
+**## What Issues Does This Project Solve?
 1. **Siloed Information:** Instead of having attendance in one software, employee details in a spreadsheet, and payroll in another app, everything is connected in one single source of truth.
 2. **"Leaky" Payroll:** Prevents companies from accidentally overpaying employees who took unpaid leaves, because the payroll engine automatically talks to the attendance tracker.
 3. **Compliance Penalties:** By automating PF, PT, and TDS calculations, it drastically reduces the risk of human error that could lead to government fines.
-4. **Administrative Bottlenecks:** By allowing employees to view their own payslips and submit their own tax declarations online, it frees up the HR department to focus on strategy and culture rather than answering routine questions.
+4. **Administrative Bottlenecks:** By allowing employees to view their own payslips and submit their own tax declarations online, it frees up the HR department to focus on strategy and culture rather than answering routine questions.**

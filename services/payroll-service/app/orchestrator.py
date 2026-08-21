@@ -235,18 +235,16 @@ async def _compute_for_daily_employee(
     hra = money(rate_hra * paid_days)
     bonus = money((basic + da) * bonus_pct / Decimal("100"))
     gross = money(basic + da + hra + bonus)
-    # Client wage-register convention, verified row by row against the source
-    # register: PF wages are Basic + DA + bonus (gross minus HRA), and ESI
-    # wages are Basic + DA — HRA and bonus both excluded.
-    #
-    # The ESI base is the client's choice, made explicitly and against advice.
-    # The ESI Act levies contribution on gross wages, which include HRA, so
-    # excluding it under-contributes: on the July register that is Rs 4.59 per
-    # worker per month (SANUBAI 12,847.87 -> 12,235.97, ESI 96.36 -> 91.77).
-    # Kept because the client's filed register uses this base and the paysheet
-    # has to reconcile with it. Revisit if their ESI consultant disagrees.
+    # PF wages keep the client's wage-register convention, verified row by row
+    # against the source register: Basic + DA + bonus, i.e. gross minus HRA.
     pf_wage_base = money(basic + da + bonus)
-    esi_wage_base = money(basic + da)
+    # ESI wages are Basic + DA + HRA, i.e. gross minus the bonus head. HRA is
+    # inside the base because the ESI Act levies contribution on gross wages;
+    # the 8.33% statutory bonus is outside it, following the client's filed
+    # register. A Basic + DA base (no HRA) had regressed this and under-stated
+    # the base — on register row 1, 6750.88 instead of 7088.48, employee ESI
+    # 50.63 instead of the register's 53.16.
+    esi_wage_base = money(basic + da + hra)
 
     if paid_days > 0:
         comp = await client.compute_compliance(
@@ -363,6 +361,7 @@ def _employee_block(emp: dict) -> dict:
         "bank_account": _mask_bank_account(emp.get("bank_account")),
         "designation": emp.get("designation"),
         "work_location": emp.get("work_location"),
+        "uan_number": emp.get("uan_number"),
     }
 
 
@@ -400,11 +399,11 @@ async def _result_from_register_row(
                 "cycle_id": str(cycle.id),
                 "client_id": client_id,
                 # Same register convention as the daily-wage path: PF wages are
-                # Basic + DA + bonus, ESI wages are Basic + DA. See the note
-                # there on why HRA is outside the ESI base.
+                # Basic + DA + bonus, ESI wages are Basic + DA + HRA. See the
+                # note there on why HRA is in the ESI base and bonus is not.
                 "basic": str(money(basic + da + bonus)),
                 "monthly_gross": str(gross),
-                "esi_gross": str(money(basic + da)),
+                "esi_gross": str(money(basic + da + hra)),
                 "state": emp.get("state") or "ALL",
                 "gender": emp.get("gender"),
                 "month": cycle.period_start.month,

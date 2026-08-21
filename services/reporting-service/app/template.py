@@ -346,7 +346,7 @@ def render_payslip_html(cycle: dict, breakdown: dict, net_pay: str, client_info:
            cells carry no borders, so the gap does not render. -->
       <tr>
         <td class="lbl">Bank A/C No.</td><td class="val">{_bank_account(emp.get('bank_account'))}</td>
-        <td class="lbl"></td><td class="val"></td>
+        <td class="lbl">UAN No.</td><td class="val">{_txt(emp.get('uan_number'))}</td>
       </tr>
     </table>
   </div>

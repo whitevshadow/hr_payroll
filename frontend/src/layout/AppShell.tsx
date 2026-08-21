@@ -133,10 +133,13 @@ const NAV_SECTIONS: { label: string; hrOnly?: boolean; items: NavItem[] }[] = [
     label: "Payroll",
     hrOnly: true,
     items: [
-      { to: "/cycles",  label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
-      { to: "/payouts", label: "Payouts",        icon: CreditCard,       hrOnly: true },
-      { to: "/payslips", label: "Payslips",      icon: Receipt,          hrOnly: true },
-      { to: "/paysheet", label: "Paysheet",      icon: Table2,           hrOnly: true },
+      // Ordered by where each step falls in a run: run the cycle, check the
+      // register, disburse, then issue the slips. Keep new pages in sequence
+      // rather than appending to the end.
+      { to: "/cycles",   label: "Payroll Cycles", icon: CircleDollarSign, hrOnly: true },
+      { to: "/paysheet", label: "Paysheet",       icon: Table2,           hrOnly: true },
+      { to: "/payouts",  label: "Payouts",        icon: CreditCard,       hrOnly: true },
+      { to: "/payslips", label: "Payslips",       icon: Receipt,          hrOnly: true },
     ],
   },
   {
